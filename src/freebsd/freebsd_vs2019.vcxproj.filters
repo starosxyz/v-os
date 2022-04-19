@@ -1215,12 +1215,6 @@
     <ClCompile Include="sys\kern\p1003_1b.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="compat\user_link_after.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="compat\user_link_before.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sys\vm\vm_unix.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1354,6 +1348,30 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="api\so_api.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compile\compile_link_after.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compile\compile_link_before.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="api\so_kevent.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sys\dev\vos_clock\vos_clock.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sys\vm\uma_dbg.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="api\so_kthread.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="api\so_mbuf.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="epoll\vos_epoll.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
