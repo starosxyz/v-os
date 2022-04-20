@@ -4,7 +4,6 @@
 #include "context.h"
 
 extern so_atomic_hooks global_atomic_hooks;
-
 int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {

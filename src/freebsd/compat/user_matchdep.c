@@ -119,7 +119,6 @@ __FBSDID("$FreeBSD$");
 #include <machine/md_var.h>
 #include <machine/metadata.h>
 #include <machine/mp_watchdog.h>
-#include <machine/pc/bios.h>
 #include <machine/pcb.h>
 #include <machine/proc.h>
 #include <machine/reg.h>
@@ -540,22 +539,7 @@ void
 bios_add_smap_entries(struct bios_smap* smapbase, u_int32_t smapsize,
 	vm_paddr_t* physmap, int* physmap_idx)
 {
-	struct bios_smap* smap, * smapend;
 
-	smapend = (struct bios_smap*)((uintptr_t)smapbase + smapsize);
-
-	for (smap = smapbase; smap < smapend; smap++) {
-		if (boothowto & RB_VERBOSE)
-			printf("SMAP type=%02x base=%016lx len=%016lx\n",
-				smap->type, smap->base, smap->length);
-
-		if (smap->type != SMAP_TYPE_MEMORY)
-			continue;
-
-		if (!add_physmap_entry(smap->base, smap->length, physmap,
-			physmap_idx))
-			break;
-	}
 }
 
 static void
@@ -878,35 +862,7 @@ cpu_pcpu_init(struct pcpu* pcpu, int cpuid, size_t size)
 static int
 smap_sysctl_handler(SYSCTL_HANDLER_ARGS)
 {
-	struct bios_smap* smapbase;
-	struct bios_smap_xattr smap;
-	caddr_t kmdp;
-	uint32_t* smapattr;
-	int count, error, i;
-
-	/* Retrieve the system memory map from the loader. */
-	kmdp = preload_search_by_type("elf kernel");
-	if (kmdp == NULL)
-		kmdp = preload_search_by_type("elf64 kernel");
-	smapbase = (struct bios_smap*)preload_search_info(kmdp,
-		MODINFO_METADATA | MODINFOMD_SMAP);
-	if (smapbase == NULL)
-		return (0);
-	smapattr = (uint32_t*)preload_search_info(kmdp,
-		MODINFO_METADATA | MODINFOMD_SMAP_XATTR);
-	count = *((uint32_t*)smapbase - 1) / sizeof(*smapbase);
-	error = 0;
-	for (i = 0; i < count; i++) {
-		smap.base = smapbase[i].base;
-		smap.length = smapbase[i].length;
-		smap.type = smapbase[i].type;
-		if (smapattr != NULL)
-			smap.xattr = smapattr[i];
-		else
-			smap.xattr = 0;
-		error = SYSCTL_OUT(req, &smap, sizeof(smap));
-	}
-	return (error);
+	return -1;
 }
 SYSCTL_PROC(_machdep, OID_AUTO, smap,
 	CTLTYPE_OPAQUE | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,

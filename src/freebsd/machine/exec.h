@@ -1,40 +1,19 @@
-/*-
- * SPDX-License-Identifier: BSD-3-Clause
- *
- * Copyright (c) 1992, 1993
- *	The Regents of the University of California.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions
- * are met:
- * 1. Redistributions of source code must retain the above copyright
- *    notice, this list of conditions and the following disclaimer.
- * 2. Redistributions in binary form must reproduce the above copyright
- *    notice, this list of conditions and the following disclaimer in the
- *    documentation and/or other materials provided with the distribution.
- * 3. Neither the name of the University nor the names of its contributors
- *    may be used to endorse or promote products derived from this software
- *    without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE REGENTS AND CONTRIBUTORS ``AS IS'' AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
- * IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
- * ARE DISCLAIMED.  IN NO EVENT SHALL THE REGENTS OR CONTRIBUTORS BE LIABLE
- * FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL
- * DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS
- * OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION)
- * HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
- * LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY
- * OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF
- * SUCH DAMAGE.
- *
- *	@(#)exec.h	8.1 (Berkeley) 6/11/93
- * $FreeBSD$
- */
-
-#ifndef	_MACHINE_EXEC_H_
-#define	_MACHINE_EXEC_H_
-
-#define	__LDPGSZ	4096
-
-#endif /* !_MACHINE_EXEC_H_ */
+#if defined(__x86_64__)
+#include "platform/amd64/exec.h"
+#elif defined(__x86__)
+#include "platform/x86/exec.h"
+#elif defined(__ppc64__)
+#include "platform/powerpc/exec.h"
+#elif defined(__ppc__)
+#include "platform/powerpc/exec.h"
+#elif defined(__arm__)
+#include "platform/arm/exec.h"
+#elif defined(__aarch64__)
+#include "platform/arm64/exec.h"
+#elif !defined(__GNUC__)
+#ifdef _WIN32
+#include "platform/windows/exec.h"
+#else
+#error Your platform is unsupported
+#endif
+#endif

@@ -293,7 +293,6 @@
     <ClCompile Include="sys\kern\uipc_socket.c" />
     <ClCompile Include="sys\kern\uipc_syscalls.c" />
     <ClCompile Include="sys\kern\uipc_usrreq.c" />
-    <ClCompile Include="sys\amd64\amd64\in_cksum.c" />
     <ClCompile Include="sys\net\bpf.c" />
     <ClCompile Include="sys\net\bridgestp.c" />
     <ClCompile Include="sys\net\if.c" />
@@ -352,6 +351,7 @@
     <ClCompile Include="sys\netinet\tcp_debug.c" />
     <ClCompile Include="sys\netinet\tcp_hostcache.c" />
     <ClCompile Include="sys\netinet\tcp_lro.c" />
+    <ClCompile Include="sys\netinet\in_cksum.c" />
     <ClCompile Include="sys\netinet\tcp_offload.c" />
     <ClCompile Include="sys\netinet\tcp_output.c" />
     <ClCompile Include="sys\netinet\tcp_reass.c	" />
@@ -461,6 +461,7 @@
     <ClCompile Include="compat\user_device_if.c" />
     <ClCompile Include="compat\user_kern_descrip.c" />
     <ClCompile Include="compat\user_fpu.c" />
+    <ClCompile Include="compat\user_in_cksum_machdep.c" />
     <ClCompile Include="sys\dev\vos_clock\vos_clock.c" />
   </ItemGroup>
   <ItemGroup>
@@ -519,7 +520,7 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\windows</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8</AdditionalOptions>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -541,8 +542,9 @@
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>.;..\include;.\api;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\include;.\api;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\windows</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8</AdditionalOptions>
+      <LanguageStandard_C>Default</LanguageStandard_C>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>

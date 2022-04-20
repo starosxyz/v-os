@@ -7,6 +7,7 @@
 #include <starbase/CAWStarBase.h>
 #include "wface/CAWACEWrapper.h"
 #include "staros/staros.h"
+
 using namespace starbase;
 using namespace wface;
 int main(int argc, char **argv) {

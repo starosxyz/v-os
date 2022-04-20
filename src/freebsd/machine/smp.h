@@ -1,48 +1,19 @@
-/*-
- * ----------------------------------------------------------------------------
- * "THE BEER-WARE LICENSE" (Revision 42):
- * <phk@FreeBSD.org> wrote this file.  As long as you retain this notice you
- * can do whatever you want with this stuff. If we meet some day, and you think
- * this stuff is worth it, you can buy me a beer in return.   Poul-Henning Kamp
- * ----------------------------------------------------------------------------
- *
- * $FreeBSD$
- *
- */
-
-#ifndef _MACHINE_SMP_H_
-#define _MACHINE_SMP_H_
-
-#ifdef _KERNEL
-
-#ifdef SMP
-
-#ifndef LOCORE
-
-#include <x86/x86_smp.h>
-
-/* global symbols in mpboot.S */
-extern char			mptramp_start[];
-extern u_int32_t		mptramp_pagetables;
-
-/* IPI handlers */
-inthand_t
-	IDTVEC(justreturn),	/* interrupt CPU with minimum overhead */
-	IDTVEC(justreturn1_pti),
-	IDTVEC(invlop_pti),
-	IDTVEC(invlop),
-	IDTVEC(ipi_intr_bitmap_handler_pti),
-	IDTVEC(ipi_swi_pti),
-	IDTVEC(cpustop_pti),
-	IDTVEC(cpususpend_pti),
-	IDTVEC(rendezvous_pti);
-
-void	invlop_handler(void);
-int	native_start_all_aps(void);
-void	mp_bootaddress(vm_paddr_t *, unsigned int *);
-
-#endif /* !LOCORE */
-#endif /* SMP */
-
-#endif /* _KERNEL */
-#endif /* _MACHINE_SMP_H_ */
+#if defined(__x86_64__)
+#include "platform/amd64/smp.h"
+#elif defined(__x86__)
+#include "platform/x86/smp.h"
+#elif defined(__ppc64__)
+#include "platform/powerpc/smp.h"
+#elif defined(__ppc__)
+#include "platform/powerpc/smp.h"
+#elif defined(__arm__)
+#include "platform/arm/smp.h"
+#elif defined(__aarch64__)
+#include "platform/arm64/smp.h"
+#elif !defined(__GNUC__)
+#ifdef _WIN32
+#include "platform/windows/smp.h"
+#else
+#error Your platform is unsupported
+#endif
+#endif
