@@ -249,7 +249,7 @@ VNET_PCPUSTAT_SYSINIT(carpstats);
 VNET_PCPUSTAT_SYSUNINIT(carpstats);
 
 #define	CARPSTATS_ADD(name, val)	\
-    counter_u64_add(VNET(carpstats)[offsetof(struct carpstats, name) / \
+    counter_u64_add(VNET(carpstats)[vos_offsetof(struct carpstats, name) / \
 	sizeof(uint64_t)], (val))
 #define	CARPSTATS_INC(name)		CARPSTATS_ADD(name, 1)
 
@@ -672,14 +672,14 @@ carp_input_c(struct mbuf *m, struct carp_header *ch, sa_family_t af)
 		    ifa->ifa_carp->sc_vhid == ch->carp_vhid)
 			match = ifa;
 		if (ch->carp_vhid == 0 && carp_source_is_self(m, ifa, af))
-			error = ELOOP;
+			error = VOS_ELOOP;
 	}
 	ifa = error ? NULL : match;
 	if (ifa != NULL)
 		ifa_ref(ifa);
 
 	if (ifa == NULL) {
-		if (error == ELOOP) {
+		if (error == VOS_ELOOP) {
 			CARP_DEBUG("dropping looped packet on interface %s\n",
 			    ifp->if_xname);
 			CARPSTATS_INC(carps_badif);	/* ??? */
@@ -800,7 +800,7 @@ carp_prepare_ad(struct mbuf *m, struct carp_softc *sc, struct carp_header *ch)
 	    M_NOWAIT)) == NULL) {
 		m_freem(m);
 		CARPSTATS_INC(carps_onomem);
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 	bcopy(&sc, mtag + 1, sizeof(sc));
 	m_tag_prepend(m, mtag);
@@ -1561,7 +1561,7 @@ carp_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *sa)
 	default:
 		printf("%s: carp is not supported for the %d interface type\n",
 		    ifp->if_xname, ifp->if_type);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	return (0);
@@ -1578,7 +1578,7 @@ carp_alloc(struct ifnet *ifp)
 	if ((cif = ifp->if_carp) == NULL)
 		cif = carp_alloc_if(ifp);
 
-	sc = malloc(sizeof(*sc), M_CARP, M_WAITOK|M_ZERO);
+	sc = vos_malloc(sizeof(*sc), M_CARP, M_WAITOK|M_ZERO);
 
 	sc->sc_advbase = CARP_DFLTINTV;
 	sc->sc_vhid = -1;	/* required setting */
@@ -1586,7 +1586,7 @@ carp_alloc(struct ifnet *ifp)
 	sc->sc_state = INIT;
 
 	sc->sc_ifasiz = sizeof(struct ifaddr *);
-	sc->sc_ifas = malloc(sc->sc_ifasiz, M_CARP, M_WAITOK|M_ZERO);
+	sc->sc_ifas = vos_malloc(sc->sc_ifasiz, M_CARP, M_WAITOK|M_ZERO);
 	sc->sc_carpdev = ifp;
 
 	CARP_LOCK_INIT(sc);
@@ -1614,10 +1614,10 @@ carp_grow_ifas(struct carp_softc *sc)
 {
 	struct ifaddr **new;
 
-	new = malloc(sc->sc_ifasiz * 2, M_CARP, M_WAITOK | M_ZERO);
+	new = vos_malloc(sc->sc_ifasiz * 2, M_CARP, M_WAITOK | M_ZERO);
 	CARP_LOCK(sc);
 	bcopy(sc->sc_ifas, new, sc->sc_ifasiz);
-	free(sc->sc_ifas, M_CARP);
+	vos_free(sc->sc_ifas, M_CARP);
 	sc->sc_ifas = new;
 	sc->sc_ifasiz *= 2;
 	CARP_UNLOCK(sc);
@@ -1652,8 +1652,8 @@ carp_destroy(struct carp_softc *sc)
 #endif
 	CARP_LOCK_DESTROY(sc);
 
-	free(sc->sc_ifas, M_CARP);
-	free(sc, M_CARP);
+	vos_free(sc->sc_ifas, M_CARP);
+	vos_free(sc, M_CARP);
 }
 
 static struct carp_if*
@@ -1662,7 +1662,7 @@ carp_alloc_if(struct ifnet *ifp)
 	struct carp_if *cif;
 	int error;
 
-	cif = malloc(sizeof(*cif), M_CARP, M_WAITOK|M_ZERO);
+	cif = vos_malloc(sizeof(*cif), M_CARP, M_WAITOK|M_ZERO);
 
 	if ((error = ifpromisc(ifp, 1)) != 0)
 		printf("%s: ifpromisc(%s) failed: %d\n",
@@ -1701,7 +1701,7 @@ carp_free_if(struct carp_if *cif)
 		ifpromisc(ifp, 0);
 	if_rele(ifp);
 
-	free(cif, M_CARP);
+	vos_free(cif, M_CARP);
 }
 
 static void
@@ -1733,7 +1733,7 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 
 	ifp = ifunit_ref(ifr->ifr_name);
 	if (ifp == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	switch (ifp->if_type) {
 	case IFT_ETHER:
@@ -1741,12 +1741,12 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 	case IFT_BRIDGE:
 		break;
 	default:
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 		goto out;
 	}
 
 	if ((ifp->if_flags & IFF_MULTICAST) == 0) {
-		error = EADDRNOTAVAIL;
+		error = VOS_EADDRNOTAVAIL;
 		goto out;
 	}
 
@@ -1757,7 +1757,7 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 			break;
 		if (carpr.carpr_vhid <= 0 || carpr.carpr_vhid > CARP_MAXVHID ||
 		    carpr.carpr_advbase < 0 || carpr.carpr_advskew < 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 
@@ -1782,13 +1782,13 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 		if (carpr.carpr_advbase > 0) {
 			if (carpr.carpr_advbase > 255 ||
 			    carpr.carpr_advbase < CARP_DFLTINTV) {
-				error = EINVAL;
+				error = VOS_EINVAL;
 				break;
 			}
 			sc->sc_advbase = carpr.carpr_advbase;
 		}
 		if (carpr.carpr_advskew >= 255) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		sc->sc_advskew = carpr.carpr_advskew;
@@ -1821,15 +1821,15 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 		int priveleged;
 
 		if (carpr.carpr_vhid < 0 || carpr.carpr_vhid > CARP_MAXVHID) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (carpr.carpr_count < 1) {
-			error = EMSGSIZE;
+			error = VOS_EMSGSIZE;
 			break;
 		}
 		if (ifp->if_carp == NULL) {
-			error = ENOENT;
+			error = VOS_ENOENT;
 			break;
 		}
 
@@ -1839,7 +1839,7 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 				if (sc->sc_vhid == carpr.carpr_vhid)
 					break;
 			if (sc == NULL) {
-				error = ENOENT;
+				error = VOS_ENOENT;
 				break;
 			}
 			carp_carprcp(&carpr, sc, priveleged);
@@ -1854,7 +1854,7 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 
 			if (count > carpr.carpr_count) {
 				CIF_UNLOCK(ifp->if_carp);
-				error = EMSGSIZE;
+				error = VOS_EMSGSIZE;
 				break;
 			}
 
@@ -1875,7 +1875,7 @@ carp_ioctl(struct ifreq *ifr, u_long cmd, struct thread *td)
 		break;
 	    }
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 	sx_xunlock(&carp_sx);
 
@@ -1916,13 +1916,13 @@ carp_attach(struct ifaddr *ifa, int vhid)
 #endif
 		break;
 	default:
-		return (EPROTOTYPE);
+		return (VOS_EPROTOTYPE);
 	}
 
 	sx_xlock(&carp_sx);
 	if (ifp->if_carp == NULL) {
 		sx_xunlock(&carp_sx);
-		return (ENOPROTOOPT);
+		return (VOS_ENOPROTOOPT);
 	}
 
 	IFNET_FOREACH_CARP(ifp, sc)
@@ -1930,7 +1930,7 @@ carp_attach(struct ifaddr *ifa, int vhid)
 			break;
 	if (sc == NULL) {
 		sx_xunlock(&carp_sx);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	error = carp_multicast_setup(cif, ifa->ifa_addr->sa_family);
@@ -2143,7 +2143,7 @@ carp_dscp_sysctl(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (new < 0 || new > 63)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	V_carp_dscp = new;
 
@@ -2296,12 +2296,12 @@ carp_modevent(module_t mod, int type, void *data)
 			carp_mod_cleanup();
 		else {
 			mtx_unlock(&carp_mtx);
-			return (EBUSY);
+			return (VOS_EBUSY);
 		}
 		break;
 
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	return (0);

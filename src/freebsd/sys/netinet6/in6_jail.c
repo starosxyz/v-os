@@ -102,7 +102,7 @@ prison_restrict_ip6(struct prison *pr, struct in6_addr *newip6)
 			 */
 			used = 1;
 			if (newip6 == NULL) {
-				newip6 = malloc(ppr->pr_ip6s * sizeof(*newip6),
+				newip6 = vos_malloc(ppr->pr_ip6s * sizeof(*newip6),
 				    M_PRISON, M_NOWAIT);
 				if (newip6 != NULL)
 					used = 0;
@@ -110,7 +110,7 @@ prison_restrict_ip6(struct prison *pr, struct in6_addr *newip6)
 			if (newip6 != NULL) {
 				bcopy(ppr->pr_ip6, newip6,
 				    ppr->pr_ip6s * sizeof(*newip6));
-				free(pr->pr_ip6, M_PRISON);
+				vos_free(pr->pr_ip6, M_PRISON);
 				pr->pr_ip6 = newip6;
 				pr->pr_ip6s = ppr->pr_ip6s;
 			}
@@ -121,7 +121,7 @@ prison_restrict_ip6(struct prison *pr, struct in6_addr *newip6)
 			bcopy(ppr->pr_ip6, pr->pr_ip6,
 			    pr->pr_ip6s * sizeof(*newip6));
 		else if (pr->pr_ip6 != NULL) {
-			free(pr->pr_ip6, M_PRISON);
+			vos_free(pr->pr_ip6, M_PRISON);
 			pr->pr_ip6 = NULL;
 		}
 	} else if (pr->pr_ip6s > 0) {
@@ -159,7 +159,7 @@ prison_restrict_ip6(struct prison *pr, struct in6_addr *newip6)
 			}
 		}
 		if (pr->pr_ip6s == 0) {
-			free(pr->pr_ip6, M_PRISON);
+			vos_free(pr->pr_ip6, M_PRISON);
 			pr->pr_ip6 = NULL;
 		}
 	}
@@ -172,7 +172,7 @@ prison_restrict_ip6(struct prison *pr, struct in6_addr *newip6)
  * If not restricted return success but do not alter the address.  Caller has
  * to make sure to initialize it correctly (e.g. IN6ADDR_ANY_INIT).
  *
- * Returns 0 on success, EAFNOSUPPORT if the jail doesn't allow IPv6.
+ * Returns 0 on success, VOS_EAFNOSUPPORT if the jail doesn't allow IPv6.
  */
 int
 prison_get_ip6(struct ucred *cred, struct in6_addr *ia6)
@@ -192,7 +192,7 @@ prison_get_ip6(struct ucred *cred, struct in6_addr *ia6)
 	}
 	if (pr->pr_ip6 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	}
 
 	bcopy(&pr->pr_ip6[0], ia6, sizeof(struct in6_addr));
@@ -205,7 +205,7 @@ prison_get_ip6(struct ucred *cred, struct in6_addr *ia6)
  * We will return 0 if we should bypass source address selection in favour
  * of the primary jail IPv6 address. Only in this case *ia will be updated and
  * returned in NBO.
- * Return EAFNOSUPPORT, in case this jail does not allow IPv6.
+ * Return VOS_EAFNOSUPPORT, in case this jail does not allow IPv6.
  */
 int
 prison_saddrsel_ip6(struct ucred *cred, struct in6_addr *ia6)
@@ -267,7 +267,7 @@ prison_equal_ip6(struct prison *pr1, struct prison *pr2)
  * when needed while binding.
  *
  * Returns 0 if jail doesn't restrict IPv6 or if address belongs to jail,
- * EADDRNOTAVAIL if the address doesn't belong, or EAFNOSUPPORT if the jail
+ * VOS_EADDRNOTAVAIL if the address doesn't belong, or VOS_EAFNOSUPPORT if the jail
  * doesn't allow IPv6.
  */
 int
@@ -289,7 +289,7 @@ prison_local_ip6(struct ucred *cred, struct in6_addr *ia6, int v6only)
 	}
 	if (pr->pr_ip6 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	}
 
 	if (IN6_IS_ADDR_UNSPECIFIED(ia6)) {
@@ -304,7 +304,7 @@ prison_local_ip6(struct ucred *cred, struct in6_addr *ia6, int v6only)
 	}
 
 	error = prison_check_ip6_locked(pr, ia6);
-	if (error == EADDRNOTAVAIL && IN6_IS_ADDR_LOOPBACK(ia6)) {
+	if (error == VOS_EADDRNOTAVAIL && IN6_IS_ADDR_LOOPBACK(ia6)) {
 		bcopy(&pr->pr_ip6[0], ia6, sizeof(struct in6_addr));
 		error = 0;
 	}
@@ -316,7 +316,7 @@ prison_local_ip6(struct ucred *cred, struct in6_addr *ia6, int v6only)
 /*
  * Rewrite destination address in case we will connect to loopback address.
  *
- * Returns 0 on success, EAFNOSUPPORT if the jail doesn't allow IPv6.
+ * Returns 0 on success, VOS_EAFNOSUPPORT if the jail doesn't allow IPv6.
  */
 int
 prison_remote_ip6(struct ucred *cred, struct in6_addr *ia6)
@@ -336,11 +336,11 @@ prison_remote_ip6(struct ucred *cred, struct in6_addr *ia6)
 	}
 	if (pr->pr_ip6 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	}
 
 	if (IN6_IS_ADDR_LOOPBACK(ia6) &&
-            prison_check_ip6_locked(pr, ia6) == EADDRNOTAVAIL) {
+            prison_check_ip6_locked(pr, ia6) == VOS_EADDRNOTAVAIL) {
 		bcopy(&pr->pr_ip6[0], ia6, sizeof(struct in6_addr));
 		mtx_unlock(&pr->pr_mtx);
 		return (0);
@@ -357,7 +357,7 @@ prison_remote_ip6(struct ucred *cred, struct in6_addr *ia6)
  * Check if given address belongs to the jail referenced by cred/prison.
  *
  * Returns 0 if address belongs to jail,
- * EADDRNOTAVAIL if the address doesn't belong to the jail.
+ * VOS_EADDRNOTAVAIL if the address doesn't belong to the jail.
  */
 int
 prison_check_ip6_locked(const struct prison *pr, const struct in6_addr *ia6)
@@ -386,7 +386,7 @@ prison_check_ip6_locked(const struct prison *pr, const struct in6_addr *ia6)
 			return (0);
 	}
 
-	return (EADDRNOTAVAIL);
+	return (VOS_EADDRNOTAVAIL);
 }
 
 int
@@ -408,7 +408,7 @@ prison_check_ip6(const struct ucred *cred, const struct in6_addr *ia6)
 	}
 	if (pr->pr_ip6 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	}
 
 	error = prison_check_ip6_locked(pr, ia6);

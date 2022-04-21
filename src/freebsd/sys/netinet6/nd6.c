@@ -263,7 +263,7 @@ nd6_ifattach(struct ifnet *ifp)
 {
 	struct nd_ifinfo *nd;
 
-	nd = malloc(sizeof(*nd), M_IP6NDP, M_WAITOK | M_ZERO);
+	nd = vos_malloc(sizeof(*nd), M_IP6NDP, M_WAITOK | M_ZERO);
 	nd->initialized = 1;
 
 	nd->chlim = IPV6_DEFHLIM;
@@ -324,7 +324,7 @@ nd6_ifdetach(struct ifnet *ifp, struct nd_ifinfo *nd)
 	}
 	NET_EPOCH_EXIT(et);
 
-	free(nd, M_IP6NDP);
+	vos_free(nd, M_IP6NDP);
 }
 
 /*
@@ -1612,7 +1612,7 @@ nd6_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp)
 	int error = 0;
 
 	if (ifp->if_afdata[AF_INET6] == NULL)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 	switch (cmd) {
 	case OSIOCGIFINFO_IN6:
 #define ND	ndi->ndi
@@ -1639,7 +1639,7 @@ nd6_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp)
 		if (ND.linkmtu != 0) {
 			if (ND.linkmtu < IPV6_MMTU ||
 			    ND.linkmtu > IN6_LINKMTU(ifp)) {
-				error = EINVAL;
+				error = VOS_EINVAL;
 				break;
 			}
 			ND_IFINFO(ifp)->linkmtu = ND.linkmtu;
@@ -1810,7 +1810,7 @@ nd6_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp)
 		NET_EPOCH_EXIT(et);
 
 		if (ln == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		nbi->state = ln->ln_state;
@@ -2207,7 +2207,7 @@ nd6_output_ifp(struct ifnet *ifp, struct ifnet *origifp, struct mbuf *m,
  *
  * Return values:
  * - 0 on success (address copied to buffer).
- * - EWOULDBLOCK (no local error, but address is still unresolved)
+ * - VOS_EWOULDBLOCK (no local error, but address is still unresolved)
  * - other errors (alloc failure, etc)
  */
 int
@@ -2228,7 +2228,7 @@ nd6_resolve(struct ifnet *ifp, int is_gw, struct mbuf *m,
 	/* discard the packet if IPv6 operation is disabled on the interface */
 	if ((ND_IFINFO(ifp)->flags & ND6_IFF_IFDISABLED)) {
 		m_freem(m);
-		return (ENETDOWN); /* better error? */
+		return (VOS_ENETDOWN); /* better error? */
 	}
 
 	if (m != NULL && m->m_flags & M_MCAST) {
@@ -2241,7 +2241,7 @@ nd6_resolve(struct ifnet *ifp, int is_gw, struct mbuf *m,
 			return (0);
 		default:
 			m_freem(m);
-			return (EAFNOSUPPORT);
+			return (VOS_EAFNOSUPPORT);
 		}
 	}
 
@@ -2316,7 +2316,7 @@ nd6_resolve_slow(struct ifnet *ifp, int flags, struct mbuf *m,
 				    "(ln=%p)\n",
 				    ip6_sprintf(ip6buf, &dst->sin6_addr), lle);
 				m_freem(m);
-				return (ENOBUFS);
+				return (VOS_ENOBUFS);
 			}
 
 			IF_AFDATA_WLOCK(ifp);
@@ -2335,7 +2335,7 @@ nd6_resolve_slow(struct ifnet *ifp, int flags, struct mbuf *m,
 	} 
 	if (lle == NULL) {
 		m_freem(m);
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	}
 
 	LLE_WLOCK_ASSERT(lle);
@@ -2423,7 +2423,7 @@ nd6_resolve_slow(struct ifnet *ifp, int flags, struct mbuf *m,
 	if (send_ns != 0)
 		nd6_ns_output(ifp, psrc, NULL, &dst->sin6_addr, NULL);
 
-	return (EWOULDBLOCK);
+	return (VOS_EWOULDBLOCK);
 }
 
 /*
@@ -2433,7 +2433,7 @@ nd6_resolve_slow(struct ifnet *ifp, int flags, struct mbuf *m,
  *
  * Return values:
  * - 0 on success (address copied to buffer).
- * - EWOULDBLOCK (no local error, but address is still unresolved)
+ * - VOS_EWOULDBLOCK (no local error, but address is still unresolved)
  * - other errors (alloc failure, etc)
  */
 int
@@ -2519,7 +2519,7 @@ nd6_add_ifa_lle(struct in6_ifaddr *ia)
 	dst = (struct sockaddr *)&ia->ia_addr;
 	ln = lltable_alloc_entry(LLTABLE6(ifp), LLE_IFADDR, dst);
 	if (ln == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 
 	IF_AFDATA_WLOCK(ifp);
 	LLE_WLOCK(ln);
@@ -2589,7 +2589,7 @@ nd6_sysctl_prlist(SYSCTL_HANDLER_ARGS)
 	char ip6buf[INET6_ADDRSTRLEN];
 
 	if (req->newptr)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	error = sysctl_wire_old_buffer(req, 0);
 	if (error != 0)

@@ -99,7 +99,7 @@ rt_table_init(int offset, int family, u_int fibnum)
 {
 	struct rib_head *rh;
 
-	rh = malloc(sizeof(struct rib_head), M_RTABLE, M_WAITOK | M_ZERO);
+	rh = vos_malloc(sizeof(struct rib_head), M_RTABLE, M_WAITOK | M_ZERO);
 
 	/* TODO: These details should be hidded inside radix.c */
 	/* Init masks tree */
@@ -169,7 +169,7 @@ rt_table_destroy(struct rib_head *rh)
 
 	/* Assume table is already empty */
 	RIB_LOCK_DESTROY(rh);
-	free(rh, M_RTABLE);
+	vos_free(rh, M_RTABLE);
 }
 
 /*
@@ -197,7 +197,7 @@ rib_add_redirect(u_int fibnum, struct sockaddr *dst, struct sockaddr *gateway,
 	NET_EPOCH_ASSERT();
 
 	if (rt_tables_get_rnh(fibnum, dst->sa_family) == NULL)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	/* Verify the allowed flag mask. */
 	KASSERT(((flags & ~(RTF_GATEWAY)) == 0),
@@ -206,7 +206,7 @@ rib_add_redirect(u_int fibnum, struct sockaddr *dst, struct sockaddr *gateway,
 
 	/* Get the best ifa for the given interface and gateway. */
 	if ((ifa = ifaof_ifpforaddr(gateway, ifp)) == NULL)
-		return (ENETUNREACH);
+		return (VOS_ENETUNREACH);
 	ifa_ref(ifa);
 
 	bzero(&info, sizeof(info));
@@ -258,9 +258,9 @@ rtioctl_fib(u_long req, caddr_t data, u_int fibnum)
 	 */
 #ifdef INET
 	/* Multicast goop, grrr... */
-	return mrt_ioctl ? mrt_ioctl(req, data, fibnum) : EOPNOTSUPP;
+	return mrt_ioctl ? mrt_ioctl(req, data, fibnum) : VOS_EOPNOTSUPP;
 #else /* INET */
-	return ENXIO;
+	return VOS_ENXIO;
 #endif /* INET */
 }
 
@@ -345,7 +345,7 @@ rt_exportinfo(struct rtentry *rt, struct nhop_object *nh,
 		sa_len = src->sa_len;
 		if (dst != NULL) {
 			if (src->sa_len > dst->sa_len)
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 			memcpy(dst, src, src->sa_len);
 			info->rti_addrs |= RTA_DST;
 		}
@@ -360,7 +360,7 @@ rt_exportinfo(struct rtentry *rt, struct nhop_object *nh,
 			 * as rt_key()
 			 */
 			if (sa_len > dst->sa_len)
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 			memcpy(dst, src, src->sa_len);
 			info->rti_addrs |= RTA_NETMASK;
 		}
@@ -371,7 +371,7 @@ rt_exportinfo(struct rtentry *rt, struct nhop_object *nh,
 		if ((nhop_get_rtflags(nh) & RTF_GATEWAY) &&
 		    src != NULL && dst != NULL) {
 			if (src->sa_len > dst->sa_len)
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 			memcpy(dst, src, src->sa_len);
 			info->rti_addrs |= RTA_GATEWAY;
 		}
@@ -413,7 +413,7 @@ rt_exportinfo(struct rtentry *rt, struct nhop_object *nh,
  * All references can be released later by calling rib_free_info().
  *
  * Returns 0 on success.
- * Returns ENOENT for lookup failure, ENOMEM for export failure.
+ * Returns VOS_ENOENT for lookup failure, VOS_ENOMEM for export failure.
  */
 int
 rib_lookup_info(uint32_t fibnum, const struct sockaddr *dst, uint32_t flags,
@@ -429,7 +429,7 @@ rib_lookup_info(uint32_t fibnum, const struct sockaddr *dst, uint32_t flags,
 	KASSERT((fibnum < rt_numfibs), ("rib_lookup_rte: bad fibnum"));
 	rh = rt_tables_get_rnh(fibnum, dst->sa_family);
 	if (rh == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 
 	RIB_RLOCK(rh);
 	rn = rh->rnh_matchaddr(__DECONST(void *, dst), &rh->head);
@@ -447,7 +447,7 @@ rib_lookup_info(uint32_t fibnum, const struct sockaddr *dst, uint32_t flags,
 	}
 	RIB_RUNLOCK(rh);
 
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /*
@@ -588,7 +588,7 @@ rt_getifa_fib(struct rt_addrinfo *info, u_int fibnum)
 			info->rti_ifp = info->rti_ifa->ifa_ifp;
 		ifa_ref(info->rti_ifa);
 	} else
-		error = ENETUNREACH;
+		error = VOS_ENETUNREACH;
 	NET_EPOCH_EXIT(et);
 	return (error);
 }
@@ -640,7 +640,7 @@ p_sockaddr(char *buf, int buflen, struct sockaddr *s)
 	if (inet_ntop(s->sa_family, paddr, buf, buflen) == NULL)
 		return (0);
 
-	return (strlen(buf));
+	return (vos_strlen(buf));
 }
 
 int

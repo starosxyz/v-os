@@ -247,7 +247,7 @@ blist_create(daddr_t blocks, int flags)
 	for (radix = 1; radix <= blocks / BLIST_RADIX; radix *= BLIST_RADIX)
 		nodes += 1 + (blocks - 1) / radix / BLIST_RADIX;
 
-	bl = malloc(offsetof(struct blist, bl_root[nodes]), M_SWAP, flags |
+	bl = vos_malloc(vos_offsetof(struct blist, bl_root[nodes]), M_SWAP, flags |
 	    M_ZERO);
 	if (bl == NULL)
 		return (NULL);
@@ -274,7 +274,7 @@ void
 blist_destroy(blist_t bl)
 {
 
-	free(bl, M_SWAP);
+	vos_free(bl, M_SWAP);
 }
 
 /*

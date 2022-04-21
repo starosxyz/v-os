@@ -113,7 +113,7 @@ struct ktr_request {
 };
 
 static int data_lengths[] = {
-	[KTR_SYSCALL] = offsetof(struct ktr_syscall, ktr_args),
+	[KTR_SYSCALL] = vos_offsetof(struct ktr_syscall, ktr_args),
 	[KTR_SYSRET] = sizeof(struct ktr_sysret),
 	[KTR_NAMEI] = 0,
 	[KTR_GENIO] = sizeof(struct ktr_genio),
@@ -219,7 +219,7 @@ ktrace_init(void *dummy)
 	sx_init(&ktrace_sx, "ktrace_sx");
 	STAILQ_INIT(&ktr_free);
 	for (i = 0; i < ktr_requestpool; i++) {
-		req = malloc(sizeof(struct ktr_request), M_KTRACE, M_WAITOK |
+		req = vos_malloc(sizeof(struct ktr_request), M_KTRACE, M_WAITOK |
 		    M_ZERO);
 		STAILQ_INSERT_HEAD(&ktr_free, req, ktr_list);
 	}
@@ -251,7 +251,7 @@ sysctl_kern_ktrace_request_pool(SYSCTL_HANDLER_ARGS)
 	if (error)
 		return (error);
 	if (wantsize > oldsize && newsize < wantsize)
-		return (ENOSPC);
+		return (VOS_ENOSPC);
 	return (0);
 }
 SYSCTL_PROC(_kern_ktrace, OID_AUTO, request_pool,
@@ -279,13 +279,13 @@ ktrace_resize_pool(u_int oldsize, u_int newsize)
 				break;
 			STAILQ_REMOVE_HEAD(&ktr_free, ktr_list);
 			ktr_requestpool--;
-			free(req, M_KTRACE);
+			vos_free(req, M_KTRACE);
 		}
 	} else {
 		/* Grow pool up to newsize. */
 		STAILQ_INIT(&ktr_new);
 		while (bound-- > 0) {
-			req = malloc(sizeof(struct ktr_request), M_KTRACE,
+			req = vos_malloc(sizeof(struct ktr_request), M_KTRACE,
 			    M_WAITOK | M_ZERO);
 			STAILQ_INSERT_HEAD(&ktr_new, req, ktr_list);
 		}
@@ -437,7 +437,7 @@ ktr_freerequest_locked(struct ktr_request *req)
 
 	mtx_assert(&ktrace_mtx, MA_OWNED);
 	if (req->ktr_buffer != NULL)
-		free(req->ktr_buffer, M_KTRACE);
+		vos_free(req->ktr_buffer, M_KTRACE);
 	STAILQ_INSERT_HEAD(&ktr_free, req, ktr_list);
 }
 
@@ -467,7 +467,7 @@ ktr_io_params_free(struct ktr_io_params *kiop)
 	MPASS(kiop->refs == 0);
 	vn_close(kiop->vp, FWRITE, kiop->cr, curthread);
 	crfree(kiop->cr);
-	free(kiop, M_KTRACE);
+	vos_free(kiop, M_KTRACE);
 }
 
 static struct ktr_io_params *
@@ -475,7 +475,7 @@ ktr_io_params_alloc(struct thread *td, struct vnode *vp)
 {
 	struct ktr_io_params *res;
 
-	res = malloc(sizeof(struct ktr_io_params), M_KTRACE, M_WAITOK);
+	res = vos_malloc(sizeof(struct ktr_io_params), M_KTRACE, M_WAITOK);
 	res->vp = vp;
 	res->cr = crhold(td->td_ucred);
 	res->lim = lim_cur(td, RLIMIT_FSIZE);
@@ -536,13 +536,13 @@ ktrsyscall(int code, int narg, register_t args[])
 
 	buflen = sizeof(register_t) * narg;
 	if (buflen > 0) {
-		buf = malloc(buflen, M_KTRACE, M_WAITOK);
+		buf = vos_malloc(buflen, M_KTRACE, M_WAITOK);
 		bcopy(args, buf, buflen);
 	}
 	req = ktr_getrequest(KTR_SYSCALL);
 	if (req == NULL) {
 		if (buf != NULL)
-			free(buf, M_KTRACE);
+			vos_free(buf, M_KTRACE);
 		return;
 	}
 	ktp = &req->ktr_data.ktr_syscall;
@@ -706,15 +706,15 @@ ktrnamei(path)
 	int namelen;
 	char *buf = NULL;
 
-	namelen = strlen(path);
+	namelen = vos_strlen(path);
 	if (namelen > 0) {
-		buf = malloc(namelen, M_KTRACE, M_WAITOK);
+		buf = vos_malloc(namelen, M_KTRACE, M_WAITOK);
 		bcopy(path, buf, namelen);
 	}
 	req = ktr_getrequest(KTR_NAMEI);
 	if (req == NULL) {
 		if (buf != NULL)
-			free(buf, M_KTRACE);
+			vos_free(buf, M_KTRACE);
 		return;
 	}
 	if (namelen > 0) {
@@ -739,16 +739,16 @@ ktrsysctl(int *name, u_int namelen)
 	mib[1] = 1;
 	bcopy(name, mib + 2, namelen * sizeof(*name));
 	mibnamelen = 128;
-	mibname = malloc(mibnamelen, M_KTRACE, M_WAITOK);
+	mibname = vos_malloc(mibnamelen, M_KTRACE, M_WAITOK);
 	error = kernel_sysctl(curthread, mib, namelen + 2, mibname, &mibnamelen,
 	    NULL, 0, &mibnamelen, 0);
 	if (error) {
-		free(mibname, M_KTRACE);
+		vos_free(mibname, M_KTRACE);
 		return;
 	}
 	req = ktr_getrequest(KTR_SYSCTL);
 	if (req == NULL) {
-		free(mibname, M_KTRACE);
+		vos_free(mibname, M_KTRACE);
 		return;
 	}
 	req->ktr_header.ktr_len = mibnamelen;
@@ -765,22 +765,22 @@ ktrgenio(int fd, enum uio_rw rw, struct uio *uio, int error)
 	char *buf;
 
 	if (error) {
-		free(uio, M_IOV);
+		vos_free(uio, M_IOV);
 		return;
 	}
 	uio->uio_offset = 0;
 	uio->uio_rw = UIO_WRITE;
 	datalen = MIN(uio->uio_resid, ktr_geniosize);
-	buf = malloc(datalen, M_KTRACE, M_WAITOK);
+	buf = vos_malloc(datalen, M_KTRACE, M_WAITOK);
 	error = uiomove(buf, datalen, uio);
-	free(uio, M_IOV);
+	vos_free(uio, M_IOV);
 	if (error) {
-		free(buf, M_KTRACE);
+		vos_free(buf, M_KTRACE);
 		return;
 	}
 	req = ktr_getrequest(KTR_GENIO);
 	if (req == NULL) {
-		free(buf, M_KTRACE);
+		vos_free(buf, M_KTRACE);
 		return;
 	}
 	ktg = &req->ktr_data.ktr_genio;
@@ -827,7 +827,7 @@ ktrcsw(int out, int user, const char *wmesg)
 	kc->out = out;
 	kc->user = user;
 	if (wmesg != NULL)
-		strlcpy(kc->wmesg, wmesg, sizeof(kc->wmesg));
+		vos_strlcpy(kc->wmesg, wmesg, sizeof(kc->wmesg));
 	else
 		bzero(kc->wmesg, sizeof(kc->wmesg));
 	ktr_enqueuerequest(td, req);
@@ -846,13 +846,13 @@ ktrstruct(const char *name, const void *data, size_t datalen)
 
 	if (data == NULL)
 		datalen = 0;
-	namelen = strlen(name) + 1;
+	namelen = vos_strlen(name) + 1;
 	buflen = namelen + datalen;
-	buf = malloc(buflen, M_KTRACE, M_WAITOK);
-	strcpy(buf, name);
+	buf = vos_malloc(buflen, M_KTRACE, M_WAITOK);
+	vos_strcpy(buf, name);
 	bcopy(data, buf + namelen, datalen);
 	if ((req = ktr_getrequest(KTR_STRUCT)) == NULL) {
-		free(buf, M_KTRACE);
+		vos_free(buf, M_KTRACE);
 		return;
 	}
 	req->ktr_buffer = buf;
@@ -896,20 +896,20 @@ ktrstructarray(const char *name, enum uio_seg seg, const void *data,
 	if (data == NULL)
 		datalen = 0;
 
-	namelen = strlen(name) + 1;
+	namelen = vos_strlen(name) + 1;
 	buflen = namelen + datalen;
-	buf = malloc(buflen, M_KTRACE, M_WAITOK);
-	strcpy(buf, name);
+	buf = vos_malloc(buflen, M_KTRACE, M_WAITOK);
+	vos_strcpy(buf, name);
 	if (seg == UIO_SYSSPACE)
 		bcopy(data, buf + namelen, datalen);
 	else {
 		if (copyin(data, buf + namelen, datalen) != 0) {
-			free(buf, M_KTRACE);
+			vos_free(buf, M_KTRACE);
 			return;
 		}
 	}
 	if ((req = ktr_getrequest(KTR_STRUCT_ARRAY)) == NULL) {
-		free(buf, M_KTRACE);
+		vos_free(buf, M_KTRACE);
 		return;
 	}
 	ksa = &req->ktr_data.ktr_struct_array;
@@ -1017,7 +1017,7 @@ sys_ktrace(struct thread *td, struct ktrace_args *uap)
 	 * Need something to (un)trace.
 	 */
 	if (ops != KTROP_CLEARFILE && facs == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	kiop = NULL;
 	ktrace_enter(td);
@@ -1038,7 +1038,7 @@ sys_ktrace(struct thread *td, struct ktrace_args *uap)
 		if (vp->v_type != VREG) {
 			(void) vn_close(vp, FREAD|FWRITE, td->td_ucred, td);
 			ktrace_exit(td);
-			return (EACCES);
+			return (VOS_EACCES);
 		}
 		kiop = ktr_io_params_alloc(td, vp);
 	}
@@ -1058,7 +1058,7 @@ restart:
 					old_kiop = ktr_freeproc(p);
 					mtx_unlock(&ktrace_mtx);
 				} else
-					error = EPERM;
+					error = VOS_EPERM;
 			}
 			PROC_UNLOCK(p);
 			if (old_kiop != NULL) {
@@ -1081,7 +1081,7 @@ restart:
 		pg = pgfind(-uap->pid);
 		if (pg == NULL) {
 			sx_sunlock(&proctree_lock);
-			error = ESRCH;
+			error = VOS_ESRCH;
 			goto done;
 		}
 		/*
@@ -1105,7 +1105,7 @@ restart:
 		}
 		if (nfound == 0) {
 			sx_sunlock(&proctree_lock);
-			error = ESRCH;
+			error = VOS_ESRCH;
 			goto done;
 		}
 	} else {
@@ -1114,7 +1114,7 @@ restart:
 		 */
 		p = pfind(uap->pid);
 		if (p == NULL)
-			error = ESRCH;
+			error = VOS_ESRCH;
 		else
 			error = p_cansee(td, p);
 		if (error) {
@@ -1130,7 +1130,7 @@ restart:
 	}
 	sx_sunlock(&proctree_lock);
 	if (!ret)
-		error = EPERM;
+		error = VOS_EPERM;
 done:
 	if (kiop != NULL) {
 		mtx_lock(&ktrace_mtx);
@@ -1141,7 +1141,7 @@ done:
 	ktrace_exit(td);
 	return (error);
 #else /* !KTRACE */
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 #endif /* KTRACE */
 }
 
@@ -1158,24 +1158,24 @@ sys_utrace(struct thread *td, struct utrace_args *uap)
 	if (!KTRPOINT(td, KTR_USER))
 		return (0);
 	if (uap->len > KTR_USER_MAXLEN)
-		return (EINVAL);
-	cp = malloc(uap->len, M_KTRACE, M_WAITOK);
+		return (VOS_EINVAL);
+	cp = vos_malloc(uap->len, M_KTRACE, M_WAITOK);
 	error = copyin(uap->addr, cp, uap->len);
 	if (error) {
-		free(cp, M_KTRACE);
+		vos_free(cp, M_KTRACE);
 		return (error);
 	}
 	req = ktr_getrequest(KTR_USER);
 	if (req == NULL) {
-		free(cp, M_KTRACE);
-		return (ENOMEM);
+		vos_free(cp, M_KTRACE);
+		return (VOS_ENOMEM);
 	}
 	req->ktr_buffer = cp;
 	req->ktr_header.ktr_len = uap->len;
 	ktr_submitrequest(td, req);
 	return (0);
 #else /* !KTRACE */
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 #endif /* KTRACE */
 }
 

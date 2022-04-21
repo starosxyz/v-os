@@ -235,7 +235,7 @@ in_control(struct socket *so, u_long cmd, caddr_t data, struct ifnet *ifp,
 	int error;
 
 	if (ifp == NULL)
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 
 	/*
 	 * Filter out 4 ioctls we implement directly.  Forward the rest
@@ -268,16 +268,16 @@ in_control(struct socket *so, u_long cmd, caddr_t data, struct ifnet *ifp,
 	case SIOCSIFDSTADDR:
 	case SIOCSIFNETMASK:
 		/* We no longer support that old commands. */
-		return (EINVAL);
+		return (VOS_EINVAL);
 	default:
 		if (ifp->if_ioctl == NULL)
-			return (EOPNOTSUPP);
+			return (VOS_EOPNOTSUPP);
 		return ((*ifp->if_ioctl)(ifp, cmd, data));
 	}
 
 	if (addr->sin_addr.s_addr != INADDR_ANY &&
 	    prison_check_ip4(td->td_ucred, &addr->sin_addr) != 0)
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 
 	/*
 	 * Find address for this interface, if it exists.  If an
@@ -303,7 +303,7 @@ in_control(struct socket *so, u_long cmd, caddr_t data, struct ifnet *ifp,
 
 	if (ifa == NULL) {
 		NET_EPOCH_EXIT(et);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 
 	error = 0;
@@ -314,7 +314,7 @@ in_control(struct socket *so, u_long cmd, caddr_t data, struct ifnet *ifp,
 
 	case SIOCGIFBRDADDR:
 		if ((ifp->if_flags & IFF_BROADCAST) == 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		*addr = ia->ia_broadaddr;
@@ -322,7 +322,7 @@ in_control(struct socket *so, u_long cmd, caddr_t data, struct ifnet *ifp,
 
 	case SIOCGIFDSTADDR:
 		if ((ifp->if_flags & IFF_POINTOPOINT) == 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		*addr = ia->ia_dstaddr;
@@ -363,21 +363,21 @@ in_aifaddr_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp, struct thread *td)
 	 */
 	if (addr->sin_len != sizeof(struct sockaddr_in) ||
 	    addr->sin_family != AF_INET)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (broadaddr->sin_len != 0 &&
 	    (broadaddr->sin_len != sizeof(struct sockaddr_in) ||
 	    broadaddr->sin_family != AF_INET))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (mask->sin_len != 0 &&
 	    (mask->sin_len != sizeof(struct sockaddr_in) ||
 	    mask->sin_family != AF_INET))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if ((ifp->if_flags & IFF_POINTOPOINT) &&
 	    (dstaddr->sin_len != sizeof(struct sockaddr_in) ||
 	     dstaddr->sin_addr.s_addr == INADDR_ANY))
-		return (EDESTADDRREQ);
+		return (VOS_EDESTADDRREQ);
 	if (vhid > 0 && carp_attach_p == NULL)
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 
 	/*
 	 * See whether address already exist.
@@ -596,7 +596,7 @@ in_difaddr_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp, struct thread *td)
 
 	if (ia == NULL) {
 		IF_ADDR_WUNLOCK(ifp);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 
 	CK_STAILQ_REMOVE(&ifp->if_addrhead, &ia->ia_ifa, ifaddr, ifa_link);
@@ -666,7 +666,7 @@ in_gifaddr_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp, struct thread *td)
 	 */
 	if (addr->sin_len != sizeof(struct sockaddr_in) ||
 	    addr->sin_family != AF_INET)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * See whether address exist.
@@ -688,7 +688,7 @@ in_gifaddr_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp, struct thread *td)
 	}
 	if (ia == NULL) {
 		NET_EPOCH_EXIT(et);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 
 	ifra->ifra_mask = ia->ia_sockmask;
@@ -937,7 +937,7 @@ in_addprefix(struct in_ifaddr *target)
 
 	if (in_hasrtprefix(target)) {
 		if (V_nosameprefix)
-			return (EEXIST);
+			return (VOS_EEXIST);
 		else {
 			rt_addrmsg(RTM_ADD, &target->ia_ifa,
 			    target->ia_ifp->if_fib);
@@ -1261,7 +1261,7 @@ in_lltable_destroy_lle_unlocked(epoch_context_t ctx)
 	lle = __containerof(ctx, struct llentry, lle_epoch_ctx);
 	LLE_LOCK_DESTROY(lle);
 	LLE_REQ_DESTROY(lle);
-	free(lle, M_LLTABLE);
+	vos_free(lle, M_LLTABLE);
 }
 
 /*
@@ -1294,7 +1294,7 @@ in_lltable_new(struct in_addr addr4, u_int flags)
 {
 	struct in_llentry *lle;
 
-	lle = malloc(sizeof(struct in_llentry), M_LLTABLE, M_NOWAIT | M_ZERO);
+	lle = vos_malloc(sizeof(struct in_llentry), M_LLTABLE, M_NOWAIT | M_ZERO);
 	if (lle == NULL)		/* NB: caller generates msg */
 		return NULL;
 
@@ -1392,7 +1392,7 @@ in_lltable_rtcheck(struct ifnet *ifp, u_int flags, const struct sockaddr *l3addr
 	info.rti_info[RTAX_GATEWAY] = (struct sockaddr *)&rt_gateway;
 
 	if (rib_lookup_info(ifp->if_fib, l3addr, NHR_REF, 0, &info) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	rt_flags = info.rti_flags;
 
@@ -1409,7 +1409,7 @@ in_lltable_rtcheck(struct ifnet *ifp, u_int flags, const struct sockaddr *l3addr
 		    memcmp(rt_gateway.sa_data, l3addr->sa_data,
 		    sizeof(in_addr_t)) != 0) {
 			rib_free_info(&info);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 	}
 	rib_free_info(&info);
@@ -1431,7 +1431,7 @@ in_lltable_rtcheck(struct ifnet *ifp, u_int flags, const struct sockaddr *l3addr
 		 * code getting into trouble.
 		 */
 		if ((info.rti_addrs & RTA_NETMASK) == 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		sa = (const char *)&rt_key;
 		addr = (const char *)l3addr;
@@ -1447,7 +1447,7 @@ in_lltable_rtcheck(struct ifnet *ifp, u_int flags, const struct sockaddr *l3addr
 				    "is not on the network\n",
 				    inet_ntoa_r(l3sin->sin_addr, addrbuf));
 #endif
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 		}
 	}
@@ -1692,7 +1692,7 @@ in_domifattach(struct ifnet *ifp)
 {
 	struct in_ifinfo *ii;
 
-	ii = malloc(sizeof(struct in_ifinfo), M_IFADDR, M_WAITOK|M_ZERO);
+	ii = vos_malloc(sizeof(struct in_ifinfo), M_IFADDR, M_WAITOK|M_ZERO);
 
 	ii->ii_llt = in_lltattach(ifp);
 	ii->ii_igmp = igmp_domifattach(ifp);
@@ -1707,5 +1707,5 @@ in_domifdetach(struct ifnet *ifp, void *aux)
 
 	igmp_domifdetach(ifp);
 	lltable_free(ii->ii_llt);
-	free(ii, M_IFADDR);
+	vos_free(ii, M_IFADDR);
 }

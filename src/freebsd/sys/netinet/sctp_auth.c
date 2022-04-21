@@ -503,7 +503,7 @@ sctp_insert_sharedkey(struct sctp_keyhead *shared_keys,
 	sctp_sharedkey_t *skey;
 
 	if ((shared_keys == NULL) || (new_skey == NULL))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* insert into an empty list? */
 	if (LIST_EMPTY(shared_keys)) {
@@ -523,7 +523,7 @@ sctp_insert_sharedkey(struct sctp_keyhead *shared_keys,
 				SCTPDBG(SCTP_DEBUG_AUTH1,
 				    "can't replace shared key id %u\n",
 				    new_skey->keyid);
-				return (EBUSY);
+				return (VOS_EBUSY);
 			}
 			SCTPDBG(SCTP_DEBUG_AUTH1,
 			    "replacing shared key id %u\n",
@@ -540,7 +540,7 @@ sctp_insert_sharedkey(struct sctp_keyhead *shared_keys,
 		}
 	}
 	/* shouldn't reach here */
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 void

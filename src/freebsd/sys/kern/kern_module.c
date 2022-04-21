@@ -73,9 +73,9 @@ modevent_nop(module_t mod, int what, void *arg)
 	case MOD_LOAD:
 		return (0);
 	case MOD_UNLOAD:
-		return (EBUSY);
+		return (VOS_EBUSY);
 	default:
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 }
 
@@ -164,14 +164,14 @@ module_register(const moduledata_t *data, linker_file_t container)
 		MOD_XUNLOCK;
 		printf("%s: cannot register %s from %s; already loaded from %s\n",
 		    __func__, data->name, container->filename, newmod->file->filename);
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
-	namelen = strlen(data->name) + 1;
-	newmod = malloc(sizeof(struct module) + namelen, M_MODULE, M_WAITOK);
+	namelen = vos_strlen(data->name) + 1;
+	newmod = vos_malloc(sizeof(struct module) + namelen, M_MODULE, M_WAITOK);
 	newmod->refs = 1;
 	newmod->id = nextid++;
 	newmod->name = (char *)(newmod + 1);
-	strcpy(newmod->name, data->name);
+	vos_strcpy(newmod->name, data->name);
 	newmod->handler = data->evhand ? data->evhand : modevent_nop;
 	newmod->arg = data->priv;
 	bzero(&newmod->data, sizeof(newmod->data));
@@ -210,7 +210,7 @@ module_release(module_t mod)
 		TAILQ_REMOVE(&modules, mod, link);
 		if (mod->file)
 			TAILQ_REMOVE(&mod->file->modules, mod, flink);
-		free(mod, M_MODULE);
+		vos_free(mod, M_MODULE);
 	}
 }
 
@@ -251,7 +251,7 @@ module_quiesce(module_t mod)
 	mtx_lock(&Giant);
 	error = MOD_EVENT(mod, MOD_QUIESCE);
 	mtx_unlock(&Giant);
-	if (error == EOPNOTSUPP || error == EINVAL)
+	if (error == VOS_EOPNOTSUPP || error == VOS_EINVAL)
 		error = 0;
 	return (error);
 }
@@ -323,12 +323,12 @@ sys_modnext(struct thread *td, struct modnext_args *uap)
 		if (mod)
 			td->td_retval[0] = mod->id;
 		else
-			error = ENOENT;
+			error = VOS_ENOENT;
 		goto done2;
 	}
 	mod = module_lookupbyid(uap->modid);
 	if (mod == NULL) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto done2;
 	}
 	if (TAILQ_NEXT(mod, link))
@@ -351,7 +351,7 @@ sys_modfnext(struct thread *td, struct modfnext_args *uap)
 	MOD_SLOCK;
 	mod = module_lookupbyid(uap->modid);
 	if (mod == NULL) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 	} else {
 		error = 0;
 		if (TAILQ_NEXT(mod, flink))
@@ -384,7 +384,7 @@ sys_modstat(struct thread *td, struct modstat_args *uap)
 	mod = module_lookupbyid(uap->modid);
 	if (mod == NULL) {
 		MOD_SUNLOCK;
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 	id = mod->id;
 	refs = mod->refs;
@@ -400,8 +400,8 @@ sys_modstat(struct thread *td, struct modstat_args *uap)
 		return (error);
 	if (version != sizeof(struct module_stat_v1)
 	    && version != sizeof(struct module_stat))
-		return (EINVAL);
-	namelen = strlen(mod->name) + 1;
+		return (VOS_EINVAL);
+	namelen = vos_strlen(mod->name) + 1;
 	if (namelen > MAXMODNAME)
 		namelen = MAXMODNAME;
 	if ((error = copyout(name, &stat->name[0], namelen)) != 0)
@@ -436,7 +436,7 @@ sys_modfind(struct thread *td, struct modfind_args *uap)
 	MOD_SLOCK;
 	mod = module_lookupbyname(name);
 	if (mod == NULL)
-		error = ENOENT;
+		error = VOS_ENOENT;
 	else
 		td->td_retval[0] = module_getid(mod);
 	MOD_SUNLOCK;
@@ -481,7 +481,7 @@ freebsd32_modstat(struct thread *td, struct freebsd32_modstat_args *uap)
 	mod = module_lookupbyid(uap->modid);
 	if (mod == NULL) {
 		MOD_SUNLOCK;
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	id = mod->id;
@@ -498,8 +498,8 @@ freebsd32_modstat(struct thread *td, struct freebsd32_modstat_args *uap)
 		return (error);
 	if (version != sizeof(struct module_stat_v1)
 	    && version != sizeof(struct module_stat32))
-		return (EINVAL);
-	namelen = strlen(mod->name) + 1;
+		return (VOS_EINVAL);
+	namelen = vos_strlen(mod->name) + 1;
 	if (namelen > MAXMODNAME)
 		namelen = MAXMODNAME;
 	if ((error = copyout(name, &stat32->name[0], namelen)) != 0)

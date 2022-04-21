@@ -169,10 +169,10 @@ sys_rfork(struct thread* td, struct rfork_args* uap)
 
 	/* Don't allow kernel-only flags. */
 	if ((uap->flags & RFKERNELONLY) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	/* RFSPAWN must not appear with others */
 	if ((uap->flags & RFSPAWN) != 0 && uap->flags != RFSPAWN)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	AUDIT_ARG_FFLAGS(uap->flags);
 	bzero(&fr, sizeof(fr));
@@ -327,7 +327,7 @@ fork_norfproc(struct thread* td, int flags)
 		PROC_LOCK(p1);
 		if (thread_single(p1, SINGLE_BOUNDARY)) {
 			PROC_UNLOCK(p1);
-			return (ERESTART);
+			return (VOS_ERESTART);
 		}
 		PROC_UNLOCK(p1);
 	}
@@ -566,7 +566,7 @@ do_fork(struct thread* td, struct fork_req* fr, struct proc* p2, struct thread* 
 	if (p2->p_textdvp != NULL)
 		vrefact(p2->p_textdvp);
 	p2->p_binname = p1->p_binname == NULL ? NULL :
-		strdup(p1->p_binname, M_PARGS);
+		vos_strdup(p1->p_binname, M_PARGS);
 
 	/*
 	 * Set up linkage for kernel based threading.
@@ -883,32 +883,32 @@ fork1(struct thread* td, struct fork_req* fr)
 
 	/* Check for the undefined or unimplemented flags. */
 	if ((flags & ~(RFFLAGS | RFTSIGFLAGS(RFTSIGMASK))) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Signal value requires RFTSIGZMB. */
 	if ((flags & RFTSIGFLAGS(RFTSIGMASK)) != 0 && (flags & RFTSIGZMB) == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Can't copy and clear. */
 	if ((flags & (RFFDG | RFCFDG)) == (RFFDG | RFCFDG))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Check the validity of the signal number. */
 	if ((flags & RFTSIGZMB) != 0 && (u_int)RFTSIGNUM(flags) > _SIG_MAXSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if ((flags & RFPROCDESC) != 0) {
 		/* Can't not create a process yet get a process descriptor. */
 		if ((flags & RFPROC) == 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		/* Must provide a place to put a procdesc if creating one. */
 		if (fr->fr_pd_fd == NULL)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		/* Check if we are using supported flags. */
 		if ((fr->fr_pd_flags & ~PD_ALLOWED_AT_FORK) != 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 	}
 
 	p1 = td->td_proc;
@@ -944,7 +944,7 @@ fork1(struct thread* td, struct fork_req* fr)
 	if (nprocs_new >= maxproc - 10) {
 		if (priv_check_cred(td->td_ucred, PRIV_MAXPROC) != 0 ||
 			nprocs_new >= maxproc) {
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 			sx_xlock(&allproc_lock);
 			if (ppsratecheck(&lastfail, &curfail, 1)) {
 				printf("maxproc limit exceeded by uid %u "
@@ -979,7 +979,7 @@ fork1(struct thread* td, struct fork_req* fr)
 	if (td2 == NULL) {
 		td2 = thread_alloc(pages);
 		if (td2 == NULL) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			goto fail2;
 		}
 		proc_linkup(newproc, td2);
@@ -989,7 +989,7 @@ fork1(struct thread* td, struct fork_req* fr)
 			if (td2->td_kstack != 0)
 				vm_thread_dispose(td2);
 			if (!thread_alloc_stack(td2, pages)) {
-				error = ENOMEM;
+				error = VOS_ENOMEM;
 				goto fail2;
 			}
 		}
@@ -998,7 +998,7 @@ fork1(struct thread* td, struct fork_req* fr)
 	if ((flags & RFMEM) == 0) {
 		vm2 = vmspace_fork(p1->p_vmspace, &mem_charged);
 		if (vm2 == NULL) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			goto fail2;
 		}
 		if (!swap_reserve(mem_charged)) {
@@ -1009,7 +1009,7 @@ fork1(struct thread* td, struct fork_req* fr)
 			 * reservation there.
 			 */
 			swap_reserve_force(mem_charged);
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			goto fail2;
 		}
 	}
@@ -1027,7 +1027,7 @@ fork1(struct thread* td, struct fork_req* fr)
 	 */
 	error = racct_proc_fork(p1, newproc);
 	if (error != 0) {
-		error = EAGAIN;
+		error = VOS_EAGAIN;
 		goto fail1;
 	}
 
@@ -1051,7 +1051,7 @@ fork1(struct thread* td, struct fork_req* fr)
 	do_fork(td, fr, newproc, td2, vm2, fp_procdesc);
 	return (0);
 fail0:
-	error = EAGAIN;
+	error = VOS_EAGAIN;
 #ifdef MAC
 	mac_proc_destroy(newproc);
 #endif

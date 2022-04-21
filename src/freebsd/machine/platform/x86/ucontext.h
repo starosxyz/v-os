@@ -82,7 +82,7 @@ typedef struct __mcontext {
 	/*
 	 * See <machine/npx.h> for the internals of mc_fpstate[].
 	 */
-	int	mc_fpstate[128] __aligned(16);
+	__begin_aligned(16) int	mc_fpstate[128] __aligned(16);
 
 	__register_t mc_fsbase;
 	__register_t mc_gsbase;
@@ -140,19 +140,19 @@ typedef struct __mcontext {
 	__register_t	mc_rsp;
 	__register_t	mc_ss;
 
-	long	mc_len;			/* sizeof(mcontext_t) */
+	long long	mc_len;			/* sizeof(mcontext_t) */
 
 #define	_MC_FPFMT_NODEV		0x10000	/* device not present or configured */
 #define	_MC_FPFMT_XMM		0x10002
-	long	mc_fpformat;
+	long long	mc_fpformat;
 #define	_MC_FPOWNED_NONE	0x20000	/* FP state not used */
 #define	_MC_FPOWNED_FPU		0x20001	/* FP state came from FPU */
 #define	_MC_FPOWNED_PCB		0x20002	/* FP state came from PCB */
-	long	mc_ownedfp;
+	long long	mc_ownedfp;
 	/*
 	 * See <machine/fpu.h> for the internals of mc_fpstate[].
 	 */
-	long	mc_fpstate[64] __aligned(16);
+	__begin_aligned(16) long long	mc_fpstate[64] __aligned(16);
 
 	__register_t	mc_fsbase;
 	__register_t	mc_gsbase;
@@ -160,7 +160,7 @@ typedef struct __mcontext {
 	__register_t	mc_xfpustate;
 	__register_t	mc_xfpustate_len;
 
-	long	mc_spare[4];
+	long long	mc_spare[4];
 } mcontext_t;
 #endif /* __amd64__ */
 

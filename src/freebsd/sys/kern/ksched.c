@@ -55,7 +55,7 @@ FEATURE(kposix_priority_scheduling, "POSIX P1003.1B realtime extensions");
 /* ksched: Real-time extension to support POSIX priority scheduling. */
 
 struct ksched {
-	struct timespec rr_interval;
+	struct vos_timespec rr_interval;
 };
 
 int
@@ -63,7 +63,7 @@ ksched_attach(struct ksched **p)
 {
 	struct ksched *ksched;
 
-	ksched = malloc(sizeof(*ksched), M_P31B, M_WAITOK);
+	ksched = vos_malloc(sizeof(*ksched), M_P31B, M_WAITOK);
 	ksched->rr_interval.tv_sec = 0;
 	ksched->rr_interval.tv_nsec = 1000000000L / hz * sched_rr_interval();
 	*p = ksched;
@@ -74,7 +74,7 @@ int
 ksched_detach(struct ksched *ks)
 {
 
-	free(ks, M_P31B);
+	vos_free(ks, M_P31B);
 	return (0);
 }
 
@@ -186,7 +186,7 @@ ksched_setscheduler(struct ksched *ksched, struct thread *td, int policy,
 			    RTP_PRIO_REALTIME;
 			rtp_to_pri(&rtp, td);
 		} else {
-			e = EPERM;
+			e = VOS_EPERM;
 		}
 		break;
 	case SCHED_OTHER:
@@ -196,11 +196,11 @@ ksched_setscheduler(struct ksched *ksched, struct thread *td, int policy,
 			rtp.prio = p4prio_to_tsprio(param->sched_priority);
 			rtp_to_pri(&rtp, td);
 		} else {
-			e = EINVAL;
+			e = VOS_EINVAL;
 		}
 		break;
 	default:
-		e = EINVAL;
+		e = VOS_EINVAL;
 		break;
 	}
 	return (e);
@@ -237,7 +237,7 @@ ksched_get_priority_max(struct ksched *ksched, int policy, int *prio)
 		*prio = PRI_MAX_TIMESHARE - PRI_MIN_TIMESHARE;
 		break;
 	default:
-		e = EINVAL;
+		e = VOS_EINVAL;
 		break;
 	}
 	return (e);
@@ -258,7 +258,7 @@ ksched_get_priority_min(struct ksched *ksched, int policy, int *prio)
 		*prio = 0;
 		break;
 	default:
-		e = EINVAL;
+		e = VOS_EINVAL;
 		break;
 	}
 	return (e);
@@ -266,9 +266,9 @@ ksched_get_priority_min(struct ksched *ksched, int policy, int *prio)
 
 int
 ksched_rr_get_interval(struct ksched *ksched, struct thread *td,
-    struct timespec *timespec)
+    struct vos_timespec *vos_timespec)
 {
 
-	*timespec = ksched->rr_interval;
+	*vos_timespec = ksched->rr_interval;
 	return (0);
 }

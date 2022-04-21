@@ -98,7 +98,7 @@ scope6_ifattach(struct ifnet *ifp)
 {
 	struct scope6_id *sid;
 
-	sid = malloc(sizeof(*sid), M_IFADDR, M_WAITOK | M_ZERO);
+	sid = vos_malloc(sizeof(*sid), M_IFADDR, M_WAITOK | M_ZERO);
 	/*
 	 * XXX: IPV6_ADDR_SCOPE_xxx macros are not standard.
 	 * Should we rather hardcode here?
@@ -112,7 +112,7 @@ void
 scope6_ifdetach(struct scope6_id *sid)
 {
 
-	free(sid, M_IFADDR);
+	vos_free(sid, M_IFADDR);
 }
 
 int
@@ -121,7 +121,7 @@ scope6_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp)
 	struct in6_ifreq *ifr;
 
 	if (ifp->if_afdata[AF_INET6] == NULL)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 
 	ifr = (struct in6_ifreq *)data;
 	switch (cmd) {
@@ -135,7 +135,7 @@ scope6_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp)
 		return (scope6_get_default(
 		    (struct scope6_id *)ifr->ifr_ifru.ifru_scope_id));
 	default:
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 }
 
@@ -151,7 +151,7 @@ scope6_set(struct ifnet *ifp, struct scope6_id *idlist)
 
 	if (!sid) {	/* paranoid? */
 		IF_AFDATA_WUNLOCK(ifp);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	/*
@@ -174,7 +174,7 @@ scope6_set(struct ifnet *ifp, struct scope6_id *idlist)
 			if (i == IPV6_ADDR_SCOPE_INTFACELOCAL &&
 			    idlist->s6id_list[i] != ifp->if_index) {
 				IF_AFDATA_WUNLOCK(ifp);
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 
 			if (i == IPV6_ADDR_SCOPE_LINKLOCAL &&
@@ -186,7 +186,7 @@ scope6_set(struct ifnet *ifp, struct scope6_id *idlist)
 				 * safety in later use.
 				 */
 				IF_AFDATA_WUNLOCK(ifp);
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 
 			/*
@@ -213,7 +213,7 @@ scope6_get(struct ifnet *ifp, struct scope6_id *idlist)
 	sid = SID(ifp);
 	if (sid == NULL) {	/* paranoid? */
 		NET_EPOCH_EXIT(et);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	*idlist = *sid;
@@ -332,7 +332,7 @@ sa6_embedscope(struct sockaddr_in6 *sin6, int defaultok)
 		 * and links.
 		 */
 		if (V_if_index < zoneid || ifnet_byindex(zoneid) == NULL)
-			return (ENXIO);
+			return (VOS_ENXIO);
 
 		/* XXX assignment to 16bit from 32bit variable */
 		sin6->sin6_addr.s6_addr16[1] = htons(zoneid & 0xffff);
@@ -360,11 +360,11 @@ sa6_recoverscope(struct sockaddr_in6 *sin6)
 		if (zoneid) {
 			/* sanity check */
 			if (V_if_index < zoneid)
-				return (ENXIO);
+				return (VOS_ENXIO);
 #if 0
 			/* XXX: Disabled due to possible deadlock. */
 			if (!ifnet_byindex(zoneid))
-				return (ENXIO);
+				return (VOS_ENXIO);
 #endif
 			if (sin6->sin6_scope_id != 0 &&
 			    zoneid != sin6->sin6_scope_id) {
@@ -402,7 +402,7 @@ in6_setscope(struct in6_addr *in6, struct ifnet *ifp, u_int32_t *ret_id)
 	 */
 	if (IN6_IS_ADDR_LOOPBACK(in6)) {
 		if (!(ifp->if_flags & IFF_LOOPBACK))
-			return (EINVAL);
+			return (VOS_EINVAL);
 	} else {
 		scope = in6_addrscope(in6);
 		if (scope == IPV6_ADDR_SCOPE_INTFACELOCAL ||
@@ -420,7 +420,7 @@ in6_setscope(struct in6_addr *in6, struct ifnet *ifp, u_int32_t *ret_id)
 			NET_EPOCH_ENTER(et);
 			if (ifp->if_afdata[AF_INET6] == NULL) {
 				NET_EPOCH_EXIT(et);
-				return (ENETDOWN);
+				return (VOS_ENETDOWN);
 			}
 			sid = SID(ifp);
 			zoneid = sid->s6id_list[scope];
@@ -546,7 +546,7 @@ sa6_checkzone(struct sockaddr_in6 *sa6)
 
 	scope = in6_addrscope(&sa6->sin6_addr);
 	if (scope == IPV6_ADDR_SCOPE_GLOBAL)
-		return (sa6->sin6_scope_id ? EINVAL: 0);
+		return (sa6->sin6_scope_id ? VOS_EINVAL: 0);
 	if (IN6_IS_ADDR_MULTICAST(&sa6->sin6_addr) &&
 	    scope != IPV6_ADDR_SCOPE_LINKLOCAL &&
 	    scope != IPV6_ADDR_SCOPE_INTFACELOCAL) {
@@ -564,7 +564,7 @@ sa6_checkzone(struct sockaddr_in6 *sa6)
 		if (sa6->sin6_scope_id == 0)
 			sa6->sin6_scope_id = in6_getscopezone(V_loif, scope);
 		else if (sa6->sin6_scope_id != in6_getscopezone(V_loif, scope))
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 	}
 	/* XXX: we can validate sin6_scope_id here */
 	if (sa6->sin6_scope_id != 0)
@@ -572,7 +572,7 @@ sa6_checkzone(struct sockaddr_in6 *sa6)
 	if (V_ip6_use_defzone != 0)
 		sa6->sin6_scope_id = V_sid_default.s6id_list[scope];
 	/* Return error if we can't determine zone id */
-	return (sa6->sin6_scope_id ? 0: EADDRNOTAVAIL);
+	return (sa6->sin6_scope_id ? 0: VOS_EADDRNOTAVAIL);
 }
 
 /*
@@ -591,7 +591,7 @@ sa6_checkzone_ifp(struct ifnet *ifp, struct sockaddr_in6 *sa6)
 			sa6->sin6_scope_id = in6_getscopezone(ifp, scope);
 			return (0);
 		} else if (sa6->sin6_scope_id != in6_getscopezone(ifp, scope))
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 	}
 	return (sa6_checkzone(sa6));
 }

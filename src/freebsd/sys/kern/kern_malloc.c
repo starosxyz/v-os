@@ -333,7 +333,7 @@ mtp_set_subzone(struct malloc_type* mtp)
 
 	mtip = &mtp->ks_mti;
 	desc = mtp->ks_shortdesc;
-	if (desc == NULL || (len = strlen(desc)) == 0)
+	if (desc == NULL || (len = vos_strlen(desc)) == 0)
 		val = 0;
 	else
 		val = desc[zone_offset % len];
@@ -460,7 +460,7 @@ contigmalloc(unsigned long long size, struct malloc_type* type, int flags,
 	vm_paddr_t low, vm_paddr_t high, unsigned long long alignment,
 	vm_paddr_t boundary)
 {
-	return (malloc(size, type, flags));
+	return (vos_malloc(size, type, flags));
 }
 
 void*
@@ -468,7 +468,7 @@ contigmalloc_domainset(unsigned long long size, struct malloc_type* type,
 	struct domainset* ds, int flags, vm_paddr_t low, vm_paddr_t high,
 	unsigned long long alignment, vm_paddr_t boundary)
 {
-	return (malloc(size, type, flags));
+	return (vos_malloc(size, type, flags));
 }
 
 /*
@@ -481,7 +481,7 @@ contigmalloc_domainset(unsigned long long size, struct malloc_type* type,
 void
 contigfree(void* addr, unsigned long long size, struct malloc_type* type)
 {
-	free(addr, type);
+	vos_free(addr, type);
 }
 
 #ifdef MALLOC_DEBUG
@@ -514,7 +514,7 @@ malloc_dbg(caddr_t* vap, size_t* sizep, struct malloc_type* mtp,
 		if ((malloc_nowait_count % malloc_failure_rate) == 0) {
 			atomic_add_int(&malloc_failure_count, 1);
 			*vap = NULL;
-			return (EJUSTRETURN);
+			return (VOS_EJUSTRETURN);
 		}
 	}
 #endif
@@ -536,7 +536,7 @@ malloc_dbg(caddr_t* vap, size_t* sizep, struct malloc_type* mtp,
 	if (memguard_cmp_mtp(mtp, *sizep)) {
 		*vap = memguard_alloc(*sizep, flags);
 		if (*vap != NULL)
-			return (EJUSTRETURN);
+			return (VOS_EJUSTRETURN);
 		/* This is unfortunate but should not be fatal. */
 	}
 #endif
@@ -574,7 +574,7 @@ static caddr_t __noinline
 malloc_large(size_t* size, struct malloc_type* mtp, struct domainset* policy,
 	int flags DEBUG_REDZONE_ARG_DEF)
 {
-	return (malloc(*size, mtp, flags));
+	return (vos_malloc(*size, mtp, flags));
 }
 
 static void
@@ -592,7 +592,7 @@ free_large(void* addr, size_t size)
  *	the allocation fails.
  */
 void*
-(malloc)(size_t size, struct malloc_type* mtp, int flags)
+(vos_malloc)(size_t size, struct malloc_type* mtp, int flags)
 {
 	void* alloc;
 
@@ -613,14 +613,14 @@ static void*
 malloc_domain(size_t* sizep, int* indxp, struct malloc_type* mtp, int domain,
 	int flags)
 {
-	return (malloc(*sizep, mtp, flags));
+	return (vos_malloc(*sizep, mtp, flags));
 }
 
 void*
 malloc_domainset(size_t size, struct malloc_type* mtp, struct domainset* ds,
 	int flags)
 {
-	return (malloc(size, mtp, flags));
+	return (vos_malloc(size, mtp, flags));
 }
 
 /*
@@ -630,27 +630,27 @@ void*
 malloc_exec(size_t size, struct malloc_type* mtp, int flags)
 {
 
-	return (malloc(size, mtp, flags));
+	return (vos_malloc(size, mtp, flags));
 }
 
 void*
 malloc_domainset_exec(size_t size, struct malloc_type* mtp, struct domainset* ds,
 	int flags)
 {
-	return (malloc(size, mtp, flags));
+	return (vos_malloc(size, mtp, flags));
 }
 
 void*
 malloc_aligned(size_t size, size_t align, struct malloc_type* type, int flags)
 {
-	return (malloc(size, type, flags));
+	return (vos_malloc(size, type, flags));
 }
 
 void*
 malloc_domainset_aligned(size_t size, size_t align,
 	struct malloc_type* mtp, struct domainset* ds, int flags)
 {
-	return (malloc(size, mtp, flags));
+	return (vos_malloc(size, mtp, flags));
 }
 
 void*
@@ -660,7 +660,7 @@ mallocarray(size_t nmemb, size_t size, struct malloc_type* type, int flags)
 	if (WOULD_OVERFLOW(nmemb, size))
 		panic("mallocarray: %zu * %zu overflowed", nmemb, size);
 
-	return (malloc(size * nmemb, type, flags));
+	return (vos_malloc(size * nmemb, type, flags));
 }
 
 void*
@@ -708,12 +708,12 @@ free_dbg(void** addrp, struct malloc_type* mtp)
 
 	/* free(NULL, ...) does nothing */
 	if (addr == NULL)
-		return (EJUSTRETURN);
+		return (VOS_EJUSTRETURN);
 
 #ifdef DEBUG_MEMGUARD
 	if (is_memguard_addr(addr)) {
 		memguard_free(addr);
-		return (EJUSTRETURN);
+		return (VOS_EJUSTRETURN);
 	}
 #endif
 
@@ -734,7 +734,7 @@ free_dbg(void** addrp, struct malloc_type* mtp)
  *	This routine may not block.
  */
 void
-free(void* addr, struct malloc_type* mtp)
+vos_free(void* addr, struct malloc_type* mtp)
 {
 	/* free(NULL, ...) does nothing */
 	if (addr == NULL)
@@ -759,7 +759,7 @@ zfree(void* addr, struct malloc_type* mtp)
  *	realloc: change the size of a memory block
  */
 void*
-realloc(void* addr, size_t size, struct malloc_type* mtp, int flags)
+vos_realloc(void* addr, size_t size, struct malloc_type* mtp, int flags)
 {
 	return context_realloc(addr, size);
 }
@@ -772,8 +772,8 @@ reallocf(void* addr, size_t size, struct malloc_type* mtp, int flags)
 {
 	void* mem;
 
-	if ((mem = realloc(addr, size, mtp, flags)) == NULL)
-		free(addr, mtp);
+	if ((mem = vos_realloc(addr, size, mtp, flags)) == NULL)
+		vos_free(addr, mtp);
 	return (mem);
 }
 
@@ -1104,7 +1104,7 @@ sysctl_kern_malloc_stats(SYSCTL_HANDLER_ARGS)
 		 * Insert type header.
 		 */
 		bzero(&mth, sizeof(mth));
-		strlcpy(mth.mth_name, mtp->ks_shortdesc, MALLOC_MAX_NAME);
+		vos_strlcpy(mth.mth_name, mtp->ks_shortdesc, MALLOC_MAX_NAME);
 		(void)sbuf_bcat(&sbuf, &mth, sizeof(mth));
 
 		/*
@@ -1149,12 +1149,12 @@ restart:
 	mtx_unlock(&malloc_mtx);
 
 	buflen = sizeof(struct malloc_type*) * count;
-	bufmtp = malloc(buflen, M_TEMP, M_WAITOK);
+	bufmtp = vos_malloc(buflen, M_TEMP, M_WAITOK);
 
 	mtx_lock(&malloc_mtx);
 
 	if (count < kmemcount) {
-		free(bufmtp, M_TEMP);
+		vos_free(bufmtp, M_TEMP);
 		goto restart;
 	}
 
@@ -1166,7 +1166,7 @@ restart:
 	for (i = 0; i < count; i++)
 		(func)(bufmtp[i], arg);
 
-	free(bufmtp, M_TEMP);
+	vos_free(bufmtp, M_TEMP);
 }
 
 #ifdef DDB
@@ -1218,7 +1218,7 @@ DB_SHOW_COMMAND(malloc, db_show_malloc)
 
 	/* Select sort, largest size first. */
 	last_mtype = NULL;
-	last_size = INT64_MAX;
+	last_size = VOS_INT64_MAX;
 	for (;;) {
 		cur_mtype = NULL;
 		cur_size = -1;

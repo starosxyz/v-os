@@ -173,10 +173,10 @@ union kd_ip {
  * Otherwise, the new configuration is inserted into the fallback dump list at
  * index 'kda_index'.
  */
-#define	KDA_REMOVE		UINT8_MAX
-#define	KDA_REMOVE_ALL		(UINT8_MAX - 1)
-#define	KDA_REMOVE_DEV		(UINT8_MAX - 2)
-#define	KDA_APPEND		(UINT8_MAX - 3)
+#define	KDA_REMOVE		VOS_UINT8_MAX
+#define	KDA_REMOVE_ALL		(VOS_UINT8_MAX - 1)
+#define	KDA_REMOVE_DEV		(VOS_UINT8_MAX - 2)
+#define	KDA_APPEND		(VOS_UINT8_MAX - 3)
 struct diocskerneldump_arg {
 	uint8_t		 kda_index;
 	uint8_t		 kda_compression;

@@ -193,7 +193,7 @@ copystr(const void *kfaddr, void *kdaddr, size_t len, size_t *done)
 {
     size_t bytes;
 
-    bytes = strlcpy(kdaddr, kfaddr, len);
+    bytes = vos_strlcpy(kdaddr, kfaddr, len);
     if (done != NULL)
         *done = bytes;
 
@@ -206,7 +206,7 @@ copyinstr(const void *uaddr, void *kaddr, size_t len, size_t *done)
 {    
     size_t bytes;
 
-    bytes = strlcpy(kaddr, uaddr, len);
+    bytes = vos_strlcpy(kaddr, uaddr, len);
     if (done != NULL)
         *done = bytes;
 
@@ -248,7 +248,7 @@ void
 DELAY(int delay)
 {
 #if 0
-    struct timespec rqt;
+    struct vos_timespec rqt;
 
     if (delay < 1000)
         return;

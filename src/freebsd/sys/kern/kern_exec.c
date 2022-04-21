@@ -227,7 +227,7 @@ sys_execve(struct thread *td, struct execve_args *uap)
 	if (error == 0)
 		error = kern_execve(td, &args, NULL, oldvmspace);
 	post_execve(td, error, oldvmspace);
-	AUDIT_SYSCALL_EXIT(error == EJUSTRETURN ? 0 : error, td);
+	AUDIT_SYSCALL_EXIT(error == VOS_EJUSTRETURN ? 0 : error, td);
 	return (error);
 }
 
@@ -255,7 +255,7 @@ sys_fexecve(struct thread *td, struct fexecve_args *uap)
 		error = kern_execve(td, &args, NULL, oldvmspace);
 	}
 	post_execve(td, error, oldvmspace);
-	AUDIT_SYSCALL_EXIT(error == EJUSTRETURN ? 0 : error, td);
+	AUDIT_SYSCALL_EXIT(error == VOS_EJUSTRETURN ? 0 : error, td);
 	return (error);
 }
 
@@ -284,10 +284,10 @@ sys___mac_execve(struct thread *td, struct __mac_execve_args *uap)
 	if (error == 0)
 		error = kern_execve(td, &args, uap->mac_p, oldvmspace);
 	post_execve(td, error, oldvmspace);
-	AUDIT_SYSCALL_EXIT(error == EJUSTRETURN ? 0 : error, td);
+	AUDIT_SYSCALL_EXIT(error == VOS_EJUSTRETURN ? 0 : error, td);
 	return (error);
 #else
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 #endif
 }
 
@@ -303,7 +303,7 @@ pre_execve(struct thread *td, struct vmspace **oldvmspace)
 	if ((p->p_flag & P_HADTHREADS) != 0) {
 		PROC_LOCK(p);
 		if (thread_single(p, SINGLE_BOUNDARY) != 0)
-			error = ERESTART;
+			error = VOS_ERESTART;
 		PROC_UNLOCK(p);
 	}
 	KASSERT(error != 0 || (td->td_pflags & TDP_EXECVMSPC) == 0,
@@ -325,7 +325,7 @@ post_execve(struct thread *td, int error, struct vmspace *oldvmspace)
 		 * If success, we upgrade to SINGLE_EXIT state to
 		 * force other threads to suicide.
 		 */
-		if (error == EJUSTRETURN)
+		if (error == VOS_EJUSTRETURN)
 			thread_single(p, SINGLE_EXIT);
 		else
 			thread_single_end(p, SINGLE_BOUNDARY);
@@ -444,7 +444,7 @@ interpret:
 		 * Catch indirect lookups and return a permissions error.
 		 */
 		if (IN_CAPABILITY_MODE(td)) {
-			error = ECAPMODE;
+			error = VOS_ECAPMODE;
 			goto exec_fail;
 		}
 #endif
@@ -606,7 +606,7 @@ interpret:
 
 	if (error) {
 		if (error == -1)
-			error = ENOEXEC;
+			error = VOS_ENOEXEC;
 		goto exec_fail_dealloc;
 	}
 
@@ -645,7 +645,7 @@ interpret:
 			imgp->newcred = NULL;
 		}
 		imgp->execpath = NULL;
-		free(imgp->freepath, M_TEMP);
+		vos_free(imgp->freepath, M_TEMP);
 		imgp->freepath = NULL;
 		/* set new name to that of the interpreter */
 		NDINIT(&nd, LOOKUP, ISOPEN | LOCKLEAF | LOCKSHARED | FOLLOW |
@@ -662,7 +662,7 @@ interpret:
 
 	if (disallow_high_osrel &&
 	    P_OSREL_MAJOR(p->p_osrel) > P_OSREL_MAJOR(__FreeBSD_version)) {
-		error = ENOEXEC;
+		error = VOS_ENOEXEC;
 		uprintf("Osrel %d for image %s too high\n", p->p_osrel,
 		    imgp->execpath != NULL ? imgp->execpath : "<unresolved>");
 		vn_lock(imgp->vp, LK_SHARED | LK_RETRY);
@@ -904,7 +904,7 @@ exec_fail_dealloc:
 	if (imgp->object != NULL)
 		vm_object_deallocate(imgp->object);
 
-	free(imgp->freepath, M_TEMP);
+	vos_free(imgp->freepath, M_TEMP);
 
 	if (error == 0) {
 		if (p->p_ptevents & PTRACE_EXEC) {
@@ -966,9 +966,9 @@ exec_fail:
 	 * We don't want cpu_set_syscall_retval() to overwrite any of
 	 * the register values put in place by exec_setregs().
 	 * Implementations of cpu_set_syscall_retval() will leave
-	 * registers unmodified when returning EJUSTRETURN.
+	 * registers unmodified when returning VOS_EJUSTRETURN.
 	 */
-	return (error == 0 ? EJUSTRETURN : error);
+	return (error == 0 ? VOS_EJUSTRETURN : error);
 }
 
 void
@@ -994,7 +994,7 @@ exec_map_first_page(struct image_params *imgp)
 
 	object = imgp->vp->v_object;
 	if (object == NULL)
-		return (EACCES);
+		return (VOS_EACCES);
 #if VM_NRESERVLEVEL > 0
 	if ((object->flags & OBJ_COLORED) == 0) {
 		VM_OBJECT_WLOCK(object);
@@ -1007,7 +1007,7 @@ exec_map_first_page(struct image_params *imgp)
             VM_ALLOC_NORMAL | VM_ALLOC_NOBUSY | VM_ALLOC_WIRED);
 
 	if (error != VM_PAGER_OK)
-		return (EIO);
+		return (VOS_EIO);
 	imgp->firstpage = sf_buf_alloc(m, 0);
 	imgp->image_header = (char *)sf_buf_kva(imgp->firstpage);
 
@@ -1161,7 +1161,7 @@ exec_copyin_args(struct image_args *args, const char *fname,
 
 	bzero(args, sizeof(*args));
 	if (argv == NULL)
-		return (EFAULT);
+		return (VOS_EFAULT);
 
 	/*
 	 * Allocate demand-paged memory for the file name, argument, and
@@ -1184,7 +1184,7 @@ exec_copyin_args(struct image_args *args, const char *fname,
 	for (;;) {
 		error = fueword(argv++, &arg);
 		if (error == -1) {
-			error = EFAULT;
+			error = VOS_EFAULT;
 			goto err_exit;
 		}
 		if (arg == 0)
@@ -1202,7 +1202,7 @@ exec_copyin_args(struct image_args *args, const char *fname,
 		for (;;) {
 			error = fueword(envv++, &env);
 			if (error == -1) {
-				error = EFAULT;
+				error = VOS_EFAULT;
 				goto err_exit;
 			}
 			if (env == 0)
@@ -1233,7 +1233,7 @@ exec_copyin_data_fds(struct thread *td, struct image_args *args,
 	memset(args, '\0', sizeof(*args));
 	ofdp = td->td_proc->p_fd;
 	if (datalen >= ARG_MAX || fdslen >= ofdp->fd_nfiles)
-		return (E2BIG);
+		return (VOS_E2BIG);
 	error = exec_alloc_args(args);
 	if (error != 0)
 		return (error);
@@ -1267,14 +1267,14 @@ exec_copyin_data_fds(struct thread *td, struct image_args *args,
 	}
 
 	/* Create new file descriptor table. */
-	kfds = malloc(fdslen * sizeof(int), M_TEMP, M_WAITOK);
+	kfds = vos_malloc(fdslen * sizeof(int), M_TEMP, M_WAITOK);
 	error = copyin(fds, kfds, fdslen * sizeof(int));
 	if (error != 0) {
-		free(kfds, M_TEMP);
+		vos_free(kfds, M_TEMP);
 		goto err_exit;
 	}
 	error = fdcopy_remapped(ofdp, kfds, fdslen, &args->fdp);
-	free(kfds, M_TEMP);
+	vos_free(kfds, M_TEMP);
 	if (error != 0)
 		goto err_exit;
 
@@ -1305,7 +1305,7 @@ exec_prealloc_args_kva(void *arg __unused)
 	SLIST_INIT(&exec_args_kva_freelist);
 	mtx_init(&exec_args_kva_mtx, "exec args kva", NULL, MTX_DEF);
 	for (i = 0; i < exec_map_entries; i++) {
-		argkva = malloc(sizeof(*argkva), M_PARGS, M_WAITOK);
+		argkva = vos_malloc(sizeof(*argkva), M_PARGS, M_WAITOK);
 		argkva->addr = kmap_alloc_wait(exec_map, exec_map_entry_size);
 		argkva->gen = exec_args_gen;
 		SLIST_INSERT_HEAD(&exec_args_kva_freelist, argkva, next);
@@ -1413,7 +1413,7 @@ exec_free_args(struct image_args *args)
 		args->buf = NULL;
 	}
 	if (args->fname_buf != NULL) {
-		free(args->fname_buf, M_TEMP);
+		vos_free(args->fname_buf, M_TEMP);
 		args->fname_buf = NULL;
 	}
 	if (args->fdp != NULL)
@@ -1450,7 +1450,7 @@ exec_args_add_fname(struct image_args *args, const char *fname,
 		    copystr(fname, args->fname, PATH_MAX, &length) :
 		    copyinstr(fname, args->fname, PATH_MAX, &length);
 		if (error != 0)
-			return (error == ENAMETOOLONG ? E2BIG : error);
+			return (error == VOS_ENAMETOOLONG ? VOS_E2BIG : error);
 	} else
 		length = 0;
 
@@ -1480,7 +1480,7 @@ exec_args_add_str(struct image_args *args, const char *str,
 	    copystr(str, args->endp, args->stringspace, &length) :
 	    copyinstr(str, args->endp, args->stringspace, &length);
 	if (error != 0)
-		return (error == ENAMETOOLONG ? E2BIG : error);
+		return (error == VOS_ENAMETOOLONG ? VOS_E2BIG : error);
 	args->stringspace -= length;
 	args->endp += length;
 	(*countp)++;
@@ -1519,7 +1519,7 @@ exec_args_adjust_args(struct image_args *args, size_t consume, ssize_t extend)
 
 	offset = extend - consume;
 	if (args->stringspace < offset)
-		return (E2BIG);
+		return (VOS_E2BIG);
 	memmove(args->begin_argv + extend, args->begin_argv + consume,
 	    args->endp - args->begin_argv + consume);
 	if (args->envc > 0)
@@ -1575,7 +1575,7 @@ exec_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	 * Also deal with signal trampoline code for this exec type.
 	 */
 	if (imgp->execpath != NULL && imgp->auxargs != NULL)
-		execpath_len = strlen(imgp->execpath) + 1;
+		execpath_len = vos_strlen(imgp->execpath) + 1;
 	else
 		execpath_len = 0;
 	p = imgp->proc;
@@ -1683,14 +1683,14 @@ exec_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 	imgp->argv = vectp;
 	if (suword(&arginfo->ps_argvstr, (long long)(intptr_t)vectp) != 0 ||
 	    suword32(&arginfo->ps_nargvstr, argc) != 0)
-		return (EFAULT);
+		return (VOS_EFAULT);
 
 	/*
 	 * Fill in argument portion of vector table.
 	 */
 	for (; argc > 0; --argc) {
 		if (suword(vectp++, ustringp) != 0)
-			return (EFAULT);
+			return (VOS_EFAULT);
 		while (*stringp++ != 0)
 			ustringp++;
 		ustringp++;
@@ -1698,19 +1698,19 @@ exec_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 
 	/* a null vector table pointer separates the argp's from the envp's */
 	if (suword(vectp++, 0) != 0)
-		return (EFAULT);
+		return (VOS_EFAULT);
 
 	imgp->envv = vectp;
 	if (suword(&arginfo->ps_envstr, (long long)(intptr_t)vectp) != 0 ||
 	    suword32(&arginfo->ps_nenvstr, envc) != 0)
-		return (EFAULT);
+		return (VOS_EFAULT);
 
 	/*
 	 * Fill in environment portion of vector table.
 	 */
 	for (; envc > 0; --envc) {
 		if (suword(vectp++, ustringp) != 0)
-			return (EFAULT);
+			return (VOS_EFAULT);
 		while (*stringp++ != 0)
 			ustringp++;
 		ustringp++;
@@ -1718,7 +1718,7 @@ exec_copyout_strings(struct image_params *imgp, uintptr_t *stack_base)
 
 	/* end of vector table is a null pointer */
 	if (suword(vectp, 0) != 0)
-		return (EFAULT);
+		return (VOS_EFAULT);
 
 	if (imgp->auxargs) {
 		vectp++;
@@ -1754,7 +1754,7 @@ exec_register(const struct execsw *execsw_arg)
 	if (execsw)
 		for (es = execsw; *es; es++)
 			count++;
-	newexecsw = malloc(count * sizeof(*es), M_TEMP, M_WAITOK);
+	newexecsw = vos_malloc(count * sizeof(*es), M_TEMP, M_WAITOK);
 	xs = newexecsw;
 	if (execsw)
 		for (es = execsw; *es; es++)
@@ -1762,7 +1762,7 @@ exec_register(const struct execsw *execsw_arg)
 	*xs++ = execsw_arg;
 	*xs = NULL;
 	if (execsw)
-		free(execsw, M_TEMP);
+		vos_free(execsw, M_TEMP);
 	execsw = newexecsw;
 	return (0);
 }
@@ -1781,18 +1781,18 @@ exec_unregister(const struct execsw *execsw_arg)
 			break;
 	}
 	if (*es == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 	for (es = execsw; *es; es++)
 		if (*es != execsw_arg)
 			count++;
-	newexecsw = malloc(count * sizeof(*es), M_TEMP, M_WAITOK);
+	newexecsw = vos_malloc(count * sizeof(*es), M_TEMP, M_WAITOK);
 	xs = newexecsw;
 	for (es = execsw; *es; es++)
 		if (*es != execsw_arg)
 			*xs++ = *es;
 	*xs = NULL;
 	if (execsw)
-		free(execsw, M_TEMP);
+		vos_free(execsw, M_TEMP);
 	execsw = newexecsw;
 	return (0);
 }

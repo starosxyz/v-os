@@ -65,7 +65,7 @@ struct filedescent {
 #define	fde_fcntls	fde_caps.fc_fcntls
 #define	fde_ioctls	fde_caps.fc_ioctls
 #define	fde_nioctls	fde_caps.fc_nioctls
-#define	fde_change_size	(offsetof(struct filedescent, fde_seqc))
+#define	fde_change_size	(vos_offsetof(struct filedescent, fde_seqc))
 
 struct fdescenttbl {
 	int	fdt_nfiles;		/* number of open files allocated */

@@ -201,7 +201,7 @@ sysctl_net_inet_tcp_syncache_rexmtlimit_check(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &new, 0, req);
 	if ((error == 0) && (req->newptr != NULL)) {
 		if (new > TCP_MAXRXTSHIFT)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			V_tcp_syncache.rexmt_limit = new;
 	}
@@ -271,7 +271,7 @@ syncache_init(void)
 	    &V_tcp_syncache.cache_limit);
 
 	/* Allocate the hash table. */
-	V_tcp_syncache.hashbase = malloc(V_tcp_syncache.hashsize *
+	V_tcp_syncache.hashbase = vos_malloc(V_tcp_syncache.hashsize *
 	    sizeof(struct syncache_head), M_SYNCACHE, M_WAITOK | M_ZERO);
 
 #ifdef VIMAGE
@@ -356,7 +356,7 @@ syncache_destroy(void)
 
 	/* Free the allocated global resources. */
 	uma_zdestroy(V_tcp_syncache.zone);
-	free(V_tcp_syncache.hashbase, M_SYNCACHE);
+	vos_free(V_tcp_syncache.hashbase, M_SYNCACHE);
 	mtx_destroy(&V_tcp_syncache.pause_mtx);
 }
 #endif
@@ -517,7 +517,7 @@ syncache_timer(void *xsch)
 				log(LOG_DEBUG, "%s; %s: Retransmits exhausted, "
 				    "giving up and removing syncache entry\n",
 				    s, __func__);
-				free(s, M_TCPLOG);
+				vos_free(s, M_TCPLOG);
 			}
 			syncache_drop(sc, sch);
 			TCPSTAT_INC(tcps_sc_stale);
@@ -527,7 +527,7 @@ syncache_timer(void *xsch)
 			log(LOG_DEBUG, "%s; %s: Response timeout, "
 			    "retransmitting (%u) SYN|ACK\n",
 			    s, __func__, sc->sc_rxmits);
-			free(s, M_TCPLOG);
+			vos_free(s, M_TCPLOG);
 		}
 
 		NET_EPOCH_ENTER(et);
@@ -706,7 +706,7 @@ syncache_chkrst(struct in_conninfo *inc, struct tcphdr *th, struct mbuf *m)
 
 done:
 	if (s != NULL)
-		free(s, M_TCPLOG);
+		vos_free(s, M_TCPLOG);
 	SCH_UNLOCK(sch);
 }
 
@@ -864,7 +864,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, struct mbuf *m)
 			log(LOG_DEBUG, "%s; %s: Socket create failed "
 			    "due to limits or memory shortage\n",
 			    s, __func__);
-			free(s, M_TCPLOG);
+			vos_free(s, M_TCPLOG);
 		}
 		goto abort2;
 	}
@@ -961,7 +961,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, struct mbuf *m)
 				log(LOG_DEBUG, "%s; %s: in6_pcbconnect failed "
 				    "with error %i\n",
 				    s, __func__, error);
-				free(s, M_TCPLOG);
+				vos_free(s, M_TCPLOG);
 			}
 			INP_HASH_WUNLOCK(&V_tcbinfo);
 			goto abort;
@@ -1001,7 +1001,7 @@ syncache_socket(struct syncache *sc, struct socket *lso, struct mbuf *m)
 				log(LOG_DEBUG, "%s; %s: in_pcbconnect failed "
 				    "with error %i\n",
 				    s, __func__, error);
-				free(s, M_TCPLOG);
+				vos_free(s, M_TCPLOG);
 			}
 			INP_HASH_WUNLOCK(&V_tcbinfo);
 			goto abort;
@@ -1220,7 +1220,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 				log(LOG_DEBUG, "%s; %s: Segment rejected, "
 				    "MD5 signature doesn't match.\n",
 				    s, __func__);
-				free(s, M_TCPLOG);
+				vos_free(s, M_TCPLOG);
 			}
 			TCPSTAT_INC(tcps_sig_err_sigopt);
 			return (-1); /* Do not send RST */
@@ -1243,7 +1243,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 					log(LOG_DEBUG, "%s; %s: Segment "
 					    "rejected, MD5 signature wasn't "
 					    "provided.\n", s, __func__);
-					free(s, M_TCPLOG);
+					vos_free(s, M_TCPLOG);
 				}
 				return (-1); /* Do not send RST */
 			}
@@ -1255,7 +1255,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 					log(LOG_DEBUG, "%s; %s: Segment "
 					    "rejected, MD5 signature doesn't "
 					    "match.\n", s, __func__);
-					free(s, M_TCPLOG);
+					vos_free(s, M_TCPLOG);
 				}
 				return (-1); /* Do not send RST */
 			}
@@ -1278,7 +1278,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 				    "%s; %s: SEG.TSval %u < TS.Recent %u, "
 				    "segment dropped\n", s, __func__,
 				    to->to_tsval, sc->sc_tsreflect);
-				free(s, M_TCPLOG);
+				vos_free(s, M_TCPLOG);
 			}
 			return (-1);  /* Do not send RST */
 		}
@@ -1295,7 +1295,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 				log(LOG_DEBUG, "%s; %s: Timestamp not "
 				    "expected, segment processed normally\n",
 				    s, __func__);
-				free(s, M_TCPLOG);
+				vos_free(s, M_TCPLOG);
 				s = NULL;
 			}
 		}
@@ -1314,7 +1314,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 					    "%s; %s: Timestamp missing, "
 					    "segment processed normally\n",
 					    s, __func__);
-					free(s, M_TCPLOG);
+					vos_free(s, M_TCPLOG);
 				}
 			} else {
 				SCH_UNLOCK(sch);
@@ -1323,7 +1323,7 @@ syncache_expand(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 					    "%s; %s: Timestamp missing, "
 					    "segment silently dropped\n",
 					    s, __func__);
-					free(s, M_TCPLOG);
+					vos_free(s, M_TCPLOG);
 				}
 				return (-1);  /* Do not send RST */
 			}
@@ -1389,7 +1389,7 @@ failed:
 	if (sc != NULL && sc != &scs)
 		syncache_free(sc);
 	if (s != NULL)
-		free(s, M_TCPLOG);
+		vos_free(s, M_TCPLOG);
 	*lsop = NULL;
 	return (0);
 }
@@ -1639,7 +1639,7 @@ syncache_add(struct in_conninfo *inc, struct tcpopt *to, struct tcphdr *th,
 			log(LOG_DEBUG, "%s; %s: Received duplicate SYN, "
 			    "resetting timer and retransmitting SYN|ACK\n",
 			    s, __func__);
-			free(s, M_TCPLOG);
+			vos_free(s, M_TCPLOG);
 		}
 		if (syncache_respond(sc, m, TH_SYN|TH_ACK) == 0) {
 			sc->sc_rxmits = 0;
@@ -1891,7 +1891,7 @@ syncache_respond(struct syncache *sc, const struct mbuf *m0, int flags)
 	/* Create the IP+TCP header from scratch. */
 	m = m_gethdr(M_NOWAIT, MT_DATA);
 	if (m == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 #ifdef MAC
 	mac_syncache_create_mbuf(sc->sc_label, m);
 #endif
@@ -2018,7 +2018,7 @@ syncache_respond(struct syncache *sc, const struct mbuf *m0, int flags)
 			if (!TCPMD5_ENABLED() ||
 			    TCPMD5_OUTPUT(m, th, to.to_signature) != 0) {
 				m_freem(m);
-				return (EACCES);
+				return (VOS_EACCES);
 			}
 		}
 #endif
@@ -2026,7 +2026,7 @@ syncache_respond(struct syncache *sc, const struct mbuf *m0, int flags)
 		optlen = 0;
 
 	M_SETFIB(m, sc->sc_inc.inc_fibnum);
-	m->m_pkthdr.csum_data = offsetof(struct tcphdr, th_sum);
+	m->m_pkthdr.csum_data = vos_offsetof(struct tcphdr, th_sum);
 	/*
 	 * If we have peer's SYN and it has a flowid, then let's assign it to
 	 * our SYN|ACK.  ip6_output() and ip_output() will not assign flowid
@@ -2417,7 +2417,7 @@ syncookie_cmp(struct in_conninfo *inc, struct syncache_head *sch,
 	}
 
 	if (s != NULL)
-		free(s, M_TCPLOG);
+		vos_free(s, M_TCPLOG);
 	return (0);
 }
 #endif /* INVARIANTS */
@@ -2512,7 +2512,7 @@ syncache_pause(struct in_conninfo *inc)
 	    "the next %lld seconds%s%s%s\n", (long long)delta,
 	    (s != NULL) ? " (last SYN: " : "", (s != NULL) ? s : "",
 	    (s != NULL) ? ")" : "");
-	free(__DECONST(void *, s), M_TCPLOG);
+	vos_free(__DECONST(void *, s), M_TCPLOG);
 
 	/* Use the calculated delta to set a new pause time. */
 	V_tcp_syncache.pause_until = time_uptime + delta;

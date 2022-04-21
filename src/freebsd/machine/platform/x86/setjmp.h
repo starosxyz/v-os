@@ -44,9 +44,9 @@
  * internally to avoid some run-time errors for mismatches.
  */
 #if __BSD_VISIBLE || __POSIX_VISIBLE || __XSI_VISIBLE
-typedef	struct _sigjmp_buf { long _sjb[_JBLEN]; } sigjmp_buf[1];
+typedef	struct _sigjmp_buf { long long _sjb[_JBLEN]; } sigjmp_buf[1];
 #endif
 
-typedef	struct _jmp_buf { long _jb[_JBLEN]; } jmp_buf[1];
+typedef	struct _jmp_buf { long long _jb[_JBLEN]; } jmp_buf[1];
 
 #endif /* !_MACHINE_SETJMP_H_ */

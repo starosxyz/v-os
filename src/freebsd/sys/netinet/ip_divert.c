@@ -269,7 +269,7 @@ divert_packet(struct mbuf *m, bool incoming)
 		 * this iface name will come along for the ride.
 		 * (see div_output for the other half of this.)
 		 */
-		strlcpy(divsrc.sin_zero, m->m_pkthdr.rcvif->if_xname,
+		vos_strlcpy(divsrc.sin_zero, m->m_pkthdr.rcvif->if_xname,
 		    sizeof(divsrc.sin_zero));
 	}
 
@@ -335,7 +335,7 @@ div_output(struct socket *so, struct mbuf *m, struct sockaddr_in *sin,
 		    sizeof(struct ipfw_rule_ref), M_NOWAIT | M_ZERO);
 		if (mtag == NULL) {
 			m_freem(m);
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 		}
 		m_tag_prepend(m, mtag);
 	}
@@ -378,7 +378,7 @@ div_output(struct socket *so, struct mbuf *m, struct sockaddr_in *sin,
 #endif
 	default:
 		m_freem(m);
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	}
 
 	/* Reinject packet into the system as incoming or outgoing */
@@ -422,7 +422,7 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 		    ((u_short)ntohs(ip->ip_len) > m->m_pkthdr.len)) {
 			INP_RUNLOCK(inp);
 			m_freem(m);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		break;
 #ifdef INET6
@@ -434,7 +434,7 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 		if (((u_short)ntohs(ip6->ip6_plen) > m->m_pkthdr.len)) {
 			INP_RUNLOCK(inp);
 			m_freem(m);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		break;
 	    }
@@ -474,7 +474,7 @@ div_output_outbound(int family, struct socket *so, struct mbuf *m)
 		if (options == NULL) {
 			INP_RUNLOCK(inp);
 			m_freem(m);
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 		}
 	}
 	INP_RUNLOCK(inp);
@@ -523,7 +523,7 @@ div_output_inbound(int family, struct socket *so, struct mbuf *m,
 		ifa = ifa_ifwithaddr((struct sockaddr *) sin);
 		if (ifa == NULL) {
 			m_freem(m);
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 		}
 		m->m_pkthdr.rcvif = ifa->ifa_ifp;
 	}
@@ -551,7 +551,7 @@ div_output_inbound(int family, struct socket *so, struct mbuf *m,
 #endif
 	default:
 		m_freem(m);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	return (0);
@@ -618,7 +618,7 @@ div_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 	 * and should probably have its own family.
 	 */
 	if (nam->sa_family != AF_INET)
-		return EAFNOSUPPORT;
+		return VOS_EAFNOSUPPORT;
 	((struct sockaddr_in *)nam)->sin_addr.s_addr = INADDR_ANY;
 	INP_INFO_WLOCK(&V_divcbinfo);
 	INP_WLOCK(inp);
@@ -653,7 +653,7 @@ div_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 	    (m = m_pullup(m, sizeof (struct ip))) == NULL) {
 		KMOD_IPSTAT_INC(ips_toosmall);
 		m_freem(m);
-		return EINVAL;
+		return VOS_EINVAL;
 	}
 
 	/* Send packet */
@@ -681,7 +681,7 @@ div_pcblist(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != 0)
-		return EPERM;
+		return VOS_EPERM;
 
 	if (req->oldptr == 0) {
 		int n;
@@ -795,7 +795,7 @@ div_modevent(module_t mod, int type, void *unused)
 		 * potential race conditions.  Tell kldunload we can't be
 		 * unloaded unless the unload is forced.
 		 */
-		err = EPERM;
+		err = VOS_EPERM;
 		break;
 	case MOD_UNLOAD:
 		/*
@@ -811,7 +811,7 @@ div_modevent(module_t mod, int type, void *unused)
 		 */
 		INP_INFO_WLOCK(&V_divcbinfo);
 		if (V_divcbinfo.ipi_count != 0) {
-			err = EBUSY;
+			err = VOS_EBUSY;
 			INP_INFO_WUNLOCK(&V_divcbinfo);
 			break;
 		}
@@ -824,7 +824,7 @@ div_modevent(module_t mod, int type, void *unused)
 		EVENTHANDLER_DEREGISTER(maxsockets_change, ip_divert_event_tag);
 		break;
 	default:
-		err = EOPNOTSUPP;
+		err = VOS_EOPNOTSUPP;
 		break;
 	}
 	return err;

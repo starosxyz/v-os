@@ -162,7 +162,7 @@ sysctl_ip_randomid(SYSCTL_HANDLER_ARGS)
 	if (error || req->newptr == NULL)
 		return (error);
 	if (new != 0 && new != 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (new == V_ip_do_randomid)
 		return (0);
 	if (new == 1 && V_ip_do_randomid == 0)
@@ -183,7 +183,7 @@ sysctl_ip_id_change(SYSCTL_HANDLER_ARGS)
 		if (new >= 512 && new <= 32768)
 			ip_initid(new);
 		else
-			error = EINVAL;
+			error = VOS_EINVAL;
 	}
 	return (error);
 }
@@ -194,14 +194,14 @@ ip_initid(int new_size)
 	uint16_t *new_array;
 	bitstr_t *new_bits;
 
-	new_array = malloc(new_size * sizeof(uint16_t), M_IPID,
+	new_array = vos_malloc(new_size * sizeof(uint16_t), M_IPID,
 	    M_WAITOK | M_ZERO);
-	new_bits = malloc(bitstr_size(65536), M_IPID, M_WAITOK | M_ZERO);
+	new_bits = vos_malloc(bitstr_size(65536), M_IPID, M_WAITOK | M_ZERO);
 
 	mtx_lock(&V_ip_id_mtx);
 	if (V_id_array != NULL) {
-		free(V_id_array, M_IPID);
-		free(V_id_bits, M_IPID);
+		vos_free(V_id_array, M_IPID);
+		vos_free(V_id_bits, M_IPID);
 	}
 	V_id_array = new_array;
 	V_id_bits = new_bits;
@@ -291,8 +291,8 @@ ipid_sysuninit(void)
 {
 
 	if (V_id_array != NULL) {
-		free(V_id_array, M_IPID);
-		free(V_id_bits, M_IPID);
+		vos_free(V_id_array, M_IPID);
+		vos_free(V_id_bits, M_IPID);
 	}
 	counter_u64_free(V_ip_id);
 	mtx_destroy(&V_ip_id_mtx);

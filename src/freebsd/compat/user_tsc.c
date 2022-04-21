@@ -487,7 +487,7 @@ adj_smp_tsc(void *arg)
 	if (cpu == first)
 		return;
 	min = INT64_MIN;
-	max = INT64_MAX;
+	max = VOS_INT64_MAX;
 	size = (mp_maxid + 1) * 3;
 	for (i = 0, tsc = arg; i < N; i++, tsc += size) {
 		d = tsc[first * 3] - tsc[cpu * 3 + 1];
@@ -535,7 +535,7 @@ test_tsc(int adj_max_count)
 		return (0);
 
 	size = (mp_maxid + 1) * 3;
-	data = malloc(sizeof(*data) * size * N, M_TEMP, M_WAITOK);
+	data = vos_malloc(sizeof(*data) * size * N, M_TEMP, M_WAITOK);
 	adj = 0;
 retry:
 	for (i = 0, tsc = data; i < N; i++, tsc += size)
@@ -549,7 +549,7 @@ retry:
 		    smp_no_rendezvous_barrier, data);
 		goto retry;
 	}
-	free(data, M_TEMP);
+	vos_free(data, M_TEMP);
 	if (bootverbose)
 		printf("SMP: %sed TSC synchronization test%s\n",
 		    smp_tsc ? "pass" : "fail", 
@@ -769,7 +769,7 @@ tsc_freq_changing(void *arg, const struct cf_level *level, int *status)
 
 	printf("timecounter TSC must not be in use when "
 	    "changing frequencies; change denied\n");
-	*status = EBUSY;
+	*status = VOS_EBUSY;
 }
 
 /* Update TSC freq with the value indicated by the caller. */
@@ -795,7 +795,7 @@ sysctl_machdep_tsc_freq(SYSCTL_HANDLER_ARGS)
 
 	freq = atomic_load_acq_64(&tsc_freq);
 	if (freq == 0)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	error = sysctl_handle_64(oidp, &freq, 0, req);
 	if (error == 0 && req->newptr != NULL)
 		tsc_update_freq(freq);

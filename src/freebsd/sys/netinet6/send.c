@@ -84,7 +84,7 @@ send_attach(struct socket *so, int proto, struct thread *td)
 	SEND_LOCK();
 	if (V_send_so != NULL) {
 		SEND_UNLOCK();
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
 
 	error = priv_check(td, PRIV_NETINET_RAW);
@@ -95,7 +95,7 @@ send_attach(struct socket *so, int proto, struct thread *td)
 
 	if (proto != IPPROTO_SEND) {
 		SEND_UNLOCK();
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 	}
 	error = soreserve(so, send_sendspace, send_recvspace);
 	if (error) {
@@ -129,7 +129,7 @@ send_output(struct mbuf *m, struct ifnet *ifp, int direction)
 			m = m_pullup(m, sizeof(struct ip6_hdr) +
 			    sizeof(struct icmp6_hdr));
 			if (!m)
-				return (ENOBUFS);
+				return (VOS_ENOBUFS);
 		}
 
 		/* Before passing off the mbuf record the proper interface. */
@@ -166,7 +166,7 @@ send_output(struct mbuf *m, struct ifnet *ifp, int direction)
 			break;
 		default:
 			m_freem(m);
-			return (ENOSYS);
+			return (VOS_ENOSYS);
 		}
 		return (0);
 
@@ -174,7 +174,7 @@ send_output(struct mbuf *m, struct ifnet *ifp, int direction)
 		if (m->m_len < sizeof(struct ip6_hdr)) {
 			m = m_pullup(m, sizeof(struct ip6_hdr));
 			if (!m)
-				return (ENOBUFS);
+				return (VOS_ENOBUFS);
 		}
 		ip6 = mtod(m, struct ip6_hdr *);
 		if (IN6_IS_ADDR_MULTICAST(&ip6->ip6_dst))
@@ -200,7 +200,7 @@ send_output(struct mbuf *m, struct ifnet *ifp, int direction)
 		error = ((*ifp->if_output)(ifp, m, (struct sockaddr *)&dst,
 		    NULL));
 		if (error)
-			error = ENOENT;
+			error = VOS_ENOENT;
 		return (error);
 
 	default:
@@ -228,7 +228,7 @@ send_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 	sendsrc = (struct sockaddr_send *)nam;
 	ifp = ifnet_byindex_ref(sendsrc->send_ifidx);
 	if (ifp == NULL) {
-		error = ENETUNREACH;
+		error = VOS_ENETUNREACH;
 		goto err;
 	}
 
@@ -337,7 +337,7 @@ send_modevent(module_t mod, int type, void *unused)
 		break;
 	case MOD_UNLOAD:
 		/* Do not allow unloading w/o locking. */
-		return (EBUSY);
+		return (VOS_EBUSY);
 #ifdef __notyet__
 		VNET_LIST_RLOCK_NOSLEEP();
 		SEND_LOCK();
@@ -347,7 +347,7 @@ send_modevent(module_t mod, int type, void *unused)
 				CURVNET_RESTORE();
 				SEND_UNLOCK();
 				VNET_LIST_RUNLOCK_NOSLEEP();
-				return (EBUSY);
+				return (VOS_EBUSY);
 			}
 			CURVNET_RESTORE();
 		}

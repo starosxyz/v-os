@@ -191,7 +191,7 @@ extattr_set_vp(struct vnode *vp, int attrnamespace, const char *attrname,
 	int error;
 
 	if (nbytes > IOSIZE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = vn_start_write(vp, &mp, V_WAIT | PCATCH);
 	if (error)
@@ -347,7 +347,7 @@ extattr_get_vp(struct vnode *vp, int attrnamespace, const char *attrname,
 	int error;
 
 	if (nbytes > IOSIZE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	vn_lock(vp, LK_SHARED | LK_RETRY);
 
@@ -522,7 +522,7 @@ extattr_delete_vp(struct vnode *vp, int attrnamespace, const char *attrname,
 
 	error = VOP_DELETEEXTATTR(vp, attrnamespace, attrname, td->td_ucred,
 	    td);
-	if (error == EOPNOTSUPP)
+	if (error == VOS_EOPNOTSUPP)
 		error = VOP_SETEXTATTR(vp, attrnamespace, attrname, NULL,
 		    td->td_ucred, td);
 #ifdef MAC
@@ -642,7 +642,7 @@ extattr_list_vp(struct vnode *vp, int attrnamespace, void *data,
 	int error;
 
 	if (nbytes > IOSIZE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	auiop = NULL;
 	sizep = NULL;

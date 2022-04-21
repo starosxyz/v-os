@@ -1676,10 +1676,10 @@ LibAliasRefreshModules(void)
 		fgets(buf, 256, fd);
 		if (feof(fd)) 
 		        break;
-		len = strlen(buf);
+		len = vos_strlen(buf);
 		if (len > 1) {
 			for (i = 0; i < len; i++)
-				if (!isspace(buf[i]))
+				if (!vos_isspace(buf[i]))
 					break;
 			if (buf[i] == '#')
 				continue;
@@ -1703,30 +1703,30 @@ LibAliasLoadModule(char *path)
         handle = dlopen (path, RTLD_LAZY);
         if (!handle) {
 		fprintf(stderr, "%s\n", dlerror());
-		return (EINVAL);
+		return (VOS_EINVAL);
         }
 
 	p = dlsym(handle, "alias_mod");
         if ((error = dlerror()) != NULL)  {
 		fprintf(stderr, "%s\n", dlerror());
-		return (EINVAL);
+		return (VOS_EINVAL);
         }
 
-	t = malloc(sizeof(struct dll));
+	t = vos_malloc(sizeof(struct dll));
 	if (t == NULL)
-		return (ENOMEM);
-	strncpy(t->name, p->name, DLL_LEN);
+		return (VOS_ENOMEM);
+	vos_strncpy(t->name, p->name, DLL_LEN);
 	t->handle = handle;
-	if (attach_dll(t) == EEXIST) {
+	if (attach_dll(t) == VOS_EEXIST) {
 		free(t);
 		fprintf(stderr, "dll conflict\n");
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
 
         m = dlsym(t->handle, "handlers");
         if ((error = dlerror()) != NULL)  {
 		fprintf(stderr, "%s\n", error);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	LibAliasAttachHandlers(m);

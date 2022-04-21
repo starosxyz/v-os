@@ -98,7 +98,7 @@ cc_default_algo(SYSCTL_HANDLER_ARGS)
 
 	/* Get the current default: */
 	CC_LIST_RLOCK();
-	strlcpy(default_cc, CC_DEFAULT()->name, sizeof(default_cc));
+	vos_strlcpy(default_cc, CC_DEFAULT()->name, sizeof(default_cc));
 	CC_LIST_RUNLOCK();
 
 	error = sysctl_handle_string(oidp, default_cc, sizeof(default_cc), req);
@@ -107,12 +107,12 @@ cc_default_algo(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		goto done;
 
-	error = ESRCH;
+	error = VOS_ESRCH;
 
 	/* Find algo with specified name and set it to default. */
 	CC_LIST_RLOCK();
 	STAILQ_FOREACH(funcs, &cc_list, entries) {
-		if (strncmp(default_cc, funcs->name, sizeof(default_cc)))
+		if (vos_strncmp(default_cc, funcs->name, sizeof(default_cc)))
 			continue;
 		V_default_cc_ptr = funcs;
 		error = 0;
@@ -145,7 +145,7 @@ cc_list_available(SYSCTL_HANDLER_ARGS)
 	s = sbuf_new(NULL, NULL, nalgos * TCP_CA_NAME_MAX, SBUF_FIXEDLEN);
 
 	if (s == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	/*
 	 * It is theoretically possible for the CC list to have grown in size
@@ -159,7 +159,7 @@ cc_list_available(SYSCTL_HANDLER_ARGS)
 		err = sbuf_printf(s, first ? "%s" : ", %s", algo->name);
 		if (err) {
 			/* Sbuf overflow condition. */
-			err = EOVERFLOW;
+			err = VOS_EOVERFLOW;
 			break;
 		}
 		first = 0;
@@ -189,7 +189,7 @@ cc_checkreset_default(struct cc_algo *remove_cc)
 	VNET_LIST_RLOCK_NOSLEEP();
 	VNET_FOREACH(vnet_iter) {
 		CURVNET_SET(vnet_iter);
-		if (strncmp(CC_DEFAULT()->name, remove_cc->name,
+		if (vos_strncmp(CC_DEFAULT()->name, remove_cc->name,
 		    TCP_CA_NAME_MAX) == 0)
 			V_default_cc_ptr = &newreno_cc_algo;
 		CURVNET_RESTORE();
@@ -216,11 +216,11 @@ cc_deregister_algo(struct cc_algo *remove_cc)
 	struct cc_algo *funcs, *tmpfuncs;
 	int err;
 
-	err = ENOENT;
+	err = VOS_ENOENT;
 
 	/* Never allow newreno to be deregistered. */
 	if (&newreno_cc_algo == remove_cc)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	/* Remove algo from cc_list so that new connections can't use it. */
 	CC_LIST_WLOCK();
@@ -263,9 +263,9 @@ cc_register_algo(struct cc_algo *add_cc)
 	 */
 	CC_LIST_WLOCK();
 	STAILQ_FOREACH(funcs, &cc_list, entries) {
-		if (funcs == add_cc || strncmp(funcs->name, add_cc->name,
+		if (funcs == add_cc || vos_strncmp(funcs->name, add_cc->name,
 		    TCP_CA_NAME_MAX) == 0)
-			err = EEXIST;
+			err = VOS_EEXIST;
 	}
 
 	if (!err)
@@ -302,12 +302,12 @@ cc_modevent(module_t mod, int event_type, void *data)
 		err = cc_deregister_algo(algo);
 		if (!err && algo->mod_destroy != NULL)
 			algo->mod_destroy();
-		if (err == ENOENT)
+		if (err == VOS_ENOENT)
 			err = 0;
 		break;
 
 	default:
-		err = EINVAL;
+		err = VOS_EINVAL;
 		break;
 	}
 

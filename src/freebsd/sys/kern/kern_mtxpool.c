@@ -83,7 +83,7 @@ struct mtx_pool {
 
 struct mtx_pool *mtxpool_sleep;
 
-#if UINTPTR_MAX == UINT64_MAX	/* 64 bits */
+#if UINTPTR_MAX == VOS_UINT64_MAX	/* 64 bits */
 # define POINTER_BITS		64
 # define HASH_MULTIPLIER	11400714819323198485u /* (2^64)*(sqrt(5)-1)/2 */
 #else				/* assume 32 bits */
@@ -138,7 +138,7 @@ mtx_pool_create(const char *mtx_name, int pool_size, int opts)
 		    mtx_name);
 		pool_size = 128;
 	}
-	pool = malloc(sizeof (struct mtx_pool) +
+	pool = vos_malloc(sizeof (struct mtx_pool) +
 	    ((pool_size - 1) * sizeof (struct mtx)),
 	    M_MTXPOOL, M_WAITOK | M_ZERO);
 	mtx_pool_initialize(pool, mtx_name, pool_size, opts);
@@ -153,7 +153,7 @@ mtx_pool_destroy(struct mtx_pool **poolp)
 
 	for (i = pool->mtx_pool_size - 1; i >= 0; --i)
 		mtx_destroy(&pool->mtx_pool_ary[i]);
-	free(pool, M_MTXPOOL);
+	vos_free(pool, M_MTXPOOL);
 	*poolp = NULL;
 }
 

@@ -84,43 +84,43 @@ __FBSDID("$FreeBSD$");
  * structures.
  */
 #ifdef __amd64__
-_Static_assert(offsetof(struct thread, td_flags) == 0xfc,
+_Static_assert(vos_offsetof(struct thread, td_flags) == 0xfc,
 	"struct thread KBI td_flags");
-_Static_assert(offsetof(struct thread, td_pflags) == 0x104,
+_Static_assert(vos_offsetof(struct thread, td_pflags) == 0x104,
 	"struct thread KBI td_pflags");
-_Static_assert(offsetof(struct thread, td_frame) == 0x4a0,
+_Static_assert(vos_offsetof(struct thread, td_frame) == 0x4a0,
 	"struct thread KBI td_frame");
-_Static_assert(offsetof(struct thread, td_emuldata) == 0x6b0,
+_Static_assert(vos_offsetof(struct thread, td_emuldata) == 0x6b0,
 	"struct thread KBI td_emuldata");
-_Static_assert(offsetof(struct proc, p_flag) == 0xb8,
+_Static_assert(vos_offsetof(struct proc, p_flag) == 0xb8,
 	"struct proc KBI p_flag");
 _Static_assert(offsetof(struct proc, p_pid) == 0xc4,
 	"struct proc KBI p_pid");
-_Static_assert(offsetof(struct proc, p_filemon) == 0x3c0,
+_Static_assert(vos_offsetof(struct proc, p_filemon) == 0x3c0,
 	"struct proc KBI p_filemon");
-_Static_assert(offsetof(struct proc, p_comm) == 0x3d8,
+_Static_assert(vos_offsetof(struct proc, p_comm) == 0x3d8,
 	"struct proc KBI p_comm");
-_Static_assert(offsetof(struct proc, p_emuldata) == 0x4b8,
+_Static_assert(vos_offsetof(struct proc, p_emuldata) == 0x4b8,
 	"struct proc KBI p_emuldata");
 #endif
 #ifdef __i386__
-_Static_assert(offsetof(struct thread, td_flags) == 0x98,
+_Static_assert(vos_offsetof(struct thread, td_flags) == 0x98,
 	"struct thread KBI td_flags");
-_Static_assert(offsetof(struct thread, td_pflags) == 0xa0,
+_Static_assert(vos_offsetof(struct thread, td_pflags) == 0xa0,
 	"struct thread KBI td_pflags");
-_Static_assert(offsetof(struct thread, td_frame) == 0x300,
+_Static_assert(vos_offsetof(struct thread, td_frame) == 0x300,
 	"struct thread KBI td_frame");
-_Static_assert(offsetof(struct thread, td_emuldata) == 0x344,
+_Static_assert(vos_offsetof(struct thread, td_emuldata) == 0x344,
 	"struct thread KBI td_emuldata");
-_Static_assert(offsetof(struct proc, p_flag) == 0x6c,
+_Static_assert(vos_offsetof(struct proc, p_flag) == 0x6c,
 	"struct proc KBI p_flag");
-_Static_assert(offsetof(struct proc, p_pid) == 0x78,
+_Static_assert(vos_offsetof(struct proc, p_pid) == 0x78,
 	"struct proc KBI p_pid");
-_Static_assert(offsetof(struct proc, p_filemon) == 0x26c,
+_Static_assert(vos_offsetof(struct proc, p_filemon) == 0x26c,
 	"struct proc KBI p_filemon");
-_Static_assert(offsetof(struct proc, p_comm) == 0x280,
+_Static_assert(vos_offsetof(struct proc, p_comm) == 0x280,
 	"struct proc KBI p_comm");
-_Static_assert(offsetof(struct proc, p_emuldata) == 0x30c,
+_Static_assert(vos_offsetof(struct proc, p_emuldata) == 0x30c,
 	"struct proc KBI p_emuldata");
 #endif
 
@@ -536,7 +536,7 @@ threadinit(void)
 	tidhashlock = (tidhash + 1) / 64;
 	if (tidhashlock > 0)
 		tidhashlock--;
-	tidhashtbl_lock = malloc(sizeof(*tidhashtbl_lock) * (tidhashlock + 1),
+	tidhashtbl_lock = vos_malloc(sizeof(*tidhashtbl_lock) * (tidhashlock + 1),
 		M_TIDHASH, M_WAITOK | M_ZERO);
 	for (i = 0; i < tidhashlock + 1; i++)
 		rw_init(&tidhashtbl_lock[i], "tidhash");
@@ -733,11 +733,11 @@ thread_reap_barrier(void)
 	 * Second, fire the task in the same thread as normal
 	 * thread_reap() is done, to serialize reaping.
 	 */
-	t = malloc(sizeof(*t), M_TEMP, M_WAITOK);
+	t = vos_malloc(sizeof(*t), M_TEMP, M_WAITOK);
 	TASK_INIT(t, 0, thread_reap_task_cb, t);
 	taskqueue_enqueue(taskqueue_thread, t);
 	taskqueue_drain(taskqueue_thread, t);
-	free(t, M_TEMP);
+	vos_free(t, M_TEMP);
 }
 
 /*
@@ -1114,7 +1114,7 @@ restart:
 			goto restart;
 		}
 		if (TD_CAN_ABORT(td2)) {
-			wakeup_swapper |= sleepq_abort(td2, EINTR);
+			wakeup_swapper |= sleepq_abort(td2, VOS_EINTR);
 			return (wakeup_swapper);
 		}
 		break;
@@ -1127,13 +1127,13 @@ restart:
 			goto restart;
 		}
 		if (TD_CAN_ABORT(td2)) {
-			wakeup_swapper |= sleepq_abort(td2, ERESTART);
+			wakeup_swapper |= sleepq_abort(td2, VOS_ERESTART);
 			return (wakeup_swapper);
 		}
 		break;
 	case SINGLE_ALLPROC:
 		/*
-		 * ALLPROC suspend tries to avoid spurious EINTR for
+		 * ALLPROC suspend tries to avoid spurious VOS_EINTR for
 		 * threads sleeping interruptable, by suspending the
 		 * thread directly, similarly to sig_suspend_threads().
 		 * Since such sleep is not performed at the user
@@ -1152,7 +1152,7 @@ restart:
 				td2->td_flags |= TDF_ALLPROCSUSP;
 			}
 			else {
-				wakeup_swapper |= sleepq_abort(td2, ERESTART);
+				wakeup_swapper |= sleepq_abort(td2, VOS_ERESTART);
 				return (wakeup_swapper);
 			}
 		}
@@ -1383,12 +1383,12 @@ thread_suspend_check(int return_instead)
 				return (0);	/* Exempt from stopping. */
 		}
 		if ((p->p_flag & P_SINGLE_EXIT) && return_instead)
-			return (EINTR);
+			return (VOS_EINTR);
 
 		/* Should we goto user boundary if we didn't come from there? */
 		if (P_SHOULDSTOP(p) == P_STOPPED_SINGLE &&
 			(p->p_flag & P_SINGLE_BOUNDARY) && return_instead)
-			return (ERESTART);
+			return (VOS_ERESTART);
 
 		/*
 		 * Ignore suspend requests if they are deferred.
@@ -1455,7 +1455,7 @@ thread_suspend_check(int return_instead)
  * casueword or similar transiently failing operation.
  *
  * The sleep argument controls whether the function can handle a stop
- * request itself or it should return ERESTART and the request is
+ * request itself or it should return VOS_ERESTART and the request is
  * proceed at the kernel/user boundary in ast.
  *
  * Typically, when retrying due to casueword(9) failure (rv == 1), we
@@ -1467,7 +1467,7 @@ thread_suspend_check(int return_instead)
  * ast.
  *
  * If the request is for thread termination P_SINGLE_EXIT, we cannot
- * handle it at all, and simply return EINTR.
+ * handle it at all, and simply return VOS_EINTR.
  */
 int
 thread_check_susp(struct thread* td, bool sleep)
@@ -1485,10 +1485,10 @@ thread_check_susp(struct thread* td, bool sleep)
 	p = td->td_proc;
 	PROC_LOCK(p);
 	if (p->p_flag & P_SINGLE_EXIT)
-		error = EINTR;
+		error = VOS_EINTR;
 	else if (P_SHOULDSTOP(p) ||
 		((p->p_flag & P_TRACED) && (td->td_dbgflags & TDB_SUSPEND)))
-		error = sleep ? thread_suspend_check(0) : ERESTART;
+		error = sleep ? thread_suspend_check(0) : VOS_ERESTART;
 	PROC_UNLOCK(p);
 	return (error);
 }

@@ -79,21 +79,21 @@ eventhandler_find_or_create_list(const char* name)
 	if (list == NULL) {
 		mtx_unlock(&eventhandler_mutex);
 
-		new_list = malloc(sizeof(*new_list) + strlen(name) + 1,
+		new_list = vos_malloc(sizeof(*new_list) + vos_strlen(name) + 1,
 			M_EVENTHANDLER, M_WAITOK | M_ZERO);
 
 		/* If someone else created it already, then use that one. */
 		mtx_lock(&eventhandler_mutex);
 		list = _eventhandler_find_list(name);
 		if (list != NULL) {
-			free(new_list, M_EVENTHANDLER);
+			vos_free(new_list, M_EVENTHANDLER);
 		}
 		else {
 			CTR2(KTR_EVH, "%s: creating list \"%s\"", __func__, name);
 			list = new_list;
 			TAILQ_INIT(&list->el_entries);
 			list->el_name = (char*)(list + 1);
-			strcpy(list->el_name, name);
+			vos_strcpy(list->el_name, name);
 			mtx_init(&list->el_lock, list->el_name, "eventhandler list",
 				MTX_DEF);
 			TAILQ_INSERT_HEAD(&eventhandler_lists, list, el_link);
@@ -149,7 +149,7 @@ eventhandler_register(struct eventhandler_list* list, const char* name,
 	struct eventhandler_entry_generic* eg;
 
 	/* allocate an entry for this handler, populate it */
-	eg = malloc(sizeof(struct eventhandler_entry_generic), M_EVENTHANDLER,
+	eg = vos_malloc(sizeof(struct eventhandler_entry_generic), M_EVENTHANDLER,
 		M_WAITOK | M_ZERO);
 	eg->func = func;
 	eg->ee.ee_arg = arg;
@@ -173,7 +173,7 @@ vimage_eventhandler_register(struct eventhandler_list* list, const char* name,
 	struct eventhandler_entry_generic_vimage* eg;
 
 	/* allocate an entry for this handler, populate it */
-	eg = malloc(sizeof(struct eventhandler_entry_generic_vimage),
+	eg = vos_malloc(sizeof(struct eventhandler_entry_generic_vimage),
 		M_EVENTHANDLER, M_WAITOK | M_ZERO);
 	eg->func = iterfunc;
 	eg->v_ee.func = func;
@@ -198,7 +198,7 @@ _eventhandler_deregister(struct eventhandler_list* list, eventhandler_tag tag,
 			CTR3(KTR_EVH, "%s: removing item %p from \"%s\"", __func__, ep,
 				list->el_name);
 			TAILQ_REMOVE(&list->el_entries, ep, ee_link);
-			free(ep, M_EVENTHANDLER);
+			vos_free(ep, M_EVENTHANDLER);
 		}
 		else {
 			CTR3(KTR_EVH, "%s: marking item %p from \"%s\" as dead", __func__,
@@ -214,7 +214,7 @@ _eventhandler_deregister(struct eventhandler_list* list, eventhandler_tag tag,
 			while (!TAILQ_EMPTY(&list->el_entries)) {
 				ep = TAILQ_FIRST(&list->el_entries);
 				TAILQ_REMOVE(&list->el_entries, ep, ee_link);
-				free(ep, M_EVENTHANDLER);
+				vos_free(ep, M_EVENTHANDLER);
 			}
 		}
 		else {
@@ -295,7 +295,7 @@ eventhandler_prune_list(struct eventhandler_list* list)
 	TAILQ_FOREACH_SAFE(ep, &list->el_entries, ee_link, en) {
 		if (ep->ee_priority == EHE_DEAD_PRIORITY) {
 			TAILQ_REMOVE(&list->el_entries, ep, ee_link);
-			free(ep, M_EVENTHANDLER);
+			vos_free(ep, M_EVENTHANDLER);
 			pruned++;
 		}
 	}

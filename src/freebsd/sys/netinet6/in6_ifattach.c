@@ -123,7 +123,7 @@ get_rand_ifid(struct ifnet *ifp, struct in6_addr *in6)
 
 	pr = curthread->td_ucred->cr_prison;
 	mtx_lock(&pr->pr_mtx);
-	hostnamelen = strlen(pr->pr_hostname);
+	hostnamelen = vos_strlen(pr->pr_hostname);
 #if 0
 	/* we need at least several letters as seed for ifid */
 	if (hostnamelen < 3) {
@@ -468,7 +468,7 @@ in6_ifattach_linklocal(struct ifnet *ifp, struct ifnet *altifp)
 		 * notification is rather confusing in this case, so just
 		 * suppress it.  (jinmei@kame.net 20010130)
 		 */
-		if (error != EAFNOSUPPORT)
+		if (error != VOS_EAFNOSUPPORT)
 			nd6log((LOG_NOTICE, "in6_ifattach_linklocal: failed to "
 			    "configure a link-local address on %s "
 			    "(errno=%d)\n",
@@ -597,7 +597,7 @@ in6_nigroup0(struct ifnet *ifp, const char *name, int namelen,
 		pr = curthread->td_ucred->cr_prison;
 		mtx_lock(&pr->pr_mtx);
 		name = pr->pr_hostname;
-		namelen = strlen(name);
+		namelen = vos_strlen(name);
 	} else
 		pr = NULL;
 	if (!name || !namelen) {
@@ -615,7 +615,7 @@ in6_nigroup0(struct ifnet *ifp, const char *name, int namelen,
 		return -1;	/* label too long */
 	}
 	l = p - name;
-	strncpy(n, name, l);
+	vos_strncpy(n, name, l);
 	if (pr != NULL)
 		mtx_unlock(&pr->pr_mtx);
 	n[(int)l] = '\0';

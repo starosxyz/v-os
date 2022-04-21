@@ -3165,8 +3165,8 @@ sctp_addr_mgmt_ep_sa(struct sctp_inpcb *inp, struct sockaddr *sa,
 	struct sctp_laddr *laddr, *nladdr;
 
 	if (sa->sa_len == 0) {
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, EINVAL);
-		return (EINVAL);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, VOS_EINVAL);
+		return (VOS_EINVAL);
 	}
 	if (type == SCTP_ADD_IP_ADDRESS) {
 		/* For an add the address MUST be on the system */
@@ -3183,8 +3183,8 @@ sctp_addr_mgmt_ep_sa(struct sctp_inpcb *inp, struct sockaddr *sa,
 		} else if (type == SCTP_DEL_IP_ADDRESS) {
 			if (inp->laddr_count < 2) {
 				/* can't delete the last local address */
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, EINVAL);
-				return (EINVAL);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, VOS_EINVAL);
+				return (VOS_EINVAL);
 			}
 			LIST_FOREACH(laddr, &inp->sctp_addr_list,
 			    sctp_nxt_addr) {
@@ -3215,14 +3215,14 @@ sctp_addr_mgmt_ep_sa(struct sctp_inpcb *inp, struct sockaddr *sa,
 			    sizeof(struct sctp_asconf_iterator),
 			    SCTP_M_ASC_IT);
 			if (asc == NULL) {
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, ENOMEM);
-				return (ENOMEM);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, VOS_ENOMEM);
+				return (VOS_ENOMEM);
 			}
 			wi = SCTP_ZONE_GET(SCTP_BASE_INFO(ipi_zone_laddr), struct sctp_laddr);
 			if (wi == NULL) {
 				SCTP_FREE(asc, SCTP_M_ASC_IT);
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, ENOMEM);
-				return (ENOMEM);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, VOS_ENOMEM);
+				return (VOS_ENOMEM);
 			}
 			LIST_INIT(&asc->list_of_work);
 			asc->cnt = 1;
@@ -3241,16 +3241,16 @@ sctp_addr_mgmt_ep_sa(struct sctp_inpcb *inp, struct sockaddr *sa,
 			    sctp_asconf_iterator_end, inp, 0);
 			if (ret) {
 				SCTP_PRINTF("Failed to initiate iterator for addr_mgmt_ep_sa\n");
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, EFAULT);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_ASCONF, VOS_EFAULT);
 				sctp_asconf_iterator_end(asc, 0);
-				return (EFAULT);
+				return (VOS_EFAULT);
 			}
 		}
 		return (0);
 	} else {
 		/* invalid address! */
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_ASCONF, EADDRNOTAVAIL);
-		return (EADDRNOTAVAIL);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_ASCONF, VOS_EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 }
 

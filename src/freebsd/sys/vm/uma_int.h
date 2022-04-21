@@ -776,7 +776,7 @@ vsetzoneslab(vm_offset_t va, uma_zone_t zone, uma_slab_t slab)
 		return;
 	}
 
-	up = malloc(sizeof(*up), M_DEVBUF, M_WAITOK);
+	up = vos_malloc(sizeof(*up), M_DEVBUF, M_WAITOK);
 	up->up_va = va;
 	up->up_slab = slab;
 	up->up_zone = zone;

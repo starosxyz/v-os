@@ -98,7 +98,7 @@ int testscan() {
     int day, year;
     char weekday[20], month[20], dtm[100];
 
-    strcpy(dtm, "Saturday March 25 1989");
+    vos_strcpy(dtm, "Saturday March 25 1989");
     sscanf(dtm, "%s %s %d  %d", weekday, month, &day, &year);
 
     printf("%s %d, %d = %s\n", month, day, year, weekday);
@@ -127,7 +127,7 @@ void
 vos_pcpu0_init()
 {
     /* Initialize pcpu info of cpu-zero */
-    pcpup = malloc(sizeof(struct pcpu), M_DEVBUF, M_ZERO);
+    pcpup = vos_malloc(sizeof(struct pcpu), M_DEVBUF, M_ZERO);
     pcpu_init(pcpup, 0, sizeof(struct pcpu));
     PCPU_SET(prvspace, pcpup);
     CPU_SET(0, &all_cpus);

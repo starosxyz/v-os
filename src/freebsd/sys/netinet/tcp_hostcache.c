@@ -227,7 +227,7 @@ tcp_hc_init(void)
 	 * Allocate the hash table.
 	 */
 	V_tcp_hostcache.hashbase = (struct hc_head *)
-	    malloc(V_tcp_hostcache.hashsize * sizeof(struct hc_head),
+		vos_malloc(V_tcp_hostcache.hashsize * sizeof(struct hc_head),
 		   M_HOSTCACHE, M_WAITOK | M_ZERO);
 
 	/*
@@ -272,7 +272,7 @@ tcp_hc_destroy(void)
 
 	for (i = 0; i < V_tcp_hostcache.hashsize; i++)
 		mtx_destroy(&V_tcp_hostcache.hashbase[i].hch_mtx);
-	free(V_tcp_hostcache.hashbase, M_HOSTCACHE);
+	vos_free(V_tcp_hostcache.hashbase, M_HOSTCACHE);
 }
 #endif
 
@@ -636,7 +636,7 @@ sysctl_tcp_hc_list(SYSCTL_HANDLER_ARGS)
 #endif
 
 	if (jailed_without_vnet(curthread->td_ucred) != 0)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	sbuf_new(&sb, NULL, linesize * (V_tcp_hostcache.cache_count + 1),
 		SBUF_INCLUDENUL);

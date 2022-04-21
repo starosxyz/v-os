@@ -455,7 +455,7 @@ sppp_alloc(u_char type, struct ifnet *ifp)
 {
 	struct sppp	*sp;
 
-        sp = malloc(sizeof(struct sppp), M_SPPP, M_WAITOK | M_ZERO);
+        sp = vos_malloc(sizeof(struct sppp), M_SPPP, M_WAITOK | M_ZERO);
 	sp->pp_ifp = ifp;
 
 	return (sp);
@@ -465,7 +465,7 @@ static void
 sppp_free(void *com, u_char type)
 {
 
-	free(com, M_SPPP);
+	vos_free(com, M_SPPP);
 }
 
 static int
@@ -483,9 +483,9 @@ sppp_modevent(module_t mod, int type, void *unused)
 		break;
 	case MOD_UNLOAD:
 		/* if_deregister_com_alloc(IFT_PPP); */
-		return EACCES;
+		return VOS_EACCES;
 	default:
-		return EOPNOTSUPP;
+		return VOS_EOPNOTSUPP;
 	}
 	return 0;
 }
@@ -791,7 +791,7 @@ sppp_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 #endif
 		m_freem (m);
 		SPPP_UNLOCK(sp);
-		return (ENETDOWN);
+		return (VOS_ENETDOWN);
 	}
 
 	if ((ifp->if_flags & IFF_AUTO) &&
@@ -839,7 +839,7 @@ sppp_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 			m_freem(m);
 			SPPP_UNLOCK(sp);
 			if(ip->ip_p == IPPROTO_TCP)
-				return(EADDRNOTAVAIL);
+				return(VOS_EADDRNOTAVAIL);
 			else
 				return(0);
 		}
@@ -882,7 +882,7 @@ sppp_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 			default:
 				m_freem(m);
 				SPPP_UNLOCK(sp);
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 	}
 #endif
@@ -911,7 +911,7 @@ nobufs:		if (debug)
 				SPP_ARGS(ifp));
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		SPPP_UNLOCK(sp);
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	}
 	/*
 	 * May want to check size of packet
@@ -933,17 +933,17 @@ nobufs:		if (debug)
 			h->protocol = htons (ETHERTYPE_IP);
 		else {
 			/*
-			 * Don't choke with an ENETDOWN early.  It's
+			 * Don't choke with an VOS_ENETDOWN early.  It's
 			 * possible that we just started dialing out,
 			 * so don't drop the packet immediately.  If
 			 * we notice that we run out of buffer space
 			 * below, we will however remember that we are
 			 * not ready to carry IP packets, and return
-			 * ENETDOWN, as opposed to ENOBUFS.
+			 * VOS_ENETDOWN, as opposed to VOS_ENOBUFS.
 			 */
 			h->protocol = htons(ipproto);
 			if (sp->state[IDX_IPCP] != STATE_OPENED)
-				rv = ENETDOWN;
+				rv = VOS_ENETDOWN;
 		}
 		break;
 #endif
@@ -953,17 +953,17 @@ nobufs:		if (debug)
 			h->protocol = htons (ETHERTYPE_IPV6);
 		else {
 			/*
-			 * Don't choke with an ENETDOWN early.  It's
+			 * Don't choke with an VOS_ENETDOWN early.  It's
 			 * possible that we just started dialing out,
 			 * so don't drop the packet immediately.  If
 			 * we notice that we run out of buffer space
 			 * below, we will however remember that we are
 			 * not ready to carry IP packets, and return
-			 * ENETDOWN, as opposed to ENOBUFS.
+			 * VOS_ENETDOWN, as opposed to VOS_ENOBUFS.
 			 */
 			h->protocol = htons(PPP_IPV6);
 			if (sp->state[IDX_IPV6CP] != STATE_OPENED)
-				rv = ENETDOWN;
+				rv = VOS_ENETDOWN;
 		}
 		break;
 #endif
@@ -971,7 +971,7 @@ nobufs:		if (debug)
 		m_freem (m);
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		SPPP_UNLOCK(sp);
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	}
 
 	/*
@@ -986,7 +986,7 @@ out:
 	if (error) {
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		SPPP_UNLOCK(sp);
-		return (rv? rv: ENOBUFS);
+		return (rv? rv: VOS_ENOBUFS);
 	}
 	SPPP_UNLOCK(sp);
 	/*
@@ -1043,7 +1043,7 @@ sppp_attach(struct ifnet *ifp)
  	callout_init(&sp->ifstart_callout, 1);
 	sp->if_start = ifp->if_start;
 	ifp->if_start = sppp_ifstart;
-	sp->pp_comp = malloc(sizeof(struct slcompress), M_TEMP, M_WAITOK);
+	sp->pp_comp = vos_malloc(sizeof(struct slcompress), M_TEMP, M_WAITOK);
 	sl_compress_init(sp->pp_comp, -1);
 	sppp_lcp_init(sp);
 	sppp_ipcp_init(sp);
@@ -1242,14 +1242,14 @@ sppp_ioctl(struct ifnet *ifp, IOCTL_CMD_T cmd, void *data)
 #endif
 	case SIOCSIFMTU:
 		if (ifr->ifr_mtu < 128 || ifr->ifr_mtu > sp->lcp.their_mru)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		ifp->if_mtu = ifr->ifr_mtu;
 		break;
 #endif
 #ifdef SLIOCSETMTU
 	case SLIOCSETMTU:
 		if (*(short*)data < 128 || *(short*)data > sp->lcp.their_mru)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		ifp->if_mtu = *(short*)data;
 		break;
 #endif
@@ -1273,7 +1273,7 @@ sppp_ioctl(struct ifnet *ifp, IOCTL_CMD_T cmd, void *data)
 		break;
 
 	default:
-		rv = ENOTTY;
+		rv = VOS_ENOTTY;
 	}
 	SPPP_UNLOCK(sp);
 	return rv;
@@ -2256,7 +2256,7 @@ sppp_lcp_RCR(struct sppp *sp, struct lcp_header *h, int len)
 
 	len -= 4;
 	origlen = len;
-	buf = r = malloc (len, M_TEMP, M_NOWAIT);
+	buf = r = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (! buf)
 		return (0);
 
@@ -2465,7 +2465,7 @@ sppp_lcp_RCR(struct sppp *sp, struct lcp_header *h, int len)
 			      h->ident, origlen, h+1);
 	}
 
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return (rlen == 0);
 }
 
@@ -2480,7 +2480,7 @@ sppp_lcp_RCN_rej(struct sppp *sp, struct lcp_header *h, int len)
 	u_char *buf, *p;
 
 	len -= 4;
-	buf = malloc (len, M_TEMP, M_NOWAIT);
+	buf = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (!buf)
 		return;
 
@@ -2529,7 +2529,7 @@ sppp_lcp_RCN_rej(struct sppp *sp, struct lcp_header *h, int len)
 	}
 	if (debug)
 		log(-1, "\n");
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return;
 }
 
@@ -2545,7 +2545,7 @@ sppp_lcp_RCN_nak(struct sppp *sp, struct lcp_header *h, int len)
 	u_long magic;
 
 	len -= 4;
-	buf = malloc (len, M_TEMP, M_NOWAIT);
+	buf = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (!buf)
 		return;
 
@@ -2610,7 +2610,7 @@ sppp_lcp_RCN_nak(struct sppp *sp, struct lcp_header *h, int len)
 	}
 	if (debug)
 		log(-1, "\n");
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return;
 }
 
@@ -2929,7 +2929,7 @@ sppp_ipcp_RCR(struct sppp *sp, struct lcp_header *h, int len)
 	 * Make sure to allocate a buf that can at least hold a
 	 * conf-nak with an `address' option.  We might need it below.
 	 */
-	buf = r = malloc ((len < 6? 6: len), M_TEMP, M_NOWAIT);
+	buf = r = vos_malloc((len < 6? 6: len), M_TEMP, M_NOWAIT);
 	if (! buf)
 		return (0);
 
@@ -3114,7 +3114,7 @@ sppp_ipcp_RCR(struct sppp *sp, struct lcp_header *h, int len)
 			      h->ident, origlen, h+1);
 	}
 
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return (rlen == 0);
 }
 
@@ -3130,7 +3130,7 @@ sppp_ipcp_RCN_rej(struct sppp *sp, struct lcp_header *h, int len)
 	int debug = ifp->if_flags & IFF_DEBUG;
 
 	len -= 4;
-	buf = malloc (len, M_TEMP, M_NOWAIT);
+	buf = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (!buf)
 		return;
 
@@ -3159,7 +3159,7 @@ sppp_ipcp_RCN_rej(struct sppp *sp, struct lcp_header *h, int len)
 	}
 	if (debug)
 		log(-1, "\n");
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return;
 }
 
@@ -3177,7 +3177,7 @@ sppp_ipcp_RCN_nak(struct sppp *sp, struct lcp_header *h, int len)
 	u_long wantaddr;
 
 	len -= 4;
-	buf = malloc (len, M_TEMP, M_NOWAIT);
+	buf = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (!buf)
 		return;
 
@@ -3241,7 +3241,7 @@ sppp_ipcp_RCN_nak(struct sppp *sp, struct lcp_header *h, int len)
 	}
 	if (debug)
 		log(-1, "\n");
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return;
 }
 
@@ -3475,7 +3475,7 @@ sppp_ipv6cp_RCR(struct sppp *sp, struct lcp_header *h, int len)
 	 * Make sure to allocate a buf that can at least hold a
 	 * conf-nak with an `address' option.  We might need it below.
 	 */
-	buf = r = malloc ((len < 6? 6: len), M_TEMP, M_NOWAIT);
+	buf = r = vos_malloc((len < 6? 6: len), M_TEMP, M_NOWAIT);
 	if (! buf)
 		return (0);
 
@@ -3613,7 +3613,7 @@ sppp_ipv6cp_RCR(struct sppp *sp, struct lcp_header *h, int len)
 	}
 
  end:
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return (rlen == 0);
 }
 
@@ -3629,7 +3629,7 @@ sppp_ipv6cp_RCN_rej(struct sppp *sp, struct lcp_header *h, int len)
 	int debug = ifp->if_flags & IFF_DEBUG;
 
 	len -= 4;
-	buf = malloc (len, M_TEMP, M_NOWAIT);
+	buf = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (!buf)
 		return;
 
@@ -3659,7 +3659,7 @@ sppp_ipv6cp_RCN_rej(struct sppp *sp, struct lcp_header *h, int len)
 	}
 	if (debug)
 		log(-1, "\n");
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return;
 }
 
@@ -3677,7 +3677,7 @@ sppp_ipv6cp_RCN_nak(struct sppp *sp, struct lcp_header *h, int len)
 	char ip6buf[INET6_ADDRSTRLEN];
 
 	len -= 4;
-	buf = malloc (len, M_TEMP, M_NOWAIT);
+	buf = vos_malloc(len, M_TEMP, M_NOWAIT);
 	if (!buf)
 		return;
 
@@ -3758,7 +3758,7 @@ sppp_ipv6cp_RCN_nak(struct sppp *sp, struct lcp_header *h, int len)
 	}
 	if (debug)
 		log(-1, "\n");
-	free (buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return;
 }
 static void
@@ -5050,8 +5050,8 @@ sppp_params(struct sppp *sp, u_long cmd, void *data)
 	struct spppreq *spr;
 	int rv = 0;
 
-	if ((spr = malloc(sizeof(struct spppreq), M_TEMP, M_NOWAIT)) == NULL)
-		return (EAGAIN);
+	if ((spr = vos_malloc(sizeof(struct spppreq), M_TEMP, M_NOWAIT)) == NULL)
+		return (VOS_EAGAIN);
 	/*
 	 * ifr_data_get_ptr(ifr) is supposed to point to a struct spppreq.
 	 * Check the cmd word first before attempting to fetch all the
@@ -5059,19 +5059,19 @@ sppp_params(struct sppp *sp, u_long cmd, void *data)
 	 */
 	rv = fueword(ifr_data_get_ptr(ifr), &subcmd);
 	if (rv == -1) {
-		rv = EFAULT;
+		rv = VOS_EFAULT;
 		goto quit;
 	}
 
 	if (copyin(ifr_data_get_ptr(ifr), spr, sizeof(struct spppreq)) != 0) {
-		rv = EFAULT;
+		rv = VOS_EFAULT;
 		goto quit;
 	}
 
 	switch (subcmd) {
 	case (u_long)SPPPIOGDEFS:
 		if (cmd != SIOCGIFGENERIC) {
-			rv = EINVAL;
+			rv = VOS_EINVAL;
 			break;
 		}
 		/*
@@ -5106,7 +5106,7 @@ sppp_params(struct sppp *sp, u_long cmd, void *data)
 
 	case (u_long)SPPPIOSDEFS:
 		if (cmd != SIOCSIFGENERIC) {
-			rv = EINVAL;
+			rv = VOS_EINVAL;
 			break;
 		}
 		/*
@@ -5135,7 +5135,7 @@ sppp_params(struct sppp *sp, u_long cmd, void *data)
 		 * reset to 0.  */
 		if (sp->pp_phase != PHASE_DEAD &&
 		    sp->pp_phase != PHASE_ESTABLISH) {
-			rv = EBUSY;
+			rv = VOS_EBUSY;
 			break;
 		}
 
@@ -5143,7 +5143,7 @@ sppp_params(struct sppp *sp, u_long cmd, void *data)
 		     spr->defs.myauth.proto != PPP_CHAP) ||
 		    (spr->defs.hisauth.proto != 0 && spr->defs.hisauth.proto != PPP_PAP &&
 		     spr->defs.hisauth.proto != PPP_CHAP)) {
-			rv = EINVAL;
+			rv = VOS_EINVAL;
 			break;
 		}
 
@@ -5189,11 +5189,11 @@ sppp_params(struct sppp *sp, u_long cmd, void *data)
 		break;
 
 	default:
-		rv = EINVAL;
+		rv = VOS_EINVAL;
 	}
 
  quit:
-	free(spr, M_TEMP);
+	vos_free(spr, M_TEMP);
 
 	return (rv);
 }

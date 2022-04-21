@@ -450,7 +450,7 @@ sleepq_check_ast_sc_locked(struct thread* td, struct sleepqueue_chain* sc)
 	if ((td->td_pflags & TDP_WAKEUP) != 0) {
 		td->td_pflags &= ~TDP_WAKEUP;
 		thread_lock(td);
-		return (EINTR);
+		return (VOS_EINTR);
 	}
 
 	/*
@@ -631,7 +631,7 @@ sleepq_check_timeout(void)
 	td = curthread;
 	if (td->td_sleeptimo != 0) {
 		if (td->td_sleeptimo <= sbinuptime())
-			res = EWOULDBLOCK;
+			res = VOS_EWOULDBLOCK;
 		td->td_sleeptimo = 0;
 	}
 	return (res);
@@ -1139,7 +1139,7 @@ sleepq_abort(struct thread* td, int intrval)
 	MPASS(TD_ON_SLEEPQ(td));
 	MPASS(td->td_flags & TDF_SINTR);
 	MPASS((intrval == 0 && (td->td_flags & TDF_SIGWAIT) != 0) ||
-		intrval == EINTR || intrval == ERESTART);
+		intrval == VOS_EINTR || intrval == VOS_ERESTART);
 
 	/*
 	 * If the TDF_TIMEOUT flag is set, just leave. A
@@ -1228,7 +1228,7 @@ sleepq_sbuf_print_stacks(struct sbuf* sb, const void* wchan, int queue,
 		 * we do our mallocs now, and hope it is enough.  If it
 		 * isn't, we will free these, drop the lock, malloc more,
 		 * and try again, up to a point.  After that point we will
-		 * give up and report ENOMEM. We also cannot write to sb
+		 * give up and report VOS_ENOMEM. We also cannot write to sb
 		 * during this time since the client may have set the
 		 * SBUF_AUTOEXTEND flag on their sbuf, which could cause a
 		 * malloc as we print to it.  So we defer actually printing
@@ -1236,14 +1236,14 @@ sleepq_sbuf_print_stacks(struct sbuf* sb, const void* wchan, int queue,
 		 */
 
 		 /* Where we will store the stacks. */
-		st = malloc(sizeof(struct stack*) * stacks_to_allocate,
+		st = vos_malloc(sizeof(struct stack*) * stacks_to_allocate,
 			M_TEMP, M_WAITOK);
 		for (stack_idx = 0; stack_idx < stacks_to_allocate;
 			stack_idx++)
 			st[stack_idx] = stack_create(M_WAITOK);
 
 		/* Where we will store the td name, tid, etc. */
-		td_infos = malloc(sizeof(struct sbuf*) * stacks_to_allocate,
+		td_infos = vos_malloc(sizeof(struct sbuf*) * stacks_to_allocate,
 			M_TEMP, M_WAITOK);
 		for (stack_idx = 0; stack_idx < stacks_to_allocate;
 			stack_idx++)
@@ -1254,8 +1254,8 @@ sleepq_sbuf_print_stacks(struct sbuf* sb, const void* wchan, int queue,
 		sleepq_lock(wchan);
 		sq = sleepq_lookup(wchan);
 		if (sq == NULL) {
-			/* This sleepq does not exist; exit and return ENOENT. */
-			error = ENOENT;
+			/* This sleepq does not exist; exit and return VOS_ENOENT. */
+			error = VOS_ENOENT;
 			finished = true;
 			sleepq_release(wchan);
 			goto loop_end;
@@ -1301,13 +1301,13 @@ sleepq_sbuf_print_stacks(struct sbuf* sb, const void* wchan, int queue,
 		for (stack_idx = 0; stack_idx < stacks_to_allocate;
 			stack_idx++)
 			sbuf_delete(td_infos[stack_idx]);
-		free(st, M_TEMP);
-		free(td_infos, M_TEMP);
+		vos_free(st, M_TEMP);
+		vos_free(td_infos, M_TEMP);
 		stacks_to_allocate *= 10;
 	}
 
 	if (!finished && error == 0)
-		error = ENOMEM;
+		error = VOS_ENOMEM;
 
 	return (error);
 }

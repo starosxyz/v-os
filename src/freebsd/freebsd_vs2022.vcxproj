@@ -515,12 +515,12 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;_DEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;__LP64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;_DEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\windows</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8</AdditionalOptions>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
@@ -538,7 +538,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;NDEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;__LP64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;NDEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
@@ -551,7 +551,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Kernel32.lib;Ws2_32.lib;Advapi32.lib;winmm.lib;Psapi.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

@@ -73,7 +73,7 @@ struct _usem2 {
 };
 
 struct _umtx_time {
-	struct timespec		_timeout;
+	struct vos_timespec		_timeout;
 	__uint32_t		_flags;
 	__uint32_t		_clockid;
 };

@@ -470,6 +470,7 @@ USER_C_INCLDIRS =\
 -I$(USER_DEPTH)/src/freebsd/api\
 -I$(USER_DEPTH)/src/freebsd/machine\
 -I$(USER_DEPTH)/src/freebsd/epoll\
+-I$(USER_DEPTH)/src/freebsd/machine/platform\
 -I$(USER_DEPTH)/src/freebsd/sys/contrib/ck/include
 USER_DEFFLAGS =-nostdinc -fno-builtin -nostdlib\
 -fvisibility=hidden\
@@ -484,7 +485,6 @@ USER_DEFFLAGS =-nostdinc -fno-builtin -nostdlib\
 -DHAVE_KERNEL_OPTION_HEADERS\
 -DSCTP_SUPPORT\
 -DSCTP\
--D__LP64__\
 -D__amd64__\
 -DVOS_KERNEL
 USER_LINK_LIBS =

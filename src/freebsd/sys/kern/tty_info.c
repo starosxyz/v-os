@@ -232,10 +232,10 @@ sbuf_tty_drain(void *a, const char *d, int len)
 	if (tp != NULL && !KERNEL_PANICKED()) {
 		rc = tty_putstrn(tp, d, len);
 		if (rc != 0)
-			return (-ENXIO);
+			return (-VOS_ENXIO);
 		return (len);
 	}
-	return (-ENXIO);
+	return (-VOS_ENXIO);
 }
 
 #ifdef STACK
@@ -259,7 +259,7 @@ sysctl_tty_info_kstacks(SYSCTL_HANDLER_ARGS)
 		tty_info_kstacks = val;
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 
 	return (error);
@@ -302,7 +302,7 @@ tty_info(struct tty *tp)
 	sbuf_set_drain(&sb, sbuf_tty_drain, tp);
 
 	/* Print load average. */
-	load = (averunnable.ldavg[0] * 100 + FSCALE / 2) >> FSHIFT;
+	load = (averunnable.ldavg[0] * 100 + FSCALE / 2) >> VOS_FSHIFT;
 	sbuf_printf(&sb, "%sload: %d.%02d ", tp->t_column == 0 ? "" : "\n",
 	    load / 100, load % 100);
 
@@ -362,14 +362,14 @@ tty_info(struct tty *tp)
 		state = "zombie";
 	else
 		state = "unknown";
-	pctcpu = (sched_pctcpu(td) * 10000 + FSCALE / 2) >> FSHIFT;
+	pctcpu = (sched_pctcpu(td) * 10000 + FSCALE / 2) >> VOS_FSHIFT;
 #ifdef STACK
 	kstacks_val = atomic_load_int(&tty_info_kstacks);
 	print_kstacks = (kstacks_val != STACK_SBUF_FMT_NONE);
 
 	if (print_kstacks) {
 		if (TD_IS_SWAPPED(td))
-			sterr = ENOENT;
+			sterr = VOS_ENOENT;
 		else
 			sterr = stack_save_td(&stack, td);
 	}
@@ -383,7 +383,7 @@ tty_info(struct tty *tp)
 	timevalsub(&rtime, &p->p_stats->p_start);
 	rufetchcalc(p, &ru, &utime, &stime);
 	pid = p->p_pid;
-	strlcpy(comm, p->p_comm, sizeof comm);
+	vos_strlcpy(comm, p->p_comm, sizeof comm);
 	PROC_UNLOCK(p);
 
 	/* Print command, pid, state, rtime, utime, stime, %cpu, and rss. */

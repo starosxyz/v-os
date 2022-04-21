@@ -187,7 +187,7 @@ nameicap_tracker_add(struct nameidata *ndp, struct vnode *dp)
 	nt = TAILQ_LAST(&ndp->ni_cap_tracker, nameicap_tracker_head);
 	if (nt != NULL && nt->dp == dp)
 		return;
-	nt = malloc(sizeof(*nt), M_NAMEITRACKER, M_WAITOK);
+	nt = vos_malloc(sizeof(*nt), M_NAMEITRACKER, M_WAITOK);
 	vhold(dp);
 	nt->dp = dp;
 	TAILQ_INSERT_TAIL(&ndp->ni_cap_tracker, nt, nm_link);
@@ -202,7 +202,7 @@ nameicap_cleanup_from(struct nameidata *ndp, struct nameicap_tracker *first)
 	TAILQ_FOREACH_FROM_SAFE(nt, &ndp->ni_cap_tracker, nm_link, nt1) {
 		TAILQ_REMOVE(&ndp->ni_cap_tracker, nt, nm_link);
 		vdrop(nt->dp);
-		free(nt, M_NAMEITRACKER);
+		vos_free(nt, M_NAMEITRACKER);
 	}
 }
 
@@ -235,11 +235,11 @@ nameicap_check_dotdot(struct nameidata *ndp, struct vnode *dp)
 	    NI_LCF_STRICTRELATIVE) == 0)
 		return (0);
 	if ((ndp->ni_lcf & NI_LCF_CAP_DOTDOT) == 0)
-		return (ENOTCAPABLE);
+		return (VOS_ENOTCAPABLE);
 	mp = dp->v_mount;
 	if (lookup_cap_dotdot_nonlocal == 0 && mp != NULL &&
 	    (mp->mnt_flag & MNT_LOCAL) == 0)
-		return (ENOTCAPABLE);
+		return (VOS_ENOTCAPABLE);
 	TAILQ_FOREACH_REVERSE(nt, &ndp->ni_cap_tracker, nameicap_tracker_head,
 	    nm_link) {
 		if (dp == nt->dp) {
@@ -249,7 +249,7 @@ nameicap_check_dotdot(struct nameidata *ndp, struct vnode *dp)
 			return (0);
 		}
 	}
-	return (ENOTCAPABLE);
+	return (VOS_ENOTCAPABLE);
 }
 
 static void
@@ -274,7 +274,7 @@ namei_handle_root(struct nameidata *ndp, struct vnode **dpp)
 		if (KTRPOINT(curthread, KTR_CAPFAIL))
 			ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
 #endif
-		return (ENOTCAPABLE);
+		return (VOS_ENOTCAPABLE);
 	}
 	while (*(cnp->cn_nameptr) == '/') {
 		cnp->cn_nameptr++;
@@ -325,7 +325,7 @@ namei_setup(struct nameidata *ndp, struct vnode **dpp, struct pwd **pwdp)
 			if (KTRPOINT(td, KTR_CAPFAIL))
 				ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
 #endif
-			return (ECAPMODE);
+			return (VOS_ECAPMODE);
 		}
 	}
 #endif
@@ -368,15 +368,15 @@ namei_setup(struct nameidata *ndp, struct vnode **dpp, struct pwd **pwdp)
 			    &dfp, &ndp->ni_filecaps);
 			if (error != 0) {
 				/*
-				 * Preserve the error; it should either be EBADF
+				 * Preserve the error; it should either be VOS_EBADF
 				 * or capability-related, both of which can be
 				 * safely returned to the caller.
 				 */
 			} else {
 				if (dfp->f_ops == &badfileops) {
-					error = EBADF;
+					error = VOS_EBADF;
 				} else if (dfp->f_vnode == NULL) {
-					error = ENOTDIR;
+					error = VOS_ENOTDIR;
 				} else {
 					*dpp = dfp->f_vnode;
 					vrefact(*dpp);
@@ -403,11 +403,11 @@ namei_setup(struct nameidata *ndp, struct vnode **dpp, struct pwd **pwdp)
 #endif
 		}
 		if (error == 0 && (*dpp)->v_type != VDIR)
-			error = ENOTDIR;
+			error = VOS_ENOTDIR;
 	}
 	if (error == 0 && (cnp->cn_flags & RBENEATH) != 0) {
 		if (cnp->cn_pnbuf[0] == '/') {
-			error = ENOTCAPABLE;
+			error = VOS_ENOTCAPABLE;
 		} else if ((ndp->ni_lcf & NI_LCF_STRICTRELATIVE) == 0) {
 			ndp->ni_lcf |= NI_LCF_STRICTRELATIVE |
 			    NI_LCF_CAP_DOTDOT;
@@ -469,7 +469,7 @@ namei_getpath(struct nameidata *ndp)
 	 */
 	if (__predict_false(*cnp->cn_pnbuf == '\0')) {
 		namei_cleanup_cnp(cnp);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	cnp->cn_nameptr = cnp->cn_pnbuf;
@@ -629,7 +629,7 @@ namei(struct nameidata *ndp)
 			return (error);
 		}
 		if (ndp->ni_loopcnt++ >= MAXSYMLINKS) {
-			error = ELOOP;
+			error = VOS_ELOOP;
 			break;
 		}
 #ifdef MAC
@@ -663,13 +663,13 @@ namei(struct nameidata *ndp)
 		if (linklen == 0) {
 			if (ndp->ni_pathlen > 1)
 				uma_zfree(namei_zone, cp);
-			error = ENOENT;
+			error = VOS_ENOENT;
 			break;
 		}
 		if (linklen + ndp->ni_pathlen > MAXPATHLEN) {
 			if (ndp->ni_pathlen > 1)
 				uma_zfree(namei_zone, cp);
-			error = ENAMETOOLONG;
+			error = VOS_ENAMETOOLONG;
 			break;
 		}
 		if (ndp->ni_pathlen > 1) {
@@ -856,7 +856,7 @@ dirloop:
 		continue;
 	cnp->cn_namelen = cp - cnp->cn_nameptr;
 	if (cnp->cn_namelen > NAME_MAX) {
-		error = ENAMETOOLONG;
+		error = VOS_ENAMETOOLONG;
 		goto bad;
 	}
 #ifdef NAMEI_DIAGNOSTIC
@@ -905,7 +905,7 @@ dirloop:
 	if ((cnp->cn_flags & ISLASTCN) != 0 &&
 	    cnp->cn_namelen == 1 && cnp->cn_nameptr[0] == '.' &&
 	    (cnp->cn_nameiop == DELETE || cnp->cn_nameiop == RENAME)) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto bad;
 	}
 
@@ -918,11 +918,11 @@ dirloop:
 	 */
 	if (cnp->cn_nameptr[0] == '\0') {
 		if (dp->v_type != VDIR) {
-			error = ENOTDIR;
+			error = VOS_ENOTDIR;
 			goto bad;
 		}
 		if (cnp->cn_nameiop != LOOKUP) {
-			error = EISDIR;
+			error = VOS_EISDIR;
 			goto bad;
 		}
 		if (wantparent) {
@@ -947,7 +947,7 @@ dirloop:
 	/*
 	 * Handle "..": five special cases.
 	 * 0. If doing a capability lookup and lookup_cap_dotdot is
-	 *    disabled, return ENOTCAPABLE.
+	 *    disabled, return VOS_ENOTCAPABLE.
 	 * 1. Return an error if this is the last component of
 	 *    the name and the operation is DELETE or RENAME.
 	 * 2. If at root directory (e.g. after chroot)
@@ -960,7 +960,7 @@ dirloop:
 	 * 4. If the vnode is the top directory of
 	 *    the jail or chroot, don't let them out.
 	 * 5. If doing a capability lookup and lookup_cap_dotdot is
-	 *    enabled, return ENOTCAPABLE if the lookup would escape
+	 *    enabled, return VOS_ENOTCAPABLE if the lookup would escape
 	 *    from the initial file descriptor directory.  Checks are
 	 *    done by ensuring that namei() already traversed the
 	 *    result of dotdot lookup.
@@ -972,12 +972,12 @@ dirloop:
 			if (KTRPOINT(curthread, KTR_CAPFAIL))
 				ktrcapfail(CAPFAIL_LOOKUP, NULL, NULL);
 #endif
-			error = ENOTCAPABLE;
+			error = VOS_ENOTCAPABLE;
 			goto bad;
 		}
 		if ((cnp->cn_flags & ISLASTCN) != 0 &&
 		    (cnp->cn_nameiop == DELETE || cnp->cn_nameiop == RENAME)) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto bad;
 		}
 		for (;;) {
@@ -999,7 +999,7 @@ dirloop:
 			if ((dp->v_vflag & VV_ROOT) == 0)
 				break;
 			if (VN_IS_DOOMED(dp)) {	/* forced unmount */
-				error = ENOENT;
+				error = VOS_ENOENT;
 				goto bad;
 			}
 			tdp = dp;
@@ -1040,7 +1040,7 @@ unionlookup:
 	    dp != vp_crossmp && VOP_ISLOCKED(dp) == LK_SHARED)
 		vn_lock(dp, LK_UPGRADE|LK_RETRY);
 	if (VN_IS_DOOMED(dp)) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto bad;
 	}
 	/*
@@ -1062,7 +1062,7 @@ unionlookup:
 #ifdef NAMEI_DIAGNOSTIC
 		printf("not found\n");
 #endif
-		if ((error == ENOENT) &&
+		if ((error == VOS_ENOENT) &&
 		    (dp->v_vflag & VV_ROOT) && (dp->v_mount != NULL) &&
 		    (dp->v_mount->mnt_flag & MNT_UNION)) {
 			tdp = dp;
@@ -1076,7 +1076,7 @@ unionlookup:
 			goto unionlookup;
 		}
 
-		if (error == ERELOOKUP) {
+		if (error == VOS_ERELOOKUP) {
 			vref(dp);
 			ndp->ni_vp = dp;
 			error = 0;
@@ -1084,7 +1084,7 @@ unionlookup:
 			goto good;
 		}
 
-		if (error != EJUSTRETURN)
+		if (error != VOS_EJUSTRETURN)
 			goto bad;
 		/*
 		 * At this point, we know we're at the end of the
@@ -1093,13 +1093,13 @@ unionlookup:
 		 * provided we're not on a read-only filesystem.
 		 */
 		if (rdonly) {
-			error = EROFS;
+			error = VOS_EROFS;
 			goto bad;
 		}
 		/* trailing slash only allowed for directories */
 		if ((cnp->cn_flags & TRAILINGSLASH) &&
 		    !(cnp->cn_flags & WILLBEDIR)) {
-			error = ENOENT;
+			error = VOS_ENOENT;
 			goto bad;
 		}
 		if ((cnp->cn_flags & LOCKPARENT) == 0)
@@ -1161,11 +1161,11 @@ good:
 			 * We can't know whether the directory was mounted with
 			 * NOSYMFOLLOW, so we can't follow safely.
 			 */
-			error = ENOENT;
+			error = VOS_ENOENT;
 			goto bad2;
 		}
 		if (dp->v_mount->mnt_flag & MNT_NOSYMFOLLOW) {
-			error = EACCES;
+			error = VOS_EACCES;
 			goto bad2;
 		}
 		/*
@@ -1222,7 +1222,7 @@ nextname:
 	 * check that the end result is a directory.
 	 */
 	if ((cnp->cn_flags & TRAILINGSLASH) && dp->v_type != VDIR) {
-		error = ENOTDIR;
+		error = VOS_ENOTDIR;
 		goto bad2;
 	}
 	/*
@@ -1230,7 +1230,7 @@ nextname:
 	 */
 	if (rdonly &&
 	    (cnp->cn_nameiop == DELETE || cnp->cn_nameiop == RENAME)) {
-		error = EROFS;
+		error = VOS_EROFS;
 		goto bad2;
 	}
 	if (cnp->cn_flags & SAVESTART) {
@@ -1269,7 +1269,7 @@ success:
 	    VOP_ISLOCKED(dp) != LK_EXCLUSIVE) {
 		vn_lock(dp, LK_UPGRADE | LK_RETRY);
 		if (VN_IS_DOOMED(dp)) {
-			error = ENOENT;
+			error = VOS_ENOENT;
 			goto bad2;
 		}
 	}
@@ -1310,7 +1310,7 @@ bad_eexist:
 	ndp->ni_dvp = NULL;
 	ndp->ni_vp = NULL;
 	NDFREE(ndp, NDF_ONLY_PNBUF);
-	return (EEXIST);
+	return (VOS_EEXIST);
 }
 
 /*
@@ -1381,14 +1381,14 @@ relookup(struct vnode *dvp, struct vnode **vpp, struct componentname *cnp)
 #endif
 	if ((error = VOP_LOOKUP(dp, vpp, cnp)) != 0) {
 		KASSERT(*vpp == NULL, ("leaf should be empty"));
-		if (error != EJUSTRETURN)
+		if (error != VOS_EJUSTRETURN)
 			goto bad;
 		/*
 		 * If creating and at end of pathname, then can consider
 		 * allowing file to be created.
 		 */
 		if (rdonly) {
-			error = EROFS;
+			error = VOS_EROFS;
 			goto bad;
 		}
 		/* ASSERT(dvp == ndp->ni_startdir) */
@@ -1415,7 +1415,7 @@ relookup(struct vnode *dvp, struct vnode **vpp, struct componentname *cnp)
 			vrele(dvp);
 		else
 			vput(dvp);
-		error = EROFS;
+		error = VOS_EROFS;
 		goto bad;
 	}
 	/*
@@ -1611,15 +1611,15 @@ kern_alternate_path(struct thread *td, const char *prefix, const char *path,
 	size_t len, sz;
 	int error;
 
-	buf = (char *) malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
+	buf = (char *)vos_malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
 	*pathbuf = buf;
 
 	/* Copy the prefix into the new pathname as a starting point. */
-	len = strlcpy(buf, prefix, MAXPATHLEN);
+	len = vos_strlcpy(buf, prefix, MAXPATHLEN);
 	if (len >= MAXPATHLEN) {
 		*pathbuf = NULL;
-		free(buf, M_TEMP);
-		return (EINVAL);
+		vos_free(buf, M_TEMP);
+		return (VOS_EINVAL);
 	}
 	sz = MAXPATHLEN - len;
 	ptr = buf + len;
@@ -1632,13 +1632,13 @@ kern_alternate_path(struct thread *td, const char *prefix, const char *path,
 
 	if (error) {
 		*pathbuf = NULL;
-		free(buf, M_TEMP);
+		vos_free(buf, M_TEMP);
 		return (error);
 	}
 
 	/* Only use a prefix with absolute pathnames. */
 	if (*ptr != '/') {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto keeporig;
 	}
 
@@ -1690,7 +1690,7 @@ kern_alternate_path(struct thread *td, const char *prefix, const char *path,
 		error = namei(&ndroot);
 		if (error == 0) {
 			if (nd.ni_vp == ndroot.ni_vp)
-				error = ENOENT;
+				error = VOS_ENOENT;
 
 			NDFREE(&ndroot, NDF_ONLY_PNBUF);
 			vrele(ndroot.ni_vp);

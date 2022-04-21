@@ -229,7 +229,7 @@ devclass_sysctl_handler(SYSCTL_HANDLER_ARGS)
 		value = dc->parent ? dc->parent->name : "";
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	return (SYSCTL_OUT_STR(req, value));
 }
@@ -285,7 +285,7 @@ device_sysctl_handler(SYSCTL_HANDLER_ARGS)
 		break;
 	default:
 		sbuf_delete(&sb);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	error = sbuf_finish(&sb);
 	sbuf_delete(&sb);
@@ -304,7 +304,7 @@ device_sysctl_init(device_t dev)
 	sysctl_ctx_init(&dev->sysctl_ctx);
 	dev->sysctl_tree = SYSCTL_ADD_NODE_WITH_LABEL(&dev->sysctl_ctx,
 	    SYSCTL_CHILDREN(dc->sysctl_tree), OID_AUTO,
-	    dev->nameunit + strlen(dc->name),
+	    dev->nameunit + vos_strlen(dc->name),
 	    CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, "", "device_index");
 	SYSCTL_ADD_PROC(&dev->sysctl_ctx, SYSCTL_CHILDREN(dev->sysctl_tree),
 	    OID_AUTO, "%desc", CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_NEEDGIANT,
@@ -343,7 +343,7 @@ device_sysctl_update(device_t dev)
 
 	if (dev->sysctl_tree == NULL)
 		return;
-	sysctl_rename_oid(dev->sysctl_tree, dev->nameunit + strlen(dc->name));
+	sysctl_rename_oid(dev->sysctl_tree, dev->nameunit + vos_strlen(dc->name));
 }
 
 static void
@@ -463,7 +463,7 @@ devopen(struct cdev *dev, int oflags, int devtype, struct thread *td)
 	mtx_lock(&devsoftc.mtx);
 	if (devsoftc.inuse) {
 		mtx_unlock(&devsoftc.mtx);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	/* move to init */
 	devsoftc.inuse = 1;
@@ -502,12 +502,12 @@ devread(struct cdev *dev, struct uio *uio, int ioflag)
 	while (STAILQ_EMPTY(&devsoftc.devq)) {
 		if (devsoftc.nonblock) {
 			mtx_unlock(&devsoftc.mtx);
-			return (EAGAIN);
+			return (VOS_EAGAIN);
 		}
 		rv = cv_wait_sig(&devsoftc.cv, &devsoftc.mtx);
 		if (rv) {
 			/*
-			 * Need to translate ERESTART to EINTR here? -- jake
+			 * Need to translate VOS_ERESTART to VOS_EINTR here? -- jake
 			 */
 			mtx_unlock(&devsoftc.mtx);
 			return (rv);
@@ -517,7 +517,7 @@ devread(struct cdev *dev, struct uio *uio, int ioflag)
 	STAILQ_REMOVE_HEAD(&devsoftc.devq, dei_link);
 	devsoftc.queued--;
 	mtx_unlock(&devsoftc.mtx);
-	rv = uiomove(n1->dei_data, strlen(n1->dei_data), uio);
+	rv = uiomove(n1->dei_data, vos_strlen(n1->dei_data), uio);
 	uma_zfree(devsoftc.zone, n1);
 	return (rv);
 }
@@ -551,7 +551,7 @@ devioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag, struct thread *t
 	default:
 		break;
 	}
-	return (ENOTTY);
+	return (VOS_ENOTTY);
 }
 
 static	int
@@ -581,7 +581,7 @@ devkqfilter(struct cdev *dev, struct knote *kn)
 		knlist_add(&devsoftc.sel.si_note, kn, 0);
 		error = 0;
 	} else
-		error = EINVAL;
+		error = VOS_EINVAL;
 	return (error);
 }
 
@@ -803,7 +803,7 @@ sysctl_devctl_queue(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (q < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * When set as a tunable, we've not yet initialized the mutex.
@@ -822,7 +822,7 @@ sysctl_devctl_queue(SYSCTL_HANDLER_ARGS)
 	 * UMA issues can be sorted out.
 	 */
 	if (q != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (q == devctl_queue_length)
 		return (0);
 	mtx_lock(&devsoftc.mtx);
@@ -989,13 +989,13 @@ devclass_find_internal(const char *classname, const char *parentname,
 
 	if (create && !dc) {
 		PDEBUG(("creating %s", classname));
-		dc = malloc(sizeof(struct devclass) + strlen(classname) + 1,
+		dc = vos_malloc(sizeof(struct devclass) + vos_strlen(classname) + 1,
 		    M_BUS, M_NOWAIT | M_ZERO);
 		if (!dc)
 			return (NULL);
 		dc->parent = NULL;
 		dc->name = (char*) (dc + 1);
-		strcpy(dc->name, classname);
+		vos_strcpy(dc->name, classname);
 		TAILQ_INIT(&dc->drivers);
 		TAILQ_INSERT_TAIL(&devclasses, dc, link);
 
@@ -1115,11 +1115,11 @@ devclass_add_driver(devclass_t dc, driver_t *driver, int pass, devclass_t *dcp)
 
 	/* Don't allow invalid pass values. */
 	if (pass <= BUS_PASS_ROOT)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
-	dl = malloc(sizeof *dl, M_BUS, M_NOWAIT|M_ZERO);
+	dl = vos_malloc(sizeof *dl, M_BUS, M_NOWAIT|M_ZERO);
 	if (!dl)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	/*
 	 * Compile the driver's methods. Also increase the reference count
@@ -1273,7 +1273,7 @@ devclass_delete_driver(devclass_t busclass, driver_t *driver)
 	if (!dl) {
 		PDEBUG(("%s not found in %s list", driver->name,
 		    busclass->name));
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	error = devclass_driver_deleted(busclass, dc, driver);
@@ -1281,7 +1281,7 @@ devclass_delete_driver(devclass_t busclass, driver_t *driver)
 		return (error);
 
 	TAILQ_REMOVE(&busclass->drivers, dl, link);
-	free(dl, M_BUS);
+	vos_free(dl, M_BUS);
 
 	/* XXX: kobj_mtx */
 	driver->refs--;
@@ -1330,7 +1330,7 @@ devclass_quiesce_driver(devclass_t busclass, driver_t *driver)
 	if (!dl) {
 		PDEBUG(("%s not found in %s list", driver->name,
 		    busclass->name));
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	/*
@@ -1438,7 +1438,7 @@ devclass_get_softc(devclass_t dc, int unit)
  * @param devcountp	points at location for array size return value
  *
  * @retval 0		success
- * @retval ENOMEM	the array allocation failed
+ * @retval VOS_ENOMEM	the array allocation failed
  */
 int
 devclass_get_devices(devclass_t dc, device_t **devlistp, int *devcountp)
@@ -1447,9 +1447,9 @@ devclass_get_devices(devclass_t dc, device_t **devlistp, int *devcountp)
 	device_t *list;
 
 	count = devclass_get_count(dc);
-	list = malloc(count * sizeof(device_t), M_TEMP, M_NOWAIT|M_ZERO);
+	list = vos_malloc(count * sizeof(device_t), M_TEMP, M_NOWAIT|M_ZERO);
 	if (!list)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	count = 0;
 	for (i = 0; i < dc->maxunit; i++) {
@@ -1479,7 +1479,7 @@ devclass_get_devices(devclass_t dc, device_t **devlistp, int *devcountp)
  *			return value
  *
  * @retval 0		success
- * @retval ENOMEM	the array allocation failed
+ * @retval VOS_ENOMEM	the array allocation failed
  */
 int
 devclass_get_drivers(devclass_t dc, driver_t ***listp, int *countp)
@@ -1491,9 +1491,9 @@ devclass_get_drivers(devclass_t dc, driver_t ***listp, int *countp)
 	count = 0;
 	TAILQ_FOREACH(dl, &dc->drivers, link)
 		count++;
-	list = malloc(count * sizeof(driver_t *), M_TEMP, M_NOWAIT);
+	list = vos_malloc(count * sizeof(driver_t *), M_TEMP, M_NOWAIT);
 	if (list == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	count = 0;
 	TAILQ_FOREACH(dl, &dc->drivers, link) {
@@ -1609,8 +1609,8 @@ devclass_get_sysctl_tree(devclass_t dc)
  *			number
  *
  * @retval 0		success
- * @retval EEXIST	the requested unit number is already allocated
- * @retval ENOMEM	memory allocation failure
+ * @retval VOS_EEXIST	the requested unit number is already allocated
+ * @retval VOS_ENOMEM	memory allocation failure
  */
 static int
 devclass_alloc_unit(devclass_t dc, device_t dev, int *unitp)
@@ -1633,7 +1633,7 @@ devclass_alloc_unit(devclass_t dc, device_t dev, int *unitp)
 			if (bootverbose)
 				printf("%s: %s%d already exists; skipping it\n",
 				    dc->name, dc->name, *unitp);
-			return (EEXIST);
+			return (VOS_EEXIST);
 		}
 	} else {
 		/* Unwired device, find the next available slot for it */
@@ -1664,9 +1664,9 @@ devclass_alloc_unit(devclass_t dc, device_t dev, int *unitp)
 		oldlist = dc->devices;
 		newsize = roundup((unit + 1),
 		    MAX(1, MINALLOCSIZE / sizeof(device_t)));
-		newlist = malloc(sizeof(device_t) * newsize, M_BUS, M_NOWAIT);
+		newlist = vos_malloc(sizeof(device_t) * newsize, M_BUS, M_NOWAIT);
 		if (!newlist)
-			return (ENOMEM);
+			return (VOS_ENOMEM);
 		if (oldlist != NULL)
 			bcopy(oldlist, newlist, sizeof(device_t) * dc->maxunit);
 		bzero(newlist + dc->maxunit,
@@ -1674,7 +1674,7 @@ devclass_alloc_unit(devclass_t dc, device_t dev, int *unitp)
 		dc->devices = newlist;
 		dc->maxunit = newsize;
 		if (oldlist != NULL)
-			free(oldlist, M_BUS);
+			vos_free(oldlist, M_BUS);
 	}
 	PDEBUG(("now: unit %d in devclass %s", unit, DEVCLANAME(dc)));
 
@@ -1695,8 +1695,8 @@ devclass_alloc_unit(devclass_t dc, device_t dev, int *unitp)
  * @param dev		the device to add
  *
  * @retval 0		success
- * @retval EEXIST	the requested unit number is already allocated
- * @retval ENOMEM	memory allocation failure
+ * @retval VOS_EEXIST	the requested unit number is already allocated
+ * @retval VOS_ENOMEM	memory allocation failure
  */
 static int
 devclass_add_device(devclass_t dc, device_t dev)
@@ -1707,13 +1707,13 @@ devclass_add_device(devclass_t dc, device_t dev)
 
 	buflen = snprintf(NULL, 0, "%s%d$", dc->name, INT_MAX);
 	if (buflen < 0)
-		return (ENOMEM);
-	dev->nameunit = malloc(buflen, M_BUS, M_NOWAIT|M_ZERO);
+		return (VOS_ENOMEM);
+	dev->nameunit = vos_malloc(buflen, M_BUS, M_NOWAIT|M_ZERO);
 	if (!dev->nameunit)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	if ((error = devclass_alloc_unit(dc, dev, &dev->unit)) != 0) {
-		free(dev->nameunit, M_BUS);
+		vos_free(dev->nameunit, M_BUS);
 		dev->nameunit = NULL;
 		return (error);
 	}
@@ -1750,7 +1750,7 @@ devclass_delete_device(devclass_t dc, device_t dev)
 	if (dev->flags & DF_WILDCARD)
 		dev->unit = -1;
 	dev->devclass = NULL;
-	free(dev->nameunit, M_BUS);
+	vos_free(dev->nameunit, M_BUS);
 	dev->nameunit = NULL;
 
 	return (0);
@@ -1787,7 +1787,7 @@ make_device(device_t parent, const char *name, int unit)
 		dc = NULL;
 	}
 
-	dev = malloc(sizeof(*dev), M_BUS, M_NOWAIT|M_ZERO);
+	dev = vos_malloc(sizeof(*dev), M_BUS, M_NOWAIT|M_ZERO);
 	if (!dev)
 		return (NULL);
 
@@ -2100,7 +2100,7 @@ device_probe_child(device_t dev, device_t child)
 
 			PDEBUG(("Trying %s", DRIVERNAME(dl->driver)));
 			result = device_set_driver(child, dl->driver);
-			if (result == ENOMEM)
+			if (result == VOS_ENOMEM)
 				return (result);
 			else if (result != 0)
 				continue;
@@ -2155,7 +2155,7 @@ device_probe_child(device_t dev, device_t child)
 			 */
 			if (result <= BUS_PROBE_NOWILDCARD &&
 			    !(child->flags & DF_FIXEDCLASS)) {
-				result = ENXIO;
+				result = VOS_ENXIO;
 			}
 
 			/*
@@ -2187,7 +2187,7 @@ device_probe_child(device_t dev, device_t child)
 	}
 
 	if (best == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	/*
 	 * If we found a driver, change state and initialise the devclass.
@@ -2248,7 +2248,7 @@ device_get_parent(device_t dev)
  * @param devcountp	points at location for array size return value
  *
  * @retval 0		success
- * @retval ENOMEM	the array allocation failed
+ * @retval VOS_ENOMEM	the array allocation failed
  */
 int
 device_get_children(device_t dev, device_t **devlistp, int *devcountp)
@@ -2267,9 +2267,9 @@ device_get_children(device_t dev, device_t **devlistp, int *devcountp)
 		return (0);
 	}
 
-	list = malloc(count * sizeof(device_t), M_TEMP, M_NOWAIT|M_ZERO);
+	list = vos_malloc(count * sizeof(device_t), M_TEMP, M_NOWAIT|M_ZERO);
 	if (!list)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	count = 0;
 	TAILQ_FOREACH(child, &dev->children, link) {
@@ -2425,15 +2425,15 @@ static void
 device_set_desc_internal(device_t dev, const char* desc, int copy)
 {
 	if (dev->desc && (dev->flags & DF_DESCMALLOCED)) {
-		free(dev->desc, M_BUS);
+		vos_free(dev->desc, M_BUS);
 		dev->flags &= ~DF_DESCMALLOCED;
 		dev->desc = NULL;
 	}
 
 	if (copy && desc) {
-		dev->desc = malloc(strlen(desc) + 1, M_BUS, M_NOWAIT);
+		dev->desc = vos_malloc(vos_strlen(desc) + 1, M_BUS, M_NOWAIT);
 		if (dev->desc) {
-			strcpy(dev->desc, desc);
+			vos_strcpy(dev->desc, desc);
 			dev->flags |= DF_DESCMALLOCED;
 		}
 	} else {
@@ -2500,7 +2500,7 @@ void
 device_set_softc(device_t dev, void *softc)
 {
 	if (dev->softc && !(dev->flags & DF_EXTERNALSOFTC))
-		free(dev->softc, M_BUS_SC);
+		vos_free(dev->softc, M_BUS_SC);
 	dev->softc = softc;
 	if (dev->softc)
 		dev->flags |= DF_EXTERNALSOFTC;
@@ -2517,7 +2517,7 @@ device_set_softc(device_t dev, void *softc)
 void
 device_free_softc(void *softc)
 {
-	free(softc, M_BUS_SC);
+	vos_free(softc, M_BUS_SC);
 }
 
 /**
@@ -2722,12 +2722,12 @@ device_set_devclass(device_t dev, const char *classname)
 
 	if (dev->devclass) {
 		printf("device_set_devclass: device class already set\n");
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	dc = devclass_find_internal(classname, NULL, TRUE);
 	if (!dc)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	error = devclass_add_device(dc, dev);
 
@@ -2745,7 +2745,7 @@ device_set_devclass_fixed(device_t dev, const char *classname)
 	int error;
 
 	if (classname == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = device_set_devclass(dev, classname);
 	if (error)
@@ -2768,8 +2768,8 @@ device_is_devclass_fixed(device_t dev)
  * @brief Set the driver of a device
  *
  * @retval 0		success
- * @retval EBUSY	the device already has a driver attached
- * @retval ENOMEM	a memory allocation failure occurred
+ * @retval VOS_EBUSY	the device already has a driver attached
+ * @retval VOS_ENOMEM	a memory allocation failure occurred
  */
 int
 device_set_driver(device_t dev, driver_t *driver)
@@ -2778,13 +2778,13 @@ device_set_driver(device_t dev, driver_t *driver)
 	struct domainset *policy;
 
 	if (dev->state >= DS_ATTACHED)
-		return (EBUSY);
+		return (VOS_EBUSY);
 
 	if (dev->driver == driver)
 		return (0);
 
 	if (dev->softc && !(dev->flags & DF_EXTERNALSOFTC)) {
-		free(dev->softc, M_BUS_SC);
+		vos_free(dev->softc, M_BUS_SC);
 		dev->softc = NULL;
 	}
 	device_set_desc(dev, NULL);
@@ -2803,7 +2803,7 @@ device_set_driver(device_t dev, driver_t *driver)
 				kobj_delete((kobj_t) dev, NULL);
 				kobj_init((kobj_t) dev, &null_class);
 				dev->driver = NULL;
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 			}
 		}
 	} else {
@@ -2836,8 +2836,8 @@ device_set_driver(device_t dev, driver_t *driver)
  * @param dev		the device to initialise
  *
  * @retval 0		success
- * @retval ENXIO	no driver was found
- * @retval ENOMEM	memory allocation failure
+ * @retval VOS_ENXIO	no driver was found
+ * @retval VOS_ENOMEM	memory allocation failure
  * @retval non-zero	some other unix error code
  * @retval -1		Device already attached
  */
@@ -2909,8 +2909,8 @@ device_probe_and_attach(device_t dev)
  * @param dev		the device to initialise
  *
  * @retval 0		success
- * @retval ENXIO	no driver was found
- * @retval ENOMEM	memory allocation failure
+ * @retval VOS_ENXIO	no driver was found
+ * @retval VOS_ENOMEM	memory allocation failure
  * @retval non-zero	some other unix error code
  */
 int
@@ -2924,7 +2924,7 @@ device_attach(device_t dev)
 		device_disable(dev);
 		if (bootverbose)
 			 device_printf(dev, "disabled via hints entry\n");
-		return (ENXIO);
+		return (VOS_ENXIO);
 	}
 
 	device_sysctl_init(dev);
@@ -2972,8 +2972,8 @@ device_attach(device_t dev)
  * @param dev		the device to un-initialise
  *
  * @retval 0		success
- * @retval ENXIO	no driver was found
- * @retval ENOMEM	memory allocation failure
+ * @retval VOS_ENXIO	no driver was found
+ * @retval VOS_ENOMEM	memory allocation failure
  * @retval non-zero	some other unix error code
  */
 int
@@ -2985,10 +2985,10 @@ device_detach(device_t dev)
 
 	PDEBUG(("%s", DEVICENAME(dev)));
 	if (dev->state == DS_BUSY)
-		return (EBUSY);
+		return (VOS_EBUSY);
 	if (dev->state == DS_ATTACHING) {
 		device_printf(dev, "device in attaching state! Deferring detach.\n");
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	if (dev->state != DS_ATTACHED)
 		return (0);
@@ -3028,8 +3028,8 @@ device_detach(device_t dev)
  * @param dev		the device to quiesce
  *
  * @retval 0		success
- * @retval ENXIO	no driver was found
- * @retval ENOMEM	memory allocation failure
+ * @retval VOS_ENXIO	no driver was found
+ * @retval VOS_ENOMEM	memory allocation failure
  * @retval non-zero	some other unix error code
  */
 int
@@ -3037,7 +3037,7 @@ device_quiesce(device_t dev)
 {
 	PDEBUG(("%s", DEVICENAME(dev)));
 	if (dev->state == DS_BUSY)
-		return (EBUSY);
+		return (VOS_EBUSY);
 	if (dev->state != DS_ATTACHED)
 		return (0);
 
@@ -3076,7 +3076,7 @@ device_set_unit(device_t dev, int unit)
 		return (0);
 	dc = device_get_devclass(dev);
 	if (unit < dc->maxunit && dc->devices[unit])
-		return (EBUSY);
+		return (VOS_EBUSY);
 	err = devclass_delete_device(dc, dev);
 	if (err)
 		return (err);
@@ -3128,7 +3128,7 @@ resource_list_free(struct resource_list *rl)
 		if (rle->res)
 			panic("resource_list_free: resource entry is busy");
 		STAILQ_REMOVE_HEAD(rl, link);
-		free(rle, M_BUS);
+		vos_free(rle, M_BUS);
 	}
 }
 
@@ -3181,7 +3181,7 @@ resource_list_add(struct resource_list *rl, int type, int rid,
 
 	rle = resource_list_find(rl, type, rid);
 	if (!rle) {
-		rle = malloc(sizeof(struct resource_list_entry), M_BUS,
+		rle = vos_malloc(sizeof(struct resource_list_entry), M_BUS,
 		    M_NOWAIT);
 		if (!rle)
 			panic("resource_list_add: can't record entry");
@@ -3291,7 +3291,7 @@ resource_list_delete(struct resource_list *rl, int type, int rid)
 		if (rle->res != NULL)
 			panic("resource_list_delete: resource has not been released");
 		STAILQ_REMOVE(rl, rle, resource_list_entry, link);
-		free(rle, M_BUS);
+		vos_free(rle, M_BUS);
 	}
 }
 
@@ -3491,7 +3491,7 @@ resource_list_release(struct resource_list *rl, device_t bus, device_t child,
 			rle->flags &= ~RLE_ALLOCATED;
 			return (0);
 		}
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	error = BUS_RELEASE_RESOURCE(device_get_parent(bus), child,
@@ -3516,7 +3516,7 @@ resource_list_release(struct resource_list *rl, device_t bus, device_t child,
  * @param type		the type of resources to release
  *
  * @retval 0		success
- * @retval EBUSY	at least one resource was active
+ * @retval VOS_EBUSY	at least one resource was active
  */
 int
 resource_list_release_active(struct resource_list *rl, device_t bus,
@@ -3534,7 +3534,7 @@ resource_list_release_active(struct resource_list *rl, device_t bus,
 		if ((rle->flags & (RLE_RESERVED | RLE_ALLOCATED)) ==
 		    RLE_RESERVED)
 			continue;
-		retval = EBUSY;
+		retval = VOS_EBUSY;
 		error = resource_list_release(rl, bus, child, type,
 		    rman_get_rid(rle->res), rle->res);
 		if (error != 0)
@@ -3576,9 +3576,9 @@ resource_list_unreserve(struct resource_list *rl, device_t bus, device_t child,
 	if (!rle)
 		panic("resource_list_unreserve: can't find resource");
 	if (!(rle->flags & RLE_RESERVED))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (rle->flags & RLE_ALLOCATED)
-		return (EBUSY);
+		return (VOS_EBUSY);
 	rle->flags &= ~RLE_RESERVED;
 	return (resource_list_release(rl, bus, child, type, rid, rle->res));
 }
@@ -3643,7 +3643,7 @@ resource_list_purge(struct resource_list *rl)
 			bus_release_resource(rman_get_device(rle->res),
 			    rle->type, rle->rid, rle->res);
 		STAILQ_REMOVE_HEAD(rl, link);
-		free(rle, M_BUS);
+		vos_free(rle, M_BUS);
 	}
 }
 
@@ -3734,7 +3734,7 @@ bus_generic_detach(device_t dev)
 	int error;
 
 	if (dev->state != DS_ATTACHED)
-		return (EBUSY);
+		return (VOS_EBUSY);
 
 	/*
 	 * Detach children in the reverse order.
@@ -3918,7 +3918,7 @@ bus_helper_reset_prepare(device_t dev, int flags)
 	int error;
 
 	if (dev->state != DS_ATTACHED)
-		return (EBUSY);
+		return (VOS_EBUSY);
 
 	TAILQ_FOREACH_REVERSE(child, &dev->children, device_list, link) {
 		if ((flags & DEVF_RESET_DETACH) != 0) {
@@ -4024,25 +4024,25 @@ bus_generic_print_child(device_t dev, device_t child)
 /**
  * @brief Stub function for implementing BUS_READ_IVAR().
  *
- * @returns ENOENT
+ * @returns VOS_ENOENT
  */
 int
 bus_generic_read_ivar(device_t dev, device_t child, int index,
     uintptr_t * result)
 {
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /**
  * @brief Stub function for implementing BUS_WRITE_IVAR().
  *
- * @returns ENOENT
+ * @returns VOS_ENOENT
  */
 int
 bus_generic_write_ivar(device_t dev, device_t child, int index,
     uintptr_t value)
 {
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /**
@@ -4120,7 +4120,7 @@ bus_generic_setup_intr(device_t dev, device_t child, struct resource *irq,
 	if (dev->parent)
 		return (BUS_SETUP_INTR(dev->parent, child, irq, flags,
 		    filter, intr, arg, cookiep));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4136,7 +4136,7 @@ bus_generic_teardown_intr(device_t dev, device_t child, struct resource *irq,
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent)
 		return (BUS_TEARDOWN_INTR(dev->parent, child, irq, cookie));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4151,7 +4151,7 @@ bus_generic_suspend_intr(device_t dev, device_t child, struct resource *irq)
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent)
 		return (BUS_SUSPEND_INTR(dev->parent, child, irq));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4166,7 +4166,7 @@ bus_generic_resume_intr(device_t dev, device_t child, struct resource *irq)
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent)
 		return (BUS_RESUME_INTR(dev->parent, child, irq));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4183,7 +4183,7 @@ bus_generic_adjust_resource(device_t dev, device_t child, int type,
 	if (dev->parent)
 		return (BUS_ADJUST_RESOURCE(dev->parent, child, type, r, start,
 		    end));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4217,7 +4217,7 @@ bus_generic_release_resource(device_t dev, device_t child, int type, int rid,
 	if (dev->parent)
 		return (BUS_RELEASE_RESOURCE(dev->parent, child, type, rid,
 		    r));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4234,7 +4234,7 @@ bus_generic_activate_resource(device_t dev, device_t child, int type, int rid,
 	if (dev->parent)
 		return (BUS_ACTIVATE_RESOURCE(dev->parent, child, type, rid,
 		    r));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4251,7 +4251,7 @@ bus_generic_deactivate_resource(device_t dev, device_t child, int type,
 	if (dev->parent)
 		return (BUS_DEACTIVATE_RESOURCE(dev->parent, child, type, rid,
 		    r));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4269,7 +4269,7 @@ bus_generic_map_resource(device_t dev, device_t child, int type,
 	if (dev->parent)
 		return (BUS_MAP_RESOURCE(dev->parent, child, type, r, args,
 		    map));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4285,7 +4285,7 @@ bus_generic_unmap_resource(device_t dev, device_t child, int type,
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent)
 		return (BUS_UNMAP_RESOURCE(dev->parent, child, type, r, map));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4301,7 +4301,7 @@ bus_generic_bind_intr(device_t dev, device_t child, struct resource *irq,
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent)
 		return (BUS_BIND_INTR(dev->parent, child, irq, cpu));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4317,7 +4317,7 @@ bus_generic_config_intr(device_t dev, int irq, enum intr_trigger trig,
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent)
 		return (BUS_CONFIG_INTR(dev->parent, irq, trig, pol));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4334,7 +4334,7 @@ bus_generic_describe_intr(device_t dev, device_t child, struct resource *irq,
 	if (dev->parent)
 		return (BUS_DESCRIBE_INTR(dev->parent, child, irq, cookie,
 		    descr));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4350,7 +4350,7 @@ bus_generic_get_cpus(device_t dev, device_t child, enum cpu_sets op,
 	/* Propagate up the bus hierarchy until someone handles it. */
 	if (dev->parent != NULL)
 		return (BUS_GET_CPUS(dev->parent, child, op, setsize, cpuset));
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /**
@@ -4400,11 +4400,11 @@ bus_generic_rl_get_resource(device_t dev, device_t child, int type, int rid,
 
 	rl = BUS_GET_RESOURCE_LIST(dev, child);
 	if (!rl)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	rle = resource_list_find(rl, type, rid);
 	if (!rle)
-		return (ENOENT);
+		return (VOS_ENOENT);
 
 	if (startp)
 		*startp = rle->start;
@@ -4430,7 +4430,7 @@ bus_generic_rl_set_resource(device_t dev, device_t child, int type, int rid,
 
 	rl = BUS_GET_RESOURCE_LIST(dev, child);
 	if (!rl)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	resource_list_add(rl, type, rid, start, (start + count - 1), count);
 
@@ -4478,7 +4478,7 @@ bus_generic_rl_release_resource(device_t dev, device_t child, int type,
 
 	rl = BUS_GET_RESOURCE_LIST(dev, child);
 	if (!rl)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	return (resource_list_release(rl, dev, child, type, rid, r));
 }
@@ -4526,7 +4526,7 @@ bus_generic_get_domain(device_t dev, device_t child, int *domain)
 	if (dev->parent)
 		return (BUS_GET_DOMAIN(dev->parent, dev, domain));
 
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /**
@@ -4538,7 +4538,7 @@ bus_generic_get_domain(device_t dev, device_t child, int *domain)
 int
 bus_null_rescan(device_t dev)
 {
-	return (ENXIO);
+	return (VOS_ENXIO);
 }
 
 /*
@@ -4562,7 +4562,7 @@ bus_alloc_resources(device_t dev, struct resource_spec *rs,
 		    rs[i].type, &rs[i].rid, rs[i].flags);
 		if (res[i] == NULL && !(rs[i].flags & RF_OPTIONAL)) {
 			bus_release_resources(dev, rs, res);
-			return (ENXIO);
+			return (VOS_ENXIO);
 		}
 	}
 	return (0);
@@ -4612,7 +4612,7 @@ bus_adjust_resource(device_t dev, int type, struct resource *r, rman_res_t start
     rman_res_t end)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_ADJUST_RESOURCE(dev->parent, dev, type, r, start, end));
 }
 
@@ -4626,7 +4626,7 @@ int
 bus_activate_resource(device_t dev, int type, int rid, struct resource *r)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_ACTIVATE_RESOURCE(dev->parent, dev, type, rid, r));
 }
 
@@ -4640,7 +4640,7 @@ int
 bus_deactivate_resource(device_t dev, int type, int rid, struct resource *r)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_DEACTIVATE_RESOURCE(dev->parent, dev, type, rid, r));
 }
 
@@ -4655,7 +4655,7 @@ bus_map_resource(device_t dev, int type, struct resource *r,
     struct resource_map_request *args, struct resource_map *map)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_MAP_RESOURCE(dev->parent, dev, type, r, args, map));
 }
 
@@ -4670,7 +4670,7 @@ bus_unmap_resource(device_t dev, int type, struct resource *r,
     struct resource_map *map)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_UNMAP_RESOURCE(dev->parent, dev, type, r, map));
 }
 
@@ -4686,7 +4686,7 @@ bus_release_resource(device_t dev, int type, int rid, struct resource *r)
 	int rv;
 
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	rv = BUS_RELEASE_RESOURCE(dev->parent, dev, type, rid, r);
 	return (rv);
 }
@@ -4704,7 +4704,7 @@ bus_setup_intr(device_t dev, struct resource *r, int flags,
 	int error;
 
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	error = BUS_SETUP_INTR(dev->parent, dev, r, flags, filter, handler,
 	    arg, cookiep);
 	if (error != 0)
@@ -4724,7 +4724,7 @@ int
 bus_teardown_intr(device_t dev, struct resource *r, void *cookie)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_TEARDOWN_INTR(dev->parent, dev, r, cookie));
 }
 
@@ -4738,7 +4738,7 @@ int
 bus_suspend_intr(device_t dev, struct resource *r)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_SUSPEND_INTR(dev->parent, dev, r));
 }
 
@@ -4752,7 +4752,7 @@ int
 bus_resume_intr(device_t dev, struct resource *r)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_RESUME_INTR(dev->parent, dev, r));
 }
 
@@ -4766,7 +4766,7 @@ int
 bus_bind_intr(device_t dev, struct resource *r, int cpu)
 {
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_BIND_INTR(dev->parent, dev, r, cpu));
 }
 
@@ -4785,7 +4785,7 @@ bus_describe_intr(device_t dev, struct resource *irq, void *cookie,
 	char descr[MAXCOMLEN + 1];
 
 	if (dev->parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	va_start(ap, fmt);
 	vsnprintf(descr, sizeof(descr), fmt, ap);
 	va_end(ap);
@@ -4946,13 +4946,13 @@ bus_child_pnpinfo_sb(device_t dev, struct sbuf *sb)
 		return (-1);
 	space = SPACE(sb);
 	if (space <= 1) {
-		sb->s_error = ENOMEM;
+		sb->s_error = VOS_ENOMEM;
 		return (-1);
 	}
 	p = EOB(sb);
 	*p = '\0';	/* sbuf buffer isn't NUL terminated until sbuf_finish() */
 	bus_child_pnpinfo_str(dev, p, space);
-	sb->s_len += strlen(p);
+	sb->s_len += vos_strlen(p);
 	return (0);
 }
 
@@ -4976,13 +4976,13 @@ bus_child_location_sb(device_t dev, struct sbuf *sb)
 		return (-1);
 	space = SPACE(sb);
 	if (space <= 1) {
-		sb->s_error = ENOMEM;
+		sb->s_error = VOS_ENOMEM;
 		return (-1);
 	}
 	p = EOB(sb);
 	*p = '\0';	/* sbuf buffer isn't NUL terminated until sbuf_finish() */
 	bus_child_location_str(dev, p, space);
-	sb->s_len += strlen(p);
+	sb->s_len += vos_strlen(p);
 	return (0);
 }
 #undef SPACE
@@ -5001,7 +5001,7 @@ bus_get_cpus(device_t dev, enum cpu_sets op, size_t setsize, cpuset_t *cpuset)
 
 	parent = device_get_parent(dev);
 	if (parent == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (BUS_GET_CPUS(parent, dev, op, setsize, cpuset));
 }
 
@@ -5107,11 +5107,11 @@ root_get_cpus(device_t dev, device_t child, enum cpu_sets op, size_t setsize,
 	case INTR_CPUS:
 		/* Default to returning the set of all CPUs. */
 		if (setsize != sizeof(cpuset_t))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		*cpuset = all_cpus;
 		return (0);
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 }
 
@@ -5150,7 +5150,7 @@ root_bus_module_handler(module_t mod, int what, void* arg)
 		device_shutdown(root_bus);
 		return (0);
 	default:
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	return (0);
@@ -5232,7 +5232,7 @@ driver_module_handler(module_t mod, int what, void *arg)
 			error = dmd->dmd_chainevh(mod,what,dmd->dmd_chainarg);
 		break;
 	default:
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 		break;
 	}
 
@@ -5467,10 +5467,10 @@ sysctl_devices(SYSCTL_HANDLER_ARGS)
 	int			error;
 
 	if (namelen != 2)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (bus_data_generation_check(name[0]))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	index = name[1];
 
@@ -5482,14 +5482,14 @@ sysctl_devices(SYSCTL_HANDLER_ARGS)
 			break;
 	}
 	if (dev == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 
 	/*
 	 * Populate the return item, careful not to overflow the buffer.
 	 */
-	udev = malloc(sizeof(*udev), M_BUS, M_WAITOK | M_ZERO);
+	udev = vos_malloc(sizeof(*udev), M_BUS, M_WAITOK | M_ZERO);
 	if (udev == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	udev->dv_handle = (uintptr_t)dev;
 	udev->dv_parent = (uintptr_t)dev->parent;
 	udev->dv_devflags = dev->devflags;
@@ -5513,7 +5513,7 @@ sysctl_devices(SYSCTL_HANDLER_ARGS)
 	if (error == 0)
 		error = SYSCTL_OUT(req, udev, sizeof(*udev));
 	sbuf_delete(&sb);
-	free(udev, M_BUS);
+	vos_free(udev, M_BUS);
 	return (error);
 }
 
@@ -5571,7 +5571,7 @@ find_device(struct devreq *req, device_t *devp)
 	 * First, ensure that the name is nul terminated.
 	 */
 	if (memchr(req->dr_name, '\0', sizeof(req->dr_name)) == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * Second, try to find an attached device whose name matches
@@ -5587,7 +5587,7 @@ find_device(struct devreq *req, device_t *devp)
 	dev = NULL;
 	EVENTHANDLER_DIRECT_INVOKE(dev_lookup, req->dr_name, &dev);
 	if (dev == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 	*devp = dev;
 	return (0);
 }
@@ -5683,7 +5683,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		error = priv_check(td, PRIV_DRIVER);
 		break;
 	default:
-		error = ENOTTY;
+		error = VOS_ENOTTY;
 		break;
 	}
 	if (error) {
@@ -5695,15 +5695,15 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 	switch (cmd) {
 	case DEV_ATTACH:
 		if (device_is_attached(dev))
-			error = EBUSY;
+			error = VOS_EBUSY;
 		else if (!device_is_enabled(dev))
-			error = ENXIO;
+			error = VOS_ENXIO;
 		else
 			error = device_probe_and_attach(dev);
 		break;
 	case DEV_DETACH:
 		if (!device_is_attached(dev)) {
-			error = ENXIO;
+			error = VOS_ENXIO;
 			break;
 		}
 		if (!(req->dr_flags & DEVF_FORCE_DETACH)) {
@@ -5715,7 +5715,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		break;
 	case DEV_ENABLE:
 		if (device_is_enabled(dev)) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			break;
 		}
 
@@ -5739,7 +5739,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		break;
 	case DEV_DISABLE:
 		if (!device_is_enabled(dev)) {
-			error = ENXIO;
+			error = VOS_ENXIO;
 			break;
 		}
 
@@ -5763,22 +5763,22 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		break;
 	case DEV_SUSPEND:
 		if (device_is_suspended(dev)) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			break;
 		}
 		if (device_get_parent(dev) == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		error = BUS_SUSPEND_CHILD(device_get_parent(dev), dev);
 		break;
 	case DEV_RESUME:
 		if (!device_is_suspended(dev)) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (device_get_parent(dev) == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		error = BUS_RESUME_CHILD(device_get_parent(dev), dev);
@@ -5791,7 +5791,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		if (error)
 			break;
 		if (driver[0] == '\0') {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (dev->devclass != NULL &&
@@ -5804,16 +5804,16 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		 * least one matching driver.
 		 */
 		if (dev->parent == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (!driver_exists(dev->parent, driver)) {
-			error = ENOENT;
+			error = VOS_ENOENT;
 			break;
 		}
 		dc = devclass_create(driver);
 		if (dc == NULL) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			break;
 		}
 
@@ -5822,7 +5822,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 			if (req->dr_flags & DEVF_SET_DRIVER_DETACH)
 				error = device_detach(dev);
 			else
-				error = EBUSY;
+				error = VOS_EBUSY;
 			if (error)
 				break;
 		}
@@ -5850,7 +5850,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 			if (req->dr_flags & DEVF_CLEAR_DRIVER_DETACH)
 				error = device_detach(dev);
 			else
-				error = EBUSY;
+				error = VOS_EBUSY;
 			if (error)
 				break;
 		}
@@ -5862,7 +5862,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		break;
 	case DEV_RESCAN:
 		if (!device_is_attached(dev)) {
-			error = ENXIO;
+			error = VOS_ENXIO;
 			break;
 		}
 		error = BUS_RESCAN(dev);
@@ -5872,12 +5872,12 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 
 		parent = device_get_parent(dev);
 		if (parent == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (!(req->dr_flags & DEVF_FORCE_DELETE)) {
 			if (bus_child_present(dev) != 0) {
-				error = EBUSY;
+				error = VOS_EBUSY;
 				break;
 			}
 		}
@@ -5887,13 +5887,13 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 	}
 	case DEV_FREEZE:
 		if (device_frozen)
-			error = EBUSY;
+			error = VOS_EBUSY;
 		else
 			device_frozen = true;
 		break;
 	case DEV_THAW:
 		if (!device_frozen)
-			error = EBUSY;
+			error = VOS_EBUSY;
 		else {
 			device_do_deferred_actions();
 			device_frozen = false;
@@ -5901,7 +5901,7 @@ devctl2_ioctl(struct cdev *cdev, u_long cmd, caddr_t data, int fflag,
 		break;
 	case DEV_RESET:
 		if ((req->dr_flags & ~(DEVF_RESET_DETACH)) != 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		error = BUS_RESET_CHILD(device_get_parent(dev), dev,

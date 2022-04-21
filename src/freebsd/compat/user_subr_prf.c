@@ -122,7 +122,7 @@ ksprintn(char *nbuf, uintmax_t num, int base, int *lenp, int upper)
     *p = '\0';
     do {
         c = hex2ascii(num % base);
-        *++p = upper ? toupper(c) : c;
+        *++p = upper ? vos_toupper(c) : c;
     } while (num /= base);
     if (lenp)
         *lenp = p - nbuf;

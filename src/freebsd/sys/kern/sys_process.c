@@ -100,7 +100,7 @@ __FBSDID("$FreeBSD$");
 									\
 	PROC_LOCK_ASSERT(td->td_proc, MA_OWNED);			\
 	if ((td->td_proc->p_flag & P_INMEM) == 0)			\
-		error = EIO;						\
+		error = VOS_EIO;						\
 	else								\
 		error = (action);					\
 	return (error);							\
@@ -262,9 +262,9 @@ proc_rwmem(struct proc *p, struct uio *uio)
 		error = vm_fault(map, pageno, reqprot, fault_flags, &m);
 		if (error != KERN_SUCCESS) {
 			if (error == KERN_RESOURCE_SHORTAGE)
-				error = ENOMEM;
+				error = VOS_ENOMEM;
 			else
-				error = EFAULT;
+				error = VOS_EFAULT;
 			break;
 		}
 
@@ -365,11 +365,11 @@ ptrace_vm_entry(struct thread *td, struct proc *p, struct ptrace_vm_entry *pve)
 			index++;
 		}
 		if (index < pve->pve_entry) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (entry == &map->header) {
-			error = ENOENT;
+			error = VOS_ENOENT;
 			break;
 		}
 
@@ -427,15 +427,15 @@ ptrace_vm_entry(struct thread *td, struct proc *p, struct ptrace_vm_entry *pve)
 			vput(vp);
 
 			if (fullpath != NULL) {
-				pve->pve_pathlen = strlen(fullpath) + 1;
+				pve->pve_pathlen = vos_strlen(fullpath) + 1;
 				if (pve->pve_pathlen <= pathlen) {
 					error = copyout(fullpath, pve->pve_path,
 					    pve->pve_pathlen);
 				} else
-					error = ENAMETOOLONG;
+					error = VOS_ENAMETOOLONG;
 			}
 			if (freepath != NULL)
-				free(freepath, M_TEMP);
+				vos_free(freepath, M_TEMP);
 		}
 	}
 	vmspace_free(vm);
@@ -509,7 +509,7 @@ sys_ptrace(struct thread *td, struct ptrace_args *uap)
 		break;
 	case PT_SET_EVENT_MASK:
 		if (uap->data != sizeof(r.ptevents))
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			error = copyin(uap->addr, &r.ptevents, uap->data);
 		break;
@@ -582,7 +582,7 @@ sys_ptrace(struct thread *td, struct ptrace_args *uap)
 	proc_read_ ## w ## 32(t, a) : \
 	proc_read_ ## w (t, a)
 #define	PROC_WRITE(w, t, a)	wrap32 ? \
-	(safe ? proc_write_ ## w ## 32(t, a) : EINVAL ) : \
+	(safe ? proc_write_ ## w ## 32(t, a) : VOS_EINVAL ) : \
 	proc_write_ ## w (t, a)
 #else
 #define	PROC_READ(w, t, a)	proc_read_ ## w (t, a)
@@ -650,14 +650,14 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 			if ((p = pfind(pid)) == NULL) {
 				if (proctree_locked)
 					sx_xunlock(&proctree_lock);
-				return (ESRCH);
+				return (VOS_ESRCH);
 			}
 		} else {
 			td2 = tdfind(pid, -1);
 			if (td2 == NULL) {
 				if (proctree_locked)
 					sx_xunlock(&proctree_lock);
-				return (ESRCH);
+				return (VOS_ESRCH);
 			}
 			p = td2->td_proc;
 			tid = pid;
@@ -667,7 +667,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 	AUDIT_ARG_PROCESS(p);
 
 	if ((p->p_flag & P_WEXIT) != 0) {
-		error = ESRCH;
+		error = VOS_ESRCH;
 		goto fail;
 	}
 	if ((error = p_cansee(td, p)) != 0)
@@ -680,7 +680,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 	 * System processes can't be debugged.
 	 */
 	if ((p->p_flag & P_SYSTEM) != 0) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto fail;
 	}
 
@@ -715,11 +715,11 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		 * could trace us.  Otherwise, reject.
 		 */
 		if ((p->p_flag & P_TRACED) != 0) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto fail;
 		}
 		if (p->p_pptr == initproc) {
-			error = EPERM;
+			error = VOS_EPERM;
 			goto fail;
 		}
 		break;
@@ -727,13 +727,13 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 	case PT_ATTACH:
 		/* Self */
 		if (p == td->td_proc) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto fail;
 		}
 
 		/* Already traced */
 		if (p->p_flag & P_TRACED) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto fail;
 		}
 
@@ -741,7 +741,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		if (curp->p_flag & P_TRACED) {
 			for (pp = curp->p_pptr; pp != NULL; pp = pp->p_pptr) {
 				if (pp == p) {
-					error = EINVAL;
+					error = VOS_EINVAL;
 					goto fail;
 				}
 			}
@@ -759,13 +759,13 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 	default:
 		/* not being traced... */
 		if ((p->p_flag & P_TRACED) == 0) {
-			error = EPERM;
+			error = VOS_EPERM;
 			goto fail;
 		}
 
 		/* not being traced by YOU */
 		if (p->p_pptr != td->td_proc) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto fail;
 		}
 
@@ -773,7 +773,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		if ((p->p_flag & P_STOPPED_TRACE) == 0 ||
 		    p->p_suspcount != p->p_numthreads  ||
 		    (p->p_flag & P_WAITED) == 0) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto fail;
 		}
 
@@ -890,7 +890,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 
 	case PT_GET_EVENT_MASK:
 		if (data != sizeof(p->p_ptevents)) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		CTR2(KTR_PTRACE, "PT_GET_EVENT_MASK: pid %d mask %#x", p->p_pid,
@@ -900,13 +900,13 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 
 	case PT_SET_EVENT_MASK:
 		if (data != sizeof(p->p_ptevents)) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		tmp = *(int *)addr;
 		if ((tmp & ~(PTRACE_EXEC | PTRACE_SCE | PTRACE_SCX |
 		    PTRACE_FORK | PTRACE_LWP | PTRACE_VFORK)) != 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		CTR3(KTR_PTRACE, "PT_SET_EVENT_MASK: pid %d mask %#x -> %#x",
@@ -921,7 +921,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		    || (wrap32 && !safe)
 #endif
 		    ) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		bzero(addr, sizeof(td2->td_sa.args));
@@ -935,7 +935,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		    || (wrap32 && !safe)
 #endif
 		    ) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		psr = addr;
@@ -959,7 +959,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 	case PT_DETACH:
 		/* Zero means do not send any signal */
 		if (data < 0 || data > _SIG_MAXSIG) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 
@@ -1103,7 +1103,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		error = 0;
 		if (proc_writemem(td, p, (off_t)(uintptr_t)addr, &data,
 		    sizeof(int)) != sizeof(int))
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 		else
 			CTR3(KTR_PTRACE, "PT_WRITE: pid %d: %p <= %#x",
 			    p->p_pid, addr, data);
@@ -1116,7 +1116,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		error = tmp = 0;
 		if (proc_readmem(td, p, (off_t)(uintptr_t)addr, &tmp,
 		    sizeof(int)) != sizeof(int))
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 		else
 			CTR3(KTR_PTRACE, "PT_READ: pid %d: %p >= %#x",
 			    p->p_pid, addr, tmp);
@@ -1149,7 +1149,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 			uio.uio_rw = UIO_WRITE;
 			break;
 		default:
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		PROC_UNLOCK(p);
@@ -1204,7 +1204,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 
 	case PT_LWPINFO:
 		if (data <= 0 || data > sizeof(*pl)) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		pl = addr;
@@ -1215,7 +1215,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		if (td2->td_dbgflags & TDB_XSIG) {
 			pl->pl_event = PL_EVENT_SIGNAL;
 			if (td2->td_si.si_signo != 0 &&
-			    data >= offsetof(struct ptrace_lwpinfo, pl_siginfo)
+			    data >= vos_offsetof(struct ptrace_lwpinfo, pl_siginfo)
 			    + sizeof(pl->pl_siginfo)){
 				pl->pl_flags |= PL_FLAG_SI;
 				pl->pl_siginfo = td2->td_si;
@@ -1243,7 +1243,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 			pl->pl_flags |= PL_FLAG_EXITED;
 		pl->pl_sigmask = td2->td_sigmask;
 		pl->pl_siglist = td2->td_siglist;
-		strcpy(pl->pl_tdname, td2->td_name);
+		vos_strcpy(pl->pl_tdname, td2->td_name);
 		if ((td2->td_dbgflags & (TDB_SCE | TDB_SCX)) != 0) {
 			pl->pl_syscall_code = td2->td_sa.code;
 			pl->pl_syscall_narg = td2->td_sa.callp->sy_narg;
@@ -1267,12 +1267,12 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		CTR3(KTR_PTRACE, "PT_GETLWPLIST: pid %d: data %d, actual %d",
 		    p->p_pid, data, p->p_numthreads);
 		if (data <= 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		num = imin(p->p_numthreads, data);
 		PROC_UNLOCK(p);
-		buf = malloc(num * sizeof(lwpid_t), M_TEMP, M_WAITOK);
+		buf = vos_malloc(num * sizeof(lwpid_t), M_TEMP, M_WAITOK);
 		tmp = 0;
 		PROC_LOCK(p);
 		FOREACH_THREAD_IN_PROC(p, td2) {
@@ -1282,7 +1282,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		}
 		PROC_UNLOCK(p);
 		error = copyout(buf, addr, tmp * sizeof(lwpid_t));
-		free(buf, M_TEMP);
+		vos_free(buf, M_TEMP);
 		if (!error)
 			td->td_retval[0] = tmp;
 		PROC_LOCK(p);
@@ -1309,7 +1309,7 @@ kern_ptrace(struct thread *td, int req, pid_t pid, void *addr, int data)
 		} else
 #endif
 			/* Unknown request. */
-			error = EINVAL;
+			error = VOS_EINVAL;
 		break;
 	}
 

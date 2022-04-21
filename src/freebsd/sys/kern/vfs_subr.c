@@ -383,11 +383,11 @@ sysctl_try_reclaim_vnode(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (req->newlen >= PATH_MAX)
-		return (E2BIG);
+		return (VOS_E2BIG);
 
-	buf = malloc(PATH_MAX, M_TEMP, M_WAITOK);
+	buf = vos_malloc(PATH_MAX, M_TEMP, M_WAITOK);
 	error = SYSCTL_IN(req, buf, req->newlen);
 	if (error != 0)
 		goto out;
@@ -403,11 +403,11 @@ sysctl_try_reclaim_vnode(SYSCTL_HANDLER_ARGS)
 	if (VN_IS_DOOMED(vp)) {
 		/*
 		 * This vnode is being recycled.  Return != 0 to let the caller
-		 * know that the sysctl had no effect.  Return EAGAIN because a
+		 * know that the sysctl had no effect.  Return VOS_EAGAIN because a
 		 * subsequent call will likely succeed (since namei will create
 		 * a new vnode if necessary)
 		 */
-		error = EAGAIN;
+		error = VOS_EAGAIN;
 		goto putvnode;
 	}
 
@@ -416,7 +416,7 @@ sysctl_try_reclaim_vnode(SYSCTL_HANDLER_ARGS)
 putvnode:
 	NDFREE(&nd, 0);
 out:
-	free(buf, M_TEMP);
+	vos_free(buf, M_TEMP);
 	return (error);
 }
 
@@ -430,7 +430,7 @@ sysctl_ftry_reclaim_vnode(SYSCTL_HANDLER_ARGS)
 	int fd;
 
 	if (req->newptr == NULL)
-		return (EBADF);
+		return (VOS_EBADF);
 
 	error = sysctl_handle_int(oidp, &fd, 0, req);
 	if (error != 0)
@@ -498,7 +498,7 @@ vn_alloc_marker(struct mount* mp)
 {
 	struct vnode* vp;
 
-	vp = malloc(sizeof(struct vnode), M_VNODE_MARKER, M_WAITOK | M_ZERO);
+	vp = vos_malloc(sizeof(struct vnode), M_VNODE_MARKER, M_WAITOK | M_ZERO);
 	vp->v_type = VMARKER;
 	vp->v_mount = mp;
 
@@ -510,7 +510,7 @@ vn_free_marker(struct vnode* vp)
 {
 
 	MPASS(vp->v_type == VMARKER);
-	free(vp, M_VNODE_MARKER);
+	vos_free(vp, M_VNODE_MARKER);
 }
 
 #ifdef KASAN
@@ -526,12 +526,12 @@ vnode_dtor(void* mem, int size, void* arg __unused)
 {
 	size_t end1, end2, off1, off2;
 
-	_Static_assert(offsetof(struct vnode, v_vnodelist) <
-		offsetof(struct vnode, v_dbatchcpu),
+	_Static_assert(vos_offsetof(struct vnode, v_vnodelist) <
+		vos_offsetof(struct vnode, v_dbatchcpu),
 		"KASAN marks require updating");
 
-	off1 = offsetof(struct vnode, v_vnodelist);
-	off2 = offsetof(struct vnode, v_dbatchcpu);
+	off1 = vos_offsetof(struct vnode, v_vnodelist);
+	off2 = vos_offsetof(struct vnode, v_dbatchcpu);
 	end1 = off1 + sizeof(((struct vnode*)NULL)->v_vnodelist);
 	end2 = off2 + sizeof(((struct vnode*)NULL)->v_dbatchcpu);
 
@@ -811,7 +811,7 @@ vfs_busy(struct mount* mp, int flags)
 	 * should retry.  Otherwise the unmounter thread will set MNTK_REFEXPIRE
 	 * flag in addition to MNTK_UNMOUNT, indicating that mount point is
 	 * about to be really destroyed.  vfs_busy needs to release its
-	 * reference on the mount point in this case and return with ENOENT,
+	 * reference on the mount point in this case and return with VOS_ENOENT,
 	 * telling the caller that mount mount it tried to busy is no longer
 	 * valid.
 	 */
@@ -821,7 +821,7 @@ vfs_busy(struct mount* mp, int flags)
 			MNT_IUNLOCK(mp);
 			CTR1(KTR_VFS, "%s: failed busying before sleeping",
 				__func__);
-			return (ENOENT);
+			return (VOS_ENOENT);
 		}
 		if (flags & MBF_MNTLSTLOCK)
 			mtx_unlock(&mountlist_mtx);
@@ -967,14 +967,14 @@ vfs_suser(struct mount* mp, struct thread* td)
 		 * this type of file system, deny immediately.
 		 */
 		if (!prison_allow(td->td_ucred, mp->mnt_vfc->vfc_prison_flag))
-			return (EPERM);
+			return (VOS_EPERM);
 
 		/*
 		 * If the file system was mounted outside the jail of the
 		 * calling thread, deny immediately.
 		 */
 		if (prison_check(td->td_ucred, mp->mnt_cred) != 0)
-			return (EPERM);
+			return (VOS_EPERM);
 	}
 
 	/*
@@ -1050,7 +1050,7 @@ SYSCTL_INT(_vfs, OID_AUTO, timestamp_precision, CTLFLAG_RW,
  * Get a current timestamp.
  */
 void
-vfs_timestamp(struct timespec* tsp)
+vfs_timestamp(struct vos_timespec* tsp)
 {
 	struct timeval tv;
 
@@ -1660,7 +1660,7 @@ vtryrecycle(struct vnode* vp)
 			"%s: impossible to recycle, vp %p lock is already held",
 			__func__, vp);
 		vdrop_recycle(vp);
-		return (EWOULDBLOCK);
+		return (VOS_EWOULDBLOCK);
 	}
 	/*
 	 * Don't recycle if its filesystem is being suspended.
@@ -1671,7 +1671,7 @@ vtryrecycle(struct vnode* vp)
 			"%s: impossible to recycle, cannot start the write for %p",
 			__func__, vp);
 		vdrop_recycle(vp);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	/*
 	 * If we got this far, we need to acquire the interlock and see if
@@ -1687,7 +1687,7 @@ vtryrecycle(struct vnode* vp)
 		CTR2(KTR_VFS,
 			"%s: impossible to recycle, %p is already referenced",
 			__func__, vp);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	if (!VN_IS_DOOMED(vp)) {
 		counter_u64_add(recycles_free_count, 1);
@@ -2023,7 +2023,7 @@ insmntque1(struct vnode* vp, struct mount* mp,
 		MNT_IUNLOCK(mp);
 		if (dtr != NULL)
 			dtr(vp, dtr_arg);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	vp->v_mount = mp;
 	MNT_REF(mp);
@@ -2063,13 +2063,13 @@ bufobj_invalbuf(struct bufobj* bo, int flags, int slpflag, int slptimeo)
 			BO_UNLOCK(bo);
 			do {
 				error = BO_SYNC(bo, MNT_WAIT);
-			} while (error == ERELOOKUP);
+			} while (error == VOS_ERELOOKUP);
 			if (error != 0)
 				return (error);
 			BO_LOCK(bo);
 			if (bo->bo_numoutput > 0 || bo->bo_dirty.bv_cnt > 0) {
 				BO_UNLOCK(bo);
-				return (EBUSY);
+				return (VOS_EBUSY);
 			}
 		}
 	}
@@ -2084,7 +2084,7 @@ bufobj_invalbuf(struct bufobj* bo, int flags, int slpflag, int slptimeo)
 		if (error == 0 && !(flags & V_CLEANONLY))
 			error = flushbuflist(&bo->bo_dirty,
 				flags, bo, slpflag, slptimeo);
-		if (error != 0 && error != EAGAIN) {
+		if (error != 0 && error != VOS_EAGAIN) {
 			BO_UNLOCK(bo);
 			return (error);
 		}
@@ -2178,13 +2178,13 @@ flushbuflist(struct bufv* bufv, int flags, struct bufobj* bo, int slpflag,
 			lblkno = nbp->b_lblkno;
 			xflags = nbp->b_xflags & (BX_VNDIRTY | BX_VNCLEAN);
 		}
-		retval = EAGAIN;
+		retval = VOS_EAGAIN;
 		error = BUF_TIMELOCK(bp,
 			LK_EXCLUSIVE | LK_SLEEPFAIL | LK_INTERLOCK, BO_LOCKPTR(bo),
 			"flushbuf", slpflag, slptimeo);
 		if (error) {
 			BO_LOCK(bo);
-			return (error != ENOLCK ? error : EAGAIN);
+			return (error != VOS_ENOLCK ? error : VOS_EAGAIN);
 		}
 		KASSERT(bp->b_bufobj == bo,
 			("bp %p wrong b_bufobj %p should be %p",
@@ -2201,7 +2201,7 @@ flushbuflist(struct bufv* bufv, int flags, struct bufobj* bo, int slpflag,
 			bp->b_flags |= B_ASYNC;
 			bwrite(bp);
 			BO_LOCK(bo);
-			return (EAGAIN);	/* XXX: why not loop ? */
+			return (VOS_EAGAIN);	/* XXX: why not loop ? */
 		}
 		bremfree(bp);
 		bp->b_flags |= (B_INVAL | B_RELBUF);
@@ -2237,7 +2237,7 @@ bnoreuselist(struct bufv* bufv, struct bufobj* bo, daddr_t startn, daddr_t endn)
 			LK_INTERLOCK, BO_LOCKPTR(bo), "brlsfl", 0, 0);
 		if (error != 0) {
 			BO_RLOCK(bo);
-			if (error == ENOLCK)
+			if (error == VOS_ENOLCK)
 				goto again;
 			return (error);
 		}
@@ -2288,7 +2288,7 @@ vtruncbuf(struct vnode* vp, off_t length, int blksize)
 restart_unlocked:
 	BO_LOCK(bo);
 
-	while (v_inval_buf_range_locked(vp, bo, startlbn, INT64_MAX) == EAGAIN)
+	while (v_inval_buf_range_locked(vp, bo, startlbn, VOS_INT64_MAX) == VOS_EAGAIN)
 		;
 
 	if (length > 0) {
@@ -2302,7 +2302,7 @@ restart_unlocked:
 			 */
 			if (BUF_LOCK(bp,
 				LK_EXCLUSIVE | LK_SLEEPFAIL | LK_INTERLOCK,
-				BO_LOCKPTR(bo)) == ENOLCK)
+				BO_LOCKPTR(bo)) == VOS_ENOLCK)
 				goto restart_unlocked;
 
 			VNASSERT((bp->b_flags & B_DELWRI), vp,
@@ -2342,7 +2342,7 @@ v_inval_buf_range(struct vnode* vp, daddr_t startlbn, daddr_t endlbn,
 	BO_LOCK(bo);
 	MPASS(blksize == bo->bo_bsize);
 
-	while (v_inval_buf_range_locked(vp, bo, startlbn, endlbn) == EAGAIN)
+	while (v_inval_buf_range_locked(vp, bo, startlbn, endlbn) == VOS_EAGAIN)
 		;
 
 	BO_UNLOCK(bo);
@@ -2366,9 +2366,9 @@ v_inval_buf_range_locked(struct vnode* vp, struct bufobj* bo,
 				continue;
 			if (BUF_LOCK(bp,
 				LK_EXCLUSIVE | LK_SLEEPFAIL | LK_INTERLOCK,
-				BO_LOCKPTR(bo)) == ENOLCK) {
+				BO_LOCKPTR(bo)) == VOS_ENOLCK) {
 				BO_LOCK(bo);
-				return (EAGAIN);
+				return (VOS_EAGAIN);
 			}
 
 			bremfree(bp);
@@ -2382,7 +2382,7 @@ v_inval_buf_range_locked(struct vnode* vp, struct bufobj* bo,
 				(((nbp->b_xflags & BX_VNCLEAN) == 0) ||
 					nbp->b_vp != vp ||
 					(nbp->b_flags & B_DELWRI) != 0))
-				return (EAGAIN);
+				return (VOS_EAGAIN);
 		}
 
 		TAILQ_FOREACH_SAFE(bp, &bo->bo_dirty.bv_hd, b_bobufs, nbp) {
@@ -2390,9 +2390,9 @@ v_inval_buf_range_locked(struct vnode* vp, struct bufobj* bo,
 				continue;
 			if (BUF_LOCK(bp,
 				LK_EXCLUSIVE | LK_SLEEPFAIL | LK_INTERLOCK,
-				BO_LOCKPTR(bo)) == ENOLCK) {
+				BO_LOCKPTR(bo)) == VOS_ENOLCK) {
 				BO_LOCK(bo);
-				return (EAGAIN);
+				return (VOS_EAGAIN);
 			}
 			bremfree(bp);
 			bp->b_flags |= B_INVAL | B_RELBUF;
@@ -2405,7 +2405,7 @@ v_inval_buf_range_locked(struct vnode* vp, struct bufobj* bo,
 				(((nbp->b_xflags & BX_VNDIRTY) == 0) ||
 					(nbp->b_vp != vp) ||
 					(nbp->b_flags & B_DELWRI) == 0))
-				return (EAGAIN);
+				return (VOS_EAGAIN);
 		}
 	} while (anyfreed);
 	return (0);
@@ -3291,7 +3291,7 @@ vput_final(struct vnode* vp, enum vput_op func)
 			 * to conclude whether this is us. Play it safe and
 			 * defer processing.
 			 */
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 			break;
 		}
 		break;
@@ -3320,7 +3320,7 @@ vput_final(struct vnode* vp, enum vput_op func)
 			error = vinactive(vp);
 			if (want_unlock)
 				VOP_UNLOCK(vp);
-			if (error != ERELOOKUP || !want_unlock)
+			if (error != VOS_ERELOOKUP || !want_unlock)
 				break;
 			VOP_LOCK(vp, LK_EXCLUSIVE);
 		}
@@ -3849,7 +3849,7 @@ loop:
 			}
 			do {
 				error = VOP_FSYNC(vp, MNT_WAIT, td);
-			} while (error == ERELOOKUP);
+			} while (error == VOS_ERELOOKUP);
 			if (error != 0) {
 				VOP_UNLOCK(vp);
 				vdrop(vp);
@@ -3910,7 +3910,7 @@ loop:
 	if (busy) {
 		CTR2(KTR_VFS, "%s: failing as %d vnodes are busy", __func__,
 			busy);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	for (; rootrefs > 0; rootrefs--)
 		vrele(rootvp);
@@ -3986,7 +3986,7 @@ vfs_notify_upper(struct vnode* vp, int event)
 	if (TAILQ_EMPTY(&mp->mnt_uppers))
 		return;
 
-	mmp = malloc(sizeof(struct mount), M_TEMP, M_WAITOK | M_ZERO);
+	mmp = vos_malloc(sizeof(struct mount), M_TEMP, M_WAITOK | M_ZERO);
 	mmp->mnt_op = &vgonel_vfsops;
 	mmp->mnt_kern_flag |= MNTK_MARKER;
 	MNT_ILOCK(mp);
@@ -4013,7 +4013,7 @@ vfs_notify_upper(struct vnode* vp, int event)
 		ump = TAILQ_NEXT(mmp, mnt_upper_link);
 		TAILQ_REMOVE(&mp->mnt_uppers, mmp, mnt_upper_link);
 	}
-	free(mmp, M_TEMP);
+	vos_free(mmp, M_TEMP);
 	mp->mnt_kern_flag &= ~MNTK_VGONE_UPPER;
 	if ((mp->mnt_kern_flag & MNTK_VGONE_WAITER) != 0) {
 		mp->mnt_kern_flag &= ~MNTK_VGONE_WAITER;
@@ -4078,83 +4078,83 @@ vn_printf(struct vnode* vp, const char* fmt, ...)
 	buf[0] = '\0';
 	buf[1] = '\0';
 	if (holdcnt & VHOLD_NO_SMR)
-		strlcat(buf, "|VHOLD_NO_SMR", sizeof(buf));
+		vos_strlcat(buf, "|VHOLD_NO_SMR", sizeof(buf));
 	printf("    hold count flags (%s)\n", buf + 1);
 
 	buf[0] = '\0';
 	buf[1] = '\0';
 	irflag = vn_irflag_read(vp);
 	if (irflag & VIRF_DOOMED)
-		strlcat(buf, "|VIRF_DOOMED", sizeof(buf));
+		vos_strlcat(buf, "|VIRF_DOOMED", sizeof(buf));
 	if (irflag & VIRF_PGREAD)
-		strlcat(buf, "|VIRF_PGREAD", sizeof(buf));
+		vos_strlcat(buf, "|VIRF_PGREAD", sizeof(buf));
 	if (irflag & VIRF_MOUNTPOINT)
-		strlcat(buf, "|VIRF_MOUNTPOINT", sizeof(buf));
+		vos_strlcat(buf, "|VIRF_MOUNTPOINT", sizeof(buf));
 	flags = irflag & ~(VIRF_DOOMED | VIRF_PGREAD | VIRF_MOUNTPOINT);
 	if (flags != 0) {
 		snprintf(buf2, sizeof(buf2), "|VIRF(0x%lx)", flags);
-		strlcat(buf, buf2, sizeof(buf));
+		vos_strlcat(buf, buf2, sizeof(buf));
 	}
 	if (vp->v_vflag & VV_ROOT)
-		strlcat(buf, "|VV_ROOT", sizeof(buf));
+		vos_strlcat(buf, "|VV_ROOT", sizeof(buf));
 	if (vp->v_vflag & VV_ISTTY)
-		strlcat(buf, "|VV_ISTTY", sizeof(buf));
+		vos_strlcat(buf, "|VV_ISTTY", sizeof(buf));
 	if (vp->v_vflag & VV_NOSYNC)
-		strlcat(buf, "|VV_NOSYNC", sizeof(buf));
+		vos_strlcat(buf, "|VV_NOSYNC", sizeof(buf));
 	if (vp->v_vflag & VV_ETERNALDEV)
-		strlcat(buf, "|VV_ETERNALDEV", sizeof(buf));
+		vos_strlcat(buf, "|VV_ETERNALDEV", sizeof(buf));
 	if (vp->v_vflag & VV_CACHEDLABEL)
-		strlcat(buf, "|VV_CACHEDLABEL", sizeof(buf));
+		vos_strlcat(buf, "|VV_CACHEDLABEL", sizeof(buf));
 	if (vp->v_vflag & VV_VMSIZEVNLOCK)
-		strlcat(buf, "|VV_VMSIZEVNLOCK", sizeof(buf));
+		vos_strlcat(buf, "|VV_VMSIZEVNLOCK", sizeof(buf));
 	if (vp->v_vflag & VV_COPYONWRITE)
-		strlcat(buf, "|VV_COPYONWRITE", sizeof(buf));
+		vos_strlcat(buf, "|VV_COPYONWRITE", sizeof(buf));
 	if (vp->v_vflag & VV_SYSTEM)
-		strlcat(buf, "|VV_SYSTEM", sizeof(buf));
+		vos_strlcat(buf, "|VV_SYSTEM", sizeof(buf));
 	if (vp->v_vflag & VV_PROCDEP)
-		strlcat(buf, "|VV_PROCDEP", sizeof(buf));
+		vos_strlcat(buf, "|VV_PROCDEP", sizeof(buf));
 	if (vp->v_vflag & VV_NOKNOTE)
-		strlcat(buf, "|VV_NOKNOTE", sizeof(buf));
+		vos_strlcat(buf, "|VV_NOKNOTE", sizeof(buf));
 	if (vp->v_vflag & VV_DELETED)
-		strlcat(buf, "|VV_DELETED", sizeof(buf));
+		vos_strlcat(buf, "|VV_DELETED", sizeof(buf));
 	if (vp->v_vflag & VV_MD)
-		strlcat(buf, "|VV_MD", sizeof(buf));
+		vos_strlcat(buf, "|VV_MD", sizeof(buf));
 	if (vp->v_vflag & VV_FORCEINSMQ)
-		strlcat(buf, "|VV_FORCEINSMQ", sizeof(buf));
+		vos_strlcat(buf, "|VV_FORCEINSMQ", sizeof(buf));
 	if (vp->v_vflag & VV_READLINK)
-		strlcat(buf, "|VV_READLINK", sizeof(buf));
+		vos_strlcat(buf, "|VV_READLINK", sizeof(buf));
 	flags = vp->v_vflag & ~(VV_ROOT | VV_ISTTY | VV_NOSYNC | VV_ETERNALDEV |
 		VV_CACHEDLABEL | VV_VMSIZEVNLOCK | VV_COPYONWRITE | VV_SYSTEM |
 		VV_PROCDEP | VV_NOKNOTE | VV_DELETED | VV_MD | VV_FORCEINSMQ |
 		VV_READLINK);
 	if (flags != 0) {
 		snprintf(buf2, sizeof(buf2), "|VV(0x%lx)", flags);
-		strlcat(buf, buf2, sizeof(buf));
+		vos_strlcat(buf, buf2, sizeof(buf));
 	}
 	if (vp->v_iflag & VI_TEXT_REF)
-		strlcat(buf, "|VI_TEXT_REF", sizeof(buf));
+		vos_strlcat(buf, "|VI_TEXT_REF", sizeof(buf));
 	if (vp->v_iflag & VI_MOUNT)
-		strlcat(buf, "|VI_MOUNT", sizeof(buf));
+		vos_strlcat(buf, "|VI_MOUNT", sizeof(buf));
 	if (vp->v_iflag & VI_DOINGINACT)
-		strlcat(buf, "|VI_DOINGINACT", sizeof(buf));
+		vos_strlcat(buf, "|VI_DOINGINACT", sizeof(buf));
 	if (vp->v_iflag & VI_OWEINACT)
-		strlcat(buf, "|VI_OWEINACT", sizeof(buf));
+		vos_strlcat(buf, "|VI_OWEINACT", sizeof(buf));
 	if (vp->v_iflag & VI_DEFINACT)
-		strlcat(buf, "|VI_DEFINACT", sizeof(buf));
+		vos_strlcat(buf, "|VI_DEFINACT", sizeof(buf));
 	if (vp->v_iflag & VI_FOPENING)
-		strlcat(buf, "|VI_FOPENING", sizeof(buf));
+		vos_strlcat(buf, "|VI_FOPENING", sizeof(buf));
 	flags = vp->v_iflag & ~(VI_TEXT_REF | VI_MOUNT | VI_DOINGINACT |
 		VI_OWEINACT | VI_DEFINACT | VI_FOPENING);
 	if (flags != 0) {
 		snprintf(buf2, sizeof(buf2), "|VI(0x%lx)", flags);
-		strlcat(buf, buf2, sizeof(buf));
+		vos_strlcat(buf, buf2, sizeof(buf));
 	}
 	if (vp->v_mflag & VMP_LAZYLIST)
-		strlcat(buf, "|VMP_LAZYLIST", sizeof(buf));
+		vos_strlcat(buf, "|VMP_LAZYLIST", sizeof(buf));
 	flags = vp->v_mflag & ~(VMP_LAZYLIST);
 	if (flags != 0) {
 		snprintf(buf2, sizeof(buf2), "|VMP(0x%lx)", flags);
-		strlcat(buf, buf2, sizeof(buf));
+		vos_strlcat(buf, buf2, sizeof(buf));
 	}
 	printf("    flags (%s)", buf + 1);
 	if (mtx_owned(VI_MTX(vp)))
@@ -4247,8 +4247,8 @@ DB_SHOW_COMMAND(mount, db_show_mount)
 #define	MNT_FLAG(flag)	do {						\
 	if (mflags & (flag)) {						\
 		if (buf[0] != '\0')					\
-			strlcat(buf, ", ", sizeof(buf));		\
-		strlcat(buf, (#flag) + 4, sizeof(buf));			\
+			vos_strlcat(buf, ", ", sizeof(buf));		\
+		vos_strlcat(buf, (#flag) + 4, sizeof(buf));			\
 		mflags &= ~(flag);					\
 	}								\
 } while (0)
@@ -4289,8 +4289,8 @@ DB_SHOW_COMMAND(mount, db_show_mount)
 #undef MNT_FLAG
 	if (mflags != 0) {
 		if (buf[0] != '\0')
-			strlcat(buf, ", ", sizeof(buf));
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+			vos_strlcat(buf, ", ", sizeof(buf));
+		snprintf(buf + vos_strlen(buf), sizeof(buf) - strlen(buf),
 			"0x%016jx", mflags);
 	}
 	db_printf("    mnt_flag = %s\n", buf);
@@ -4300,8 +4300,8 @@ DB_SHOW_COMMAND(mount, db_show_mount)
 #define	MNT_KERN_FLAG(flag)	do {					\
 	if (flags & (flag)) {						\
 		if (buf[0] != '\0')					\
-			strlcat(buf, ", ", sizeof(buf));		\
-		strlcat(buf, (#flag) + 5, sizeof(buf));			\
+			vos_strlcat(buf, ", ", sizeof(buf));		\
+		vos_strlcat(buf, (#flag) + 5, sizeof(buf));			\
 		flags &= ~(flag);					\
 	}								\
 } while (0)
@@ -4330,8 +4330,8 @@ DB_SHOW_COMMAND(mount, db_show_mount)
 #undef MNT_KERN_FLAG
 	if (flags != 0) {
 		if (buf[0] != '\0')
-			strlcat(buf, ", ", sizeof(buf));
-		snprintf(buf + strlen(buf), sizeof(buf) - strlen(buf),
+			vos_strlcat(buf, ", ", sizeof(buf));
+		snprintf(buf + vos_strlen(buf), sizeof(buf) - strlen(buf),
 			"0x%08x", flags);
 	}
 	db_printf("    mnt_kern_flag = %s\n", buf);
@@ -4414,7 +4414,7 @@ vfsconf2x(struct sysctl_req* req, struct vfsconf* vfsp)
 	struct xvfsconf xvfsp;
 
 	bzero(&xvfsp, sizeof(xvfsp));
-	strcpy(xvfsp.vfc_name, vfsp->vfc_name);
+	vos_strcpy(xvfsp.vfc_name, vfsp->vfc_name);
 	xvfsp.vfc_typenum = vfsp->vfc_typenum;
 	xvfsp.vfc_refcount = vfsp->vfc_refcount;
 	xvfsp.vfc_flags = vfsp->vfc_flags;
@@ -4443,7 +4443,7 @@ vfsconf2x32(struct sysctl_req* req, struct vfsconf* vfsp)
 	struct xvfsconf32 xvfsp;
 
 	bzero(&xvfsp, sizeof(xvfsp));
-	strcpy(xvfsp.vfc_name, vfsp->vfc_name);
+	vos_strcpy(xvfsp.vfc_name, vfsp->vfc_name);
 	xvfsp.vfc_typenum = vfsp->vfc_typenum;
 	xvfsp.vfc_refcount = vfsp->vfc_refcount;
 	xvfsp.vfc_flags = vfsp->vfc_flags;
@@ -4502,11 +4502,11 @@ vfs_sysctl(SYSCTL_HANDLER_ARGS)
 	switch (name[1]) {
 	case VFS_MAXTYPENUM:
 		if (namelen != 2)
-			return (ENOTDIR);
+			return (VOS_ENOTDIR);
 		return (SYSCTL_OUT(req, &maxvfsconf, sizeof(int)));
 	case VFS_CONF:
 		if (namelen != 3)
-			return (ENOTDIR);	/* overloaded */
+			return (VOS_ENOTDIR);	/* overloaded */
 		vfsconf_slock();
 		TAILQ_FOREACH(vfsp, &vfsconf, vfc_list) {
 			if (vfsp->vfc_typenum == name[2])
@@ -4514,7 +4514,7 @@ vfs_sysctl(SYSCTL_HANDLER_ARGS)
 		}
 		vfsconf_sunlock();
 		if (vfsp == NULL)
-			return (EOPNOTSUPP);
+			return (VOS_EOPNOTSUPP);
 #ifdef COMPAT_FREEBSD32
 		if (req->flags & SCTL_MASK32)
 			return (vfsconf2x32(req, vfsp));
@@ -4522,7 +4522,7 @@ vfs_sysctl(SYSCTL_HANDLER_ARGS)
 #endif
 			return (vfsconf2x(req, vfsp));
 	}
-	return (EOPNOTSUPP);
+	return (VOS_EOPNOTSUPP);
 }
 
 static SYSCTL_NODE(_vfs, VFS_GENERIC, generic, CTLFLAG_RD | CTLFLAG_SKIP |
@@ -4542,7 +4542,7 @@ sysctl_ovfs_conf(SYSCTL_HANDLER_ARGS)
 	TAILQ_FOREACH(vfsp, &vfsconf, vfc_list) {
 		bzero(&ovfs, sizeof(ovfs));
 		ovfs.vfc_vfsops = vfsp->vfc_vfsops;	/* XXX used as flag */
-		strcpy(ovfs.vfc_name, vfsp->vfc_name);
+		vos_strcpy(ovfs.vfc_name, vfsp->vfc_name);
 		ovfs.vfc_index = vfsp->vfc_typenum;
 		ovfs.vfc_refcount = vfsp->vfc_refcount;
 		ovfs.vfc_flags = vfsp->vfc_flags;
@@ -4585,7 +4585,7 @@ sysctl_vnode(SYSCTL_HANDLER_ARGS)
 	error = sysctl_wire_old_buffer(req, 0);
 	if (error != 0)
 		return (error);
-	xvn = malloc(len, M_TEMP, M_ZERO | M_WAITOK);
+	xvn = vos_malloc(len, M_TEMP, M_ZERO | M_WAITOK);
 	n = 0;
 	mtx_lock(&mountlist_mtx);
 	TAILQ_FOREACH(mp, &mountlist, mnt_list) {
@@ -4647,7 +4647,7 @@ sysctl_vnode(SYSCTL_HANDLER_ARGS)
 	mtx_unlock(&mountlist_mtx);
 
 	error = SYSCTL_OUT(req, xvn, n * sizeof * xvn);
-	free(xvn, M_TEMP);
+	vos_free(xvn, M_TEMP);
 	return (error);
 }
 
@@ -4664,7 +4664,7 @@ unmount_or_warn(struct mount* mp)
 	error = dounmount(mp, MNT_FORCE, curthread);
 	if (error != 0) {
 		printf("unmount of %s failed (", mp->mnt_stat.f_mntonname);
-		if (error == EBUSY)
+		if (error == VOS_EBUSY)
 			printf("BUSY)\n");
 		else
 			printf("%d)\n", error);
@@ -4841,7 +4841,7 @@ destroy_vpollinfo_free(struct vpollinfo* vi)
 
 	knlist_destroy(&vi->vpi_selinfo.si_note);
 	mtx_destroy(&vi->vpi_lock);
-	free(vi, M_VNODEPOLL);
+	vos_free(vi, M_VNODEPOLL);
 }
 
 static void
@@ -4863,7 +4863,7 @@ v_addpollinfo(struct vnode* vp)
 
 	if (vp->v_pollinfo != NULL)
 		return;
-	vi = malloc(sizeof(*vi), M_VNODEPOLL, M_WAITOK | M_ZERO);
+	vi = vos_malloc(sizeof(*vi), M_VNODEPOLL, M_WAITOK | M_ZERO);
 	mtx_init(&vi->vpi_lock, "vnode pollinfo", NULL, MTX_DEF);
 	knlist_init(&vi->vpi_selinfo.si_note, vp, vfs_knllock,
 		vfs_knlunlock, vfs_knl_assert_lock);
@@ -5071,17 +5071,17 @@ vn_isdisk_error(struct vnode* vp, int* errp)
 	int error;
 
 	if (vp->v_type != VCHR) {
-		error = ENOTBLK;
+		error = VOS_ENOTBLK;
 		goto out;
 	}
 	error = 0;
 	dev_lock();
 	if (vp->v_rdev == NULL)
-		error = ENXIO;
+		error = VOS_ENXIO;
 	else if (vp->v_rdev->si_devsw == NULL)
-		error = ENXIO;
+		error = VOS_ENXIO;
 	else if (!(vp->v_rdev->si_devsw->d_flags & D_DISK))
-		error = ENOTBLK;
+		error = VOS_ENOTBLK;
 	dev_unlock();
 out:
 	*errp = error;
@@ -5140,13 +5140,13 @@ out_error:
 	switch (error) {
 	case 0:
 		return (0);
-	case EAGAIN:
+	case VOS_EAGAIN:
 		/*
 		 * MAC modules present.
 		 */
-		return (EAGAIN);
-	case EPERM:
-		return (EACCES);
+		return (VOS_EAGAIN);
+	case VOS_EPERM:
+		return (VOS_EACCES);
 	default:
 		return (error);
 	}
@@ -5263,7 +5263,7 @@ privcheck:
 		return (0);
 	}
 
-	return ((accmode & VADMIN) ? EPERM : EACCES);
+	return ((accmode & VADMIN) ? VOS_EPERM : VOS_EACCES);
 }
 
 /*
@@ -5287,12 +5287,12 @@ extattr_check_cred(struct vnode* vp, int attrnamespace, struct ucred* cred,
 	 */
 	switch (attrnamespace) {
 	case EXTATTR_NAMESPACE_SYSTEM:
-		/* Potentially should be: return (EPERM); */
+		/* Potentially should be: return (VOS_EPERM); */
 		return (priv_check_cred(cred, PRIV_VFS_EXTATTR_SYSTEM));
 	case EXTATTR_NAMESPACE_USER:
 		return (VOP_ACCESS(vp, accmode, cred, td));
 	default:
-		return (EPERM);
+		return (VOS_EPERM);
 	}
 }
 
@@ -6142,14 +6142,14 @@ vfs_kqfilter(struct vop_kqfilter_args* ap)
 		kn->kn_fop = &vfsvnode_filtops;
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	kn->kn_hook = (caddr_t)vp;
 
 	v_addpollinfo(vp);
 	if (vp->v_pollinfo == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	knl = &vp->v_pollinfo->vpi_selinfo.si_note;
 	vhold(vp);
 	knlist_add(knl, kn, 0);
@@ -6242,7 +6242,7 @@ filt_vfsvnode(struct knote* kn, long long hint)
  * Returns whether the directory is empty or not.
  * If it is empty, the return value is 0; otherwise
  * the return value is an error value (which may
- * be ENOTEMPTY).
+ * be VOS_ENOTEMPTY).
  */
 int
 vfs_emptydir(struct vnode* vp)
@@ -6258,7 +6258,7 @@ vfs_emptydir(struct vnode* vp)
 	ASSERT_VOP_LOCKED(vp, "vfs_emptydir");
 	VNASSERT(vp->v_type == VDIR, vp, ("vp is not a directory"));
 
-	dirent = malloc(sizeof(struct dirent), M_TEMP, M_WAITOK);
+	dirent = vos_malloc(sizeof(struct dirent), M_TEMP, M_WAITOK);
 	iov.iov_base = dirent;
 	iov.iov_len = sizeof(struct dirent);
 
@@ -6285,27 +6285,27 @@ vfs_emptydir(struct vnode* vp)
 				continue;
 			if (dp->d_type != DT_DIR &&
 				dp->d_type != DT_UNKNOWN) {
-				error = ENOTEMPTY;
+				error = VOS_ENOTEMPTY;
 				break;
 			}
 			if (dp->d_namlen > 2) {
-				error = ENOTEMPTY;
+				error = VOS_ENOTEMPTY;
 				break;
 			}
 			if (dp->d_namlen == 1 &&
 				dp->d_name[0] != '.') {
-				error = ENOTEMPTY;
+				error = VOS_ENOTEMPTY;
 				break;
 			}
 			if (dp->d_namlen == 2 &&
 				dp->d_name[1] != '.') {
-				error = ENOTEMPTY;
+				error = VOS_ENOTEMPTY;
 				break;
 			}
 			uio.uio_resid = sizeof(struct dirent);
 		}
 	}
-	free(dirent, M_TEMP);
+	vos_free(dirent, M_TEMP);
 	return (error);
 }
 
@@ -6315,12 +6315,12 @@ vfs_read_dirent(struct vop_readdir_args* ap, struct dirent* dp, off_t off)
 	int error;
 
 	if (dp->d_reclen > ap->a_uio->uio_resid)
-		return (ENAMETOOLONG);
+		return (VOS_ENAMETOOLONG);
 	error = uiomove(dp, dp->d_reclen, ap->a_uio);
 	if (error) {
 		if (ap->a_ncookies != NULL) {
 			if (ap->a_cookies != NULL)
-				free(ap->a_cookies, M_TEMP);
+				vos_free(ap->a_cookies, M_TEMP);
 			ap->a_cookies = NULL;
 			*ap->a_ncookies = 0;
 		}
@@ -6332,7 +6332,7 @@ vfs_read_dirent(struct vop_readdir_args* ap, struct dirent* dp, off_t off)
 	KASSERT(ap->a_cookies,
 		("NULL ap->a_cookies value with non-NULL ap->a_ncookies!"));
 
-	*ap->a_cookies = realloc(*ap->a_cookies,
+	*ap->a_cookies = vos_realloc(*ap->a_cookies,
 		(*ap->a_ncookies + 1) * sizeof(u_long), M_TEMP, M_WAITOK | M_ZERO);
 	(*ap->a_cookies)[*ap->a_ncookies] = off;
 	*ap->a_ncookies += 1;
@@ -6370,7 +6370,7 @@ vfs_unixify_accmode(accmode_t* accmode)
 	 * on the containing directory instead.
 	 */
 	if (*accmode & (VDELETE_CHILD | VDELETE))
-		return (EPERM);
+		return (VOS_EPERM);
 
 	if (*accmode & VADMIN_PERMS) {
 		*accmode &= ~VADMIN_PERMS;

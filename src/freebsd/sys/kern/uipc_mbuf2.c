@@ -174,7 +174,7 @@ m_pulldown(struct mbuf *m, int off, int len, int *offp)
 		o = m_dup1(n, off, n->m_len - off, M_NOWAIT);
 		if (o == NULL) {
 			m_freem(m);
-			return NULL;	/* ENOBUFS */
+			return NULL;	/* VOS_ENOBUFS */
 		}
 		n->m_len = off;
 		o->m_next = n->m_next;
@@ -236,7 +236,7 @@ m_pulldown(struct mbuf *m, int off, int len, int *offp)
 		o = m_get(M_NOWAIT, m->m_type);
 	if (!o) {
 		m_freem(m);
-		return NULL;	/* ENOBUFS */
+		return NULL;	/* VOS_ENOBUFS */
 	}
 	/* get hlen from <n, off> into <o, 0> */
 	o->m_len = hlen;
@@ -290,7 +290,7 @@ m_dup1(struct mbuf *m, int off, int len, int wait)
 			n = m_get(wait, m->m_type);
 	}
 	if (!n)
-		return NULL; /* ENOBUFS */
+		return NULL; /* VOS_ENOBUFS */
 
 	if (copyhdr && !m_dup_pkthdr(n, m, wait)) {
 		m_free(n);
@@ -309,7 +309,7 @@ m_tag_free_default(struct m_tag *t)
 	if (t->m_tag_id == PACKET_TAG_MACLABEL)
 		mac_mbuf_tag_destroy(t);
 #endif
-	free(t, M_PACKET_TAGS);
+	vos_free(t, M_PACKET_TAGS);
 }
 
 /* Get a packet tag structure along with specified data following. */
@@ -321,7 +321,7 @@ m_tag_alloc(uint32_t cookie, int type, int len, int wait)
 	MBUF_CHECKSLEEP(wait);
 	if (len < 0)
 		return NULL;
-	t = malloc(len + sizeof(struct m_tag), M_PACKET_TAGS, wait);
+	t = vos_malloc(len + sizeof(struct m_tag), M_PACKET_TAGS, wait);
 	if (t == NULL)
 		return NULL;
 	m_tag_setup(t, cookie, type, len);

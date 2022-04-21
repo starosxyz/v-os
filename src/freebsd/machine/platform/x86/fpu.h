@@ -112,7 +112,7 @@ struct __envxmm64 {
 };
 
 /* Floating point context. (i386 fxsave/fxrstor) */
-struct savexmm {
+struct __begin_aligned(16) savexmm {
 	struct __envxmm32	sv_env;
 	struct {
 		struct fpacc87	fp_acc;
@@ -129,7 +129,7 @@ union savefpu {
 };
 #else
 /* Floating point context. (amd64 fxsave/fxrstor) */
-struct savefpu {
+struct __begin_aligned(16) savefpu {
 	struct __envxmm64	sv_env;
 	struct {
 		struct fpacc87	fp_acc;
@@ -153,7 +153,7 @@ struct savexmm_xstate {
 	struct ymmacc		sx_ymm[16];
 };
 
-struct savexmm_ymm {
+struct __begin_aligned(64) savexmm_ymm {
 	struct __envxmm32	sv_env;
 	struct {
 		struct fpacc87	fp_acc;
@@ -169,7 +169,7 @@ struct savefpu_xstate {
 	struct ymmacc		sx_ymm[16];
 };
 
-struct savefpu_ymm {
+struct __begin_aligned(64) savefpu_ymm {
 	struct __envxmm64	sv_env;
 	struct {
 		struct fpacc87	fp_acc;

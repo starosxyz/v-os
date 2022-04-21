@@ -174,7 +174,7 @@ ithread_update(struct intr_thread* ithd)
 		pri = ((struct intr_handler*)CK_SLIST_FIRST(&ie->ie_handlers))->ih_pri;
 
 	/* Update name and priority. */
-	strlcpy(td->td_name, ie->ie_fullname, sizeof(td->td_name));
+	vos_strlcpy(td->td_name, ie->ie_fullname, sizeof(td->td_name));
 #ifdef KTR
 	sched_clear_tdname(td);
 #endif
@@ -195,14 +195,14 @@ intr_event_update(struct intr_event* ie)
 
 	/* Start off with no entropy and just the name of the event. */
 	mtx_assert(&ie->ie_lock, MA_OWNED);
-	strlcpy(ie->ie_fullname, ie->ie_name, sizeof(ie->ie_fullname));
+	vos_strlcpy(ie->ie_fullname, ie->ie_name, sizeof(ie->ie_fullname));
 	flags = 0;
 	missed = 0;
 	space = 1;
 
 	/* Run through all the handlers updating values. */
 	CK_SLIST_FOREACH(ih, &ie->ie_handlers, ih_next) {
-		if (strlen(ie->ie_fullname) + strlen(ih->ih_name) + 1 <
+		if (vos_strlen(ie->ie_fullname) + vos_strlen(ih->ih_name) + 1 <
 			sizeof(ie->ie_fullname)) {
 			strcat(ie->ie_fullname, " ");
 			strcat(ie->ie_fullname, ih->ih_name);
@@ -223,7 +223,7 @@ intr_event_update(struct intr_event* ie)
 	 */
 	if (missed == 1 && space == 1) {
 		ih = CK_SLIST_FIRST(&ie->ie_handlers);
-		missed = strlen(ie->ie_fullname) + strlen(ih->ih_name) + 2 -
+		missed = vos_strlen(ie->ie_fullname) + vos_strlen(ih->ih_name) + 2 -
 			sizeof(ie->ie_fullname);
 		strcat(ie->ie_fullname, (missed == 0) ? " " : "-");
 		strcat(ie->ie_fullname, &ih->ih_name[missed]);
@@ -231,7 +231,7 @@ intr_event_update(struct intr_event* ie)
 	}
 	last = &ie->ie_fullname[sizeof(ie->ie_fullname) - 2];
 	while (missed-- > 0) {
-		if (strlen(ie->ie_fullname) + 1 == sizeof(ie->ie_fullname)) {
+		if (vos_strlen(ie->ie_fullname) + 1 == sizeof(ie->ie_fullname)) {
 			if (*last == '+') {
 				*last = '*';
 				break;
@@ -267,8 +267,8 @@ intr_event_create(struct intr_event** event, void* source, int flags, int irq,
 
 	/* The only valid flag during creation is IE_SOFT. */
 	if ((flags & ~IE_SOFT) != 0)
-		return (EINVAL);
-	ie = malloc(sizeof(struct intr_event), M_ITHREAD, M_WAITOK | M_ZERO);
+		return (VOS_EINVAL);
+	ie = vos_malloc(sizeof(struct intr_event), M_ITHREAD, M_WAITOK | M_ZERO);
 	ie->ie_source = source;
 	ie->ie_pre_ithread = pre_ithread;
 	ie->ie_post_ithread = post_ithread;
@@ -283,7 +283,7 @@ intr_event_create(struct intr_event** event, void* source, int flags, int irq,
 	va_start(ap, fmt);
 	vsnprintf(ie->ie_name, sizeof(ie->ie_name), fmt, ap);
 	va_end(ap);
-	strlcpy(ie->ie_fullname, ie->ie_name, sizeof(ie->ie_fullname));
+	vos_strlcpy(ie->ie_fullname, ie->ie_name, sizeof(ie->ie_fullname));
 	mtx_lock(&event_lock);
 	TAILQ_INSERT_TAIL(&event_list, ie, ie_list);
 	mtx_unlock(&event_lock);
@@ -307,10 +307,10 @@ _intr_event_bind(struct intr_event* ie, int cpu, bool bindirq, bool bindithread)
 
 	/* Need a CPU to bind to. */
 	if (cpu != NOCPU && CPU_ABSENT(cpu))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (ie->ie_assign_cpu == NULL)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	error = priv_check(curthread, PRIV_SCHED_CPUSET_INTR);
 	if (error)
@@ -408,7 +408,7 @@ intr_event_bind_ithread_cpuset(struct intr_event* ie, cpuset_t* cs)
 	else {
 		mtx_unlock(&ie->ie_lock);
 	}
-	return (ENODEV);
+	return (VOS_ENODEV);
 }
 
 static struct intr_event*
@@ -444,13 +444,13 @@ intr_setaffinity(int irq, int mode, void* m)
 			if (!CPU_ISSET(n, mask))
 				continue;
 			if (cpu != NOCPU)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			cpu = n;
 		}
 	}
 	ie = intr_lookup(irq);
 	if (ie == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 	switch (mode) {
 	case CPU_WHICH_IRQ:
 		return (intr_event_bind(ie, cpu));
@@ -459,7 +459,7 @@ intr_setaffinity(int irq, int mode, void* m)
 	case CPU_WHICH_ITHREAD:
 		return (intr_event_bind_ithread(ie, cpu));
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 }
 
@@ -476,7 +476,7 @@ intr_getaffinity(int irq, int mode, void* m)
 	mask = m;
 	ie = intr_lookup(irq);
 	if (ie == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 
 	error = 0;
 	CPU_ZERO(mask);
@@ -506,7 +506,7 @@ intr_getaffinity(int irq, int mode, void* m)
 			PROC_UNLOCK(p);
 		}
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	return (0);
 }
@@ -520,7 +520,7 @@ intr_event_destroy(struct intr_event* ie)
 	if (!CK_SLIST_EMPTY(&ie->ie_handlers)) {
 		mtx_unlock(&ie->ie_lock);
 		mtx_unlock(&event_lock);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	TAILQ_REMOVE(&event_list, ie, ie_list);
 #ifndef notyet
@@ -532,7 +532,7 @@ intr_event_destroy(struct intr_event* ie)
 	mtx_unlock(&ie->ie_lock);
 	mtx_unlock(&event_lock);
 	mtx_destroy(&ie->ie_lock);
-	free(ie, M_ITHREAD);
+	vos_free(ie, M_ITHREAD);
 	return (0);
 }
 
@@ -543,7 +543,7 @@ ithread_create(const char* name)
 	struct thread* td;
 	int error;
 
-	ithd = malloc(sizeof(struct intr_thread), M_ITHREAD, M_WAITOK | M_ZERO);
+	ithd = vos_malloc(sizeof(struct intr_thread), M_ITHREAD, M_WAITOK | M_ZERO);
 
 	error = kproc_kthread_add(ithread_loop, ithd, &intrproc,
 		&td, RFSTOPPED | RFHIGHPID,
@@ -587,14 +587,14 @@ intr_event_add_handler(struct intr_event* ie, const char* name,
 	struct intr_thread* it;
 
 	if (ie == NULL || name == NULL || (handler == NULL && filter == NULL))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Allocate and populate an interrupt handler structure. */
-	ih = malloc(sizeof(struct intr_handler), M_ITHREAD, M_WAITOK | M_ZERO);
+	ih = vos_malloc(sizeof(struct intr_handler), M_ITHREAD, M_WAITOK | M_ZERO);
 	ih->ih_filter = filter;
 	ih->ih_handler = handler;
 	ih->ih_argument = arg;
-	strlcpy(ih->ih_name, name, sizeof(ih->ih_name));
+	vos_strlcpy(ih->ih_name, name, sizeof(ih->ih_name));
 	ih->ih_event = ie;
 	ih->ih_pri = pri;
 	if (flags & INTR_EXCL)
@@ -612,8 +612,8 @@ intr_event_add_handler(struct intr_event* ie, const char* name,
 		if ((flags & INTR_EXCL) ||
 			(((struct intr_handler*)CK_SLIST_FIRST(&ie->ie_handlers))->ih_flags & IH_EXCLUSIVE)) {
 			mtx_unlock(&ie->ie_lock);
-			free(ih, M_ITHREAD);
-			return (EINVAL);
+			vos_free(ih, M_ITHREAD);
+			return (VOS_EINVAL);
 		}
 	}
 
@@ -694,14 +694,14 @@ intr_event_describe_handler(struct intr_event* ie, void* cookie,
 	 * '\0'.  The "+ 1" accounts for the colon.
 	 */
 	space = sizeof(ih->ih_name) - (start - ih->ih_name) - 1;
-	if (strlen(descr) + 1 > space) {
+	if (vos_strlen(descr) + 1 > space) {
 		mtx_unlock(&ie->ie_lock);
-		return (ENOSPC);
+		return (VOS_ENOSPC);
 	}
 
 	/* Append a colon followed by the description. */
 	*start = ':';
-	strcpy(start + 1, descr);
+	vos_strcpy(start + 1, descr);
 	intr_event_update(ie);
 	mtx_unlock(&ie->ie_lock);
 	return (0);
@@ -839,7 +839,7 @@ intr_event_remove_handler(void* cookie)
 #endif
 
 	if (handler == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	ie = handler->ih_event;
 	KASSERT(ie != NULL,
 		("interrupt handler \"%s\" has a NULL interrupt event",
@@ -868,7 +868,7 @@ intr_event_remove_handler(void* cookie)
 		intr_event_barrier(ie);
 		intr_event_update(ie);
 		mtx_unlock(&ie->ie_lock);
-		free(handler, M_ITHREAD);
+		vos_free(handler, M_ITHREAD);
 		return (0);
 	}
 
@@ -905,7 +905,7 @@ intr_event_remove_handler(void* cookie)
 	}
 #endif
 	mtx_unlock(&ie->ie_lock);
-	free(handler, M_ITHREAD);
+	vos_free(handler, M_ITHREAD);
 	return (0);
 }
 
@@ -916,7 +916,7 @@ intr_event_suspend_handler(void* cookie)
 	struct intr_event* ie;
 
 	if (handler == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	ie = handler->ih_event;
 	KASSERT(ie != NULL,
 		("interrupt handler \"%s\" has a NULL interrupt event",
@@ -935,7 +935,7 @@ intr_event_resume_handler(void* cookie)
 	struct intr_event* ie;
 
 	if (handler == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	ie = handler->ih_event;
 	KASSERT(ie != NULL,
 		("interrupt handler \"%s\" has a NULL interrupt event",
@@ -965,7 +965,7 @@ intr_event_schedule_thread(struct intr_event* ie)
 	 */
 	if (ie == NULL || CK_SLIST_EMPTY(&ie->ie_handlers) ||
 		ie->ie_thread == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ctd = curthread;
 	it = ie->ie_thread;
@@ -1033,13 +1033,13 @@ swi_add(struct intr_event** eventp, const char* name, driver_intr_t handler,
 	int error = 0;
 
 	if (flags & INTR_ENTROPY)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ie = (eventp != NULL) ? *eventp : NULL;
 
 	if (ie != NULL) {
 		if (!(ie->ie_flags & IE_SOFT))
-			return (EINVAL);
+			return (VOS_EINVAL);
 	}
 	else {
 		error = intr_event_create(&ie, NULL, IE_SOFT, 0,
@@ -1259,7 +1259,7 @@ ithread_loop(void* arg)
 		if (ithd->it_flags & IT_DEAD) {
 			CTR3(KTR_INTR, "%s: pid %d (%s) exiting", __func__,
 				p->p_pid, td->td_name);
-			free(ithd, M_ITHREAD);
+			vos_free(ithd, M_ITHREAD);
 			kthread_exit();
 		}
 
@@ -1327,7 +1327,7 @@ ithread_loop(void* arg)
  *                              handlers as their main argument.
  * Return value:
  * o 0:                         everything ok.
- * o EINVAL:                    stray interrupt.
+ * o VOS_EINVAL:                    stray interrupt.
  */
 int
 intr_event_handle(struct intr_event* ie, struct trapframe* frame)
@@ -1347,7 +1347,7 @@ intr_event_handle(struct intr_event* ie, struct trapframe* frame)
 
 	/* An interrupt with no event or handlers is a stray interrupt. */
 	if (ie == NULL || CK_SLIST_EMPTY(&ie->ie_handlers))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * Execute fast interrupt handlers directly.
@@ -1439,7 +1439,7 @@ intr_event_handle(struct intr_event* ie, struct trapframe* frame)
 #ifdef notyet
 	/* The interrupt is not aknowledged by any filter and has no ithread. */
 	if (!thread && !filter)
-		return (EINVAL);
+		return (VOS_EINVAL);
 #endif
 	return (0);
 }
@@ -1642,13 +1642,13 @@ sysctl_intrcnt(SYSCTL_HANDLER_ARGS)
 	if (req->flags & SCTL_MASK32) {
 		if (!req->oldptr)
 			return (sysctl_handle_opaque(oidp, NULL, sintrcnt / 2, req));
-		intrcnt32 = malloc(sintrcnt / 2, M_TEMP, M_NOWAIT);
+		intrcnt32 = vos_malloc(sintrcnt / 2, M_TEMP, M_NOWAIT);
 		if (intrcnt32 == NULL)
-			return (ENOMEM);
+			return (VOS_ENOMEM);
 		for (i = 0; i < sintrcnt / sizeof(u_long); i++)
 			intrcnt32[i] = intrcnt[i];
 		error = sysctl_handle_opaque(oidp, intrcnt32, sintrcnt / 2, req);
-		free(intrcnt32, M_TEMP);
+		vos_free(intrcnt32, M_TEMP);
 		return (error);
 	}
 #endif
@@ -1678,7 +1678,7 @@ DB_SHOW_COMMAND(intrcnt, db_show_intrcnt)
 			break;
 		if (*i != 0)
 			db_printf("%s\t%lu\n", cp, *i);
-		cp += strlen(cp) + 1;
+		cp += vos_strlen(cp) + 1;
 	}
 }
 #endif

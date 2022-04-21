@@ -89,7 +89,7 @@ struct rib_head {
 
 /* Constants */
 #define	RIB_MAX_RETRIES	3
-#define	RT_MAXFIBS	UINT16_MAX
+#define	RT_MAXFIBS	VOS_UINT16_MAX
 #define	RIB_MAX_MPATH_WIDTH	64
 
 /* Macro for verifying fields in af-specific 'struct route' structures */

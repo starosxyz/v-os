@@ -157,7 +157,7 @@ sysctl_machdep_counter_freq(SYSCTL_HANDLER_ARGS)
 	uint64_t freq;
 
 	if (softc == NULL)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	freq = counter_freq;
 	error = sysctl_handle_64(oidp, &freq, sizeof(freq), req);
 	if (error == 0 && req->newptr != NULL) {

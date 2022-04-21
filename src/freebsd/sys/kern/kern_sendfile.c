@@ -116,7 +116,7 @@ sendfile_sync_destroy(struct sendfile_sync *sfs)
 
 	cv_destroy(&sfs->cv);
 	mtx_destroy(&sfs->mtx);
-	free(sfs, M_SENDFILE);
+	vos_free(sfs, M_SENDFILE);
 }
 
 static void
@@ -353,7 +353,7 @@ sendfile_iodone(void *arg, vm_page_t *pa, int count, int error)
 		 * to the socket yet.
 		 */
 		MPASS((curthread->td_pflags & TDP_KTHREAD) == 0);
-		free(sfio, M_SENDFILE);
+		vos_free(sfio, M_SENDFILE);
 		return;
 	}
 
@@ -375,12 +375,12 @@ sendfile_iodone(void *arg, vm_page_t *pa, int count, int error)
 		 * state, free all ready mbufs and detach not ready ones.
 		 * We will free the mbufs corresponding to this I/O manually.
 		 *
-		 * The socket would be marked with EIO and made available
-		 * for read, so that application receives EIO on next
+		 * The socket would be marked with VOS_EIO and made available
+		 * for read, so that application receives VOS_EIO on next
 		 * syscall and eventually closes the socket.
 		 */
 		so->so_proto->pr_usrreqs->pru_abort(so);
-		so->so_error = EIO;
+		so->so_error = VOS_EIO;
 
 		mb_free_notready(sfio->m, sfio->npages);
 #ifdef KERN_TLS
@@ -407,7 +407,7 @@ sendfile_iodone(void *arg, vm_page_t *pa, int count, int error)
 out_with_ref:
 #endif
 	CURVNET_RESTORE();
-	free(sfio, M_SENDFILE);
+	vos_free(sfio, M_SENDFILE);
 }
 
 /*
@@ -531,7 +531,7 @@ sendfile_swapin(vm_object_t obj, struct sf_io *sfio, int *nios, off_t off,
 			sendfile_iowait(sfio, "sferrio");
 
 			/*
-			 * Do remaining pages recovery before returning EIO.
+			 * Do remaining pages recovery before returning VOS_EIO.
 			 * Pages from 0 to npages are wired.
 			 * Pages from (i + count1) to npages are busied.
 			 */
@@ -544,7 +544,7 @@ sendfile_swapin(vm_object_t obj, struct sf_io *sfio, int *nios, off_t off,
 				vm_page_unwire(pa[j], PQ_INACTIVE);
 				pa[j] = NULL;
 			}
-			return (EIO);
+			return (VOS_EIO);
 		}
 
 		SFSTAT_INC(sf_iocnt);
@@ -586,13 +586,13 @@ sendfile_getobj(struct thread *td, struct file *fp, vm_object_t *obj_res,
 		vp = fp->f_vnode;
 		vn_lock(vp, LK_SHARED | LK_RETRY);
 		if (vp->v_type != VREG) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		*bsize = vp->v_mount->mnt_stat.f_iosize;
 		obj = vp->v_object;
 		if (obj == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 
@@ -618,13 +618,13 @@ sendfile_getobj(struct thread *td, struct file *fp, vm_object_t *obj_res,
 		VM_OBJECT_RLOCK(obj);
 		*obj_size = shmfd->shm_size;
 	} else {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
 	if ((obj->flags & OBJ_DEAD) != 0) {
 		VM_OBJECT_RUNLOCK(obj);
-		error = EBADF;
+		error = VOS_EBADF;
 		goto out;
 	}
 
@@ -663,15 +663,15 @@ sendfile_getsock(struct thread *td, int s, struct file **sock_fp,
 		return (error);
 	*so = (*sock_fp)->f_data;
 	if ((*so)->so_type != SOCK_STREAM)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	/*
 	 * SCTP one-to-one style sockets currently don't work with
-	 * sendfile(). So indicate EINVAL for now.
+	 * sendfile(). So indicate VOS_EINVAL for now.
 	 */
 	if ((*so)->so_proto->pr_protocol == IPPROTO_SCTP)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (SOLISTENING(*so))
-		return (ENOTCONN);
+		return (VOS_ENOTCONN);
 	return (0);
 }
 
@@ -729,7 +729,7 @@ vn_sendfile(struct file *fp, int sockfd, struct uio *hdr_uio,
 	SFSTAT_ADD(sf_rhpages_requested, SF_READAHEAD(flags));
 
 	if (flags & SF_SYNC) {
-		sfs = malloc(sizeof(*sfs), M_SENDFILE, M_WAITOK | M_ZERO);
+		sfs = vos_malloc(sizeof(*sfs), M_SENDFILE, M_WAITOK | M_ZERO);
 		mtx_init(&sfs->mtx, "sendfile", NULL, MTX_DEF);
 		cv_init(&sfs->cv, "sendfile");
 		sfs->waiting = true;
@@ -773,7 +773,7 @@ vn_sendfile(struct file *fp, int sockfd, struct uio *hdr_uio,
 		 * file to be processed if it fits the socket buffer.
 		 * Otherwise block in waiting for sufficient space
 		 * to proceed, or if the socket is nonblocking, return
-		 * to userland with EAGAIN while reporting how far
+		 * to userland with VOS_EAGAIN while reporting how far
 		 * we've come.
 		 * We wait until the socket buffer has significant free
 		 * space to do bulk sends.  This makes good use of file
@@ -787,7 +787,7 @@ vn_sendfile(struct file *fp, int sockfd, struct uio *hdr_uio,
 			so->so_snd.sb_lowat = so->so_snd.sb_hiwat / 2;
 retry_space:
 		if (so->so_snd.sb_state & SBS_CANTSENDMORE) {
-			error = EPIPE;
+			error = VOS_EPIPE;
 			SOCKBUF_UNLOCK(&so->so_snd);
 			goto done;
 		} else if (so->so_error) {
@@ -798,7 +798,7 @@ retry_space:
 		}
 		if ((so->so_state & SS_ISCONNECTED) == 0) {
 			SOCKBUF_UNLOCK(&so->so_snd);
-			error = ENOTCONN;
+			error = VOS_ENOTCONN;
 			goto done;
 		}
 
@@ -808,7 +808,7 @@ retry_space:
 		     space < so->so_snd.sb_lowat)) {
 			if (so->so_state & SS_NBIO) {
 				SOCKBUF_UNLOCK(&so->so_snd);
-				error = EAGAIN;
+				error = VOS_EAGAIN;
 				goto done;
 			}
 			/*
@@ -930,7 +930,7 @@ retry_space:
 		rhpages = min(howmany(obj_size - trunc_page(off), PAGE_SIZE) -
 		    npages, rhpages);
 
-		sfio = malloc(sizeof(struct sf_io) +
+		sfio = vos_malloc(sizeof(struct sf_io) +
 		    npages * sizeof(vm_page_t), M_SENDFILE, M_WAITOK);
 		refcount_init(&sfio->nios, 1);
 		sfio->obj = obj;
@@ -996,7 +996,7 @@ retry_space:
 				SFSTAT_INC(sf_busy);
 				fixspace(npages, i, off, &space);
 				sfio->npages = i;
-				softerr = EBUSY;
+				softerr = VOS_EBUSY;
 				break;
 			}
 			pga = pa[i];
@@ -1079,7 +1079,7 @@ retry_space:
 					pa[j] = NULL;
 				}
 				if (m == NULL)
-					softerr = ENOBUFS;
+					softerr = VOS_ENOBUFS;
 				fixspace(npages, i, off, &space);
 				sfio->npages = i;
 				break;
@@ -1254,8 +1254,8 @@ out:
 		ktls_free(tls);
 #endif
 
-	if (error == ERESTART)
-		error = EINTR;
+	if (error == VOS_ERESTART)
+		error = VOS_EINTR;
 
 	return (error);
 }
@@ -1274,7 +1274,7 @@ sendfile(struct thread *td, struct sendfile_args *uap, int compat)
 	 * we send only the header/trailer and no payload data.
 	 */
 	if (uap->offset < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	sbytes = 0;
 	hdr_uio = trl_uio = NULL;
@@ -1327,8 +1327,8 @@ sendfile(struct thread *td, struct sendfile_args *uap, int compat)
 		copyout(&sbytes, uap->sbytes, sizeof(off_t));
 
 out:
-	free(hdr_uio, M_IOV);
-	free(trl_uio, M_IOV);
+	vos_free(hdr_uio, M_IOV);
+	vos_free(trl_uio, M_IOV);
 	return (error);
 }
 

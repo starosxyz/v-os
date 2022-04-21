@@ -102,9 +102,9 @@ int ff_poll(struct pollfd fds[], nfds_t nfds, int timeout);
 int ff_socketpair(int domain, int type, int protocol, int rsv[2]);
 int ff_kqueue(void);
 int ff_kevent(int kq, const struct kevent *changelist, int nchanges, 
-    struct kevent *eventlist, int nevents, const struct timespec *timeout);
+    struct kevent *eventlist, int nevents, const struct vos_timespec *timeout);
 int ff_kevent_do_each(int kq, const struct kevent *changelist, int nchanges, 
-    void *eventlist, int nevents, const struct timespec *timeout, 
+    void *eventlist, int nevents, const struct vos_timespec *timeout,
     void (*do_each)(void **, struct kevent *));
 
 int ff_gettimeofday(struct timeval *tv, struct timezone *tz);

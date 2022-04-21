@@ -63,7 +63,7 @@ strtoq(const char *nptr, char **endptr, int base)
 	s = nptr;
 	do {
 		c = *s++;
-	} while (isspace(c));
+	} while (vos_isspace(c));
 	if (c == '-') {
 		neg = 1;
 		c = *s++;
@@ -104,12 +104,12 @@ strtoq(const char *nptr, char **endptr, int base)
 	cutlim = cutoff % qbase;
 	cutoff /= qbase;
 	for (acc = 0, any = 0;; c = *s++) {
-		if (!isascii(c))
+		if (!vos_isascii(c))
 			break;
-		if (isdigit(c))
+		if (vos_isdigit(c))
 			c -= '0';
-		else if (isalpha(c))
-			c -= isupper(c) ? 'A' - 10 : 'a' - 10;
+		else if (vos_isalpha(c))
+			c -= vos_isupper(c) ? 'A' - 10 : 'a' - 10;
 		else
 			break;
 		if (c >= base)

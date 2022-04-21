@@ -336,7 +336,7 @@ lf_alloc_lock(struct lock_owner *lo)
 {
 	struct lockf_entry *lf;
 
-	lf = malloc(sizeof(struct lockf_entry), M_LOCKF, M_WAITOK|M_ZERO);
+	lf = vos_malloc(sizeof(struct lockf_entry), M_LOCKF, M_WAITOK|M_ZERO);
 
 #ifdef LOCKF_DEBUG
 	if (lockf_debug & 4)
@@ -388,7 +388,7 @@ lf_free_lock(struct lockf_entry *lock)
 				sx_xunlock(&lf_owner_graph_lock);
 			}
 			LIST_REMOVE(lo, lo_link);
-			free(lo, M_LOCKF);
+			vos_free(lo, M_LOCKF);
 #ifdef LOCKF_DEBUG
 			if (lockf_debug & 4)
 				printf("Freed lock owner %p\n", lo);
@@ -404,7 +404,7 @@ lf_free_lock(struct lockf_entry *lock)
 	if (lockf_debug & 4)
 		printf("Freed lock %p\n", lock);
 #endif
-	free(lock, M_LOCKF);
+	vos_free(lock, M_LOCKF);
 	return (1);
 }
 
@@ -451,28 +451,28 @@ lf_advlockasync(struct vop_advlockasync_args *ap, struct lockf **statep,
 	case SEEK_END:
 		if (size > OFF_MAX ||
 		    (fl->l_start > 0 && size > OFF_MAX - fl->l_start))
-			return (EOVERFLOW);
+			return (VOS_EOVERFLOW);
 		start = size + fl->l_start;
 		break;
 
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	if (start < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (fl->l_len < 0) {
 		if (start == 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		end = start - 1;
 		start += fl->l_len;
 		if (start < 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 	} else if (fl->l_len == 0) {
 		end = OFF_MAX;
 	} else {
 		oadd = fl->l_len - 1;
 		if (oadd > OFF_MAX - start)
-			return (EOVERFLOW);
+			return (VOS_EOVERFLOW);
 		end = start + oadd;
 	}
 
@@ -506,7 +506,7 @@ retry_setlock:
 		 * count which matches the new lockf_entry
 		 * structure created below.
 		 */
-		lo = malloc(sizeof(struct lock_owner), M_LOCKF,
+		lo = vos_malloc(sizeof(struct lock_owner), M_LOCKF,
 		    M_WAITOK|M_ZERO);
 #ifdef LOCKF_DEBUG
 		if (lockf_debug & 4)
@@ -592,7 +592,7 @@ retry_setlock:
 	if (VN_IS_DOOMED(vp)) {
 		VI_UNLOCK(vp);
 		lf_free_lock(lock);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	/*
@@ -604,7 +604,7 @@ retry_setlock:
 
 		VI_UNLOCK(vp);
 
-		ls = malloc(sizeof(struct lockf), M_LOCKF, M_WAITOK|M_ZERO);
+		ls = vos_malloc(sizeof(struct lockf), M_LOCKF, M_WAITOK|M_ZERO);
 		sx_init(&ls->ls_lock, "ls_lock");
 		LIST_INIT(&ls->ls_active);
 		LIST_INIT(&ls->ls_pending);
@@ -625,9 +625,9 @@ retry_setlock:
 			LIST_REMOVE(ls, ls_link);
 			sx_xunlock(&lf_lock_states_lock);
 			sx_destroy(&ls->ls_lock);
-			free(ls, M_LOCKF);
+			vos_free(ls, M_LOCKF);
 			lf_free_lock(lock);
-			return (ENOENT);
+			return (VOS_ENOENT);
 		}
 		if ((*statep) == NULL) {
 			state = *statep = ls;
@@ -642,7 +642,7 @@ retry_setlock:
 			LIST_REMOVE(ls, ls_link);
 			sx_xunlock(&lf_lock_states_lock);
 			sx_destroy(&ls->ls_lock);
-			free(ls, M_LOCKF);
+			vos_free(ls, M_LOCKF);
 		}
 	} else {
 		MPASS(state->ls_threads >= 0);
@@ -664,7 +664,7 @@ retry_setlock:
 		VI_UNLOCK(vp);
 		sx_xunlock(&state->ls_lock);
 		lf_free_lock(lock);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	switch (ap->a_op) {
@@ -686,13 +686,13 @@ retry_setlock:
 		if (ap->a_cookiep)
 			error = lf_cancel(state, lock, *ap->a_cookiep);
 		else
-			error = EINVAL;
+			error = VOS_EINVAL;
 		lf_free_lock(lock);
 		break;
 
 	default:
 		lf_free_lock(lock);
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 
@@ -734,8 +734,8 @@ retry_setlock:
 	}
 	VI_UNLOCK(vp);
 
-	if (error == EDOOFUS) {
-		KASSERT(ap->a_op == F_SETLK, ("EDOOFUS"));
+	if (error == VOS_EDOOFUS) {
+		KASSERT(ap->a_op == F_SETLK, ("VOS_EDOOFUS"));
 		goto retry_setlock;
 	}
 	return (error);
@@ -837,7 +837,7 @@ out_free:
 	LIST_REMOVE(state, ls_link);
 	sx_xunlock(&lf_lock_states_lock);
 	sx_destroy(&state->ls_lock);
-	free(state, M_LOCKF);
+	vos_free(state, M_LOCKF);
 }
 
 /*
@@ -869,7 +869,7 @@ static struct lockf_edge *
 lf_alloc_edge(void)
 {
 
-	return (malloc(sizeof(struct lockf_edge), M_LOCKF, M_WAITOK|M_ZERO));
+	return (vos_malloc(sizeof(struct lockf_edge), M_LOCKF, M_WAITOK|M_ZERO));
 }
 
 /*
@@ -879,7 +879,7 @@ static void
 lf_free_edge(struct lockf_edge *e)
 {
 
-	free(e, M_LOCKF);
+	vos_free(e, M_LOCKF);
 }
 
 /*
@@ -897,7 +897,7 @@ lf_alloc_vertex(struct lockf_entry *lock)
 }
 
 /*
- * Attempt to record an edge from lock x to lock y. Return EDEADLK if
+ * Attempt to record an edge from lock x to lock y. Return VOS_EDEADLK if
  * the new edge would cause a cycle in the owner graph.
  */
 static int
@@ -1004,7 +1004,7 @@ lf_add_outgoing(struct lockf *state, struct lockf_entry *lock)
 		error = lf_add_edge(lock, overlap);
 
 		/*
-		 * The only error that lf_add_edge returns is EDEADLK.
+		 * The only error that lf_add_edge returns is VOS_EDEADLK.
 		 * Remove any edges we added and return the error.
 		 */
 		if (error) {
@@ -1032,7 +1032,7 @@ lf_add_outgoing(struct lockf *state, struct lockf_entry *lock)
 		error = lf_add_edge(lock, overlap);
 
 		/*
-		 * The only error that lf_add_edge returns is EDEADLK.
+		 * The only error that lf_add_edge returns is VOS_EDEADLK.
 		 * Remove any edges we added and return the error.
 		 */
 		if (error) {
@@ -1072,7 +1072,7 @@ lf_add_incoming(struct lockf *state, struct lockf_entry *lock)
 		error = lf_add_edge(overlap, lock);
 
 		/*
-		 * The only error that lf_add_edge returns is EDEADLK.
+		 * The only error that lf_add_edge returns is VOS_EDEADLK.
 		 * Remove any edges we added and return the error.
 		 */
 		if (error) {
@@ -1402,7 +1402,7 @@ lf_setlock(struct lockf *state, struct lockf_entry *lock, struct vnode *vp,
 		if ((lock->lf_flags & F_WAIT) == 0
 		    && lock->lf_async_task == NULL) {
 			lf_free_lock(lock);
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 			goto out;
 		}
 
@@ -1460,7 +1460,7 @@ lf_setlock(struct lockf *state, struct lockf_entry *lock, struct vnode *vp,
 			 * make another attempt to take the lock.
 			 */
 			*cookiep = (void *) lock;
-			error = EINPROGRESS;
+			error = VOS_EINPROGRESS;
 			goto out;
 		}
 
@@ -1469,7 +1469,7 @@ lf_setlock(struct lockf *state, struct lockf_entry *lock, struct vnode *vp,
 		error = sx_sleep(lock, &state->ls_lock, priority, lockstr, 0);
 		sigallowstop(stops_deferred);
 		if (lf_free_lock(lock)) {
-			error = EDOOFUS;
+			error = VOS_EDOOFUS;
 			goto out;
 		}
 
@@ -1481,7 +1481,7 @@ lf_setlock(struct lockf *state, struct lockf_entry *lock, struct vnode *vp,
 		 * have already been removed and we have been moved to
 		 * the active list). We may also have been woken by
 		 * lf_purgelocks which we report to the caller as
-		 * EINTR. In that case, lf_purgelocks will have
+		 * VOS_EINTR. In that case, lf_purgelocks will have
 		 * removed our lock graph edges.
 		 *
 		 * Note that it is possible to receive a signal after
@@ -1495,7 +1495,7 @@ lf_setlock(struct lockf *state, struct lockf_entry *lock, struct vnode *vp,
 		 * which is waiting behind us in the queue.
 		 */
 		if (lock->lf_flags & F_INTR) {
-			error = EINTR;
+			error = VOS_EINTR;
 			lf_free_lock(lock);
 			goto out;
 		}
@@ -1617,7 +1617,7 @@ lf_cancel(struct lockf *state, struct lockf_entry *lock, void *cookie)
 			if (!(reallock->lf_vnode == lock->lf_vnode
 				&& reallock->lf_start == lock->lf_start
 				&& reallock->lf_end == lock->lf_end)) {
-				return (ENOENT);
+				return (VOS_ENOENT);
 			}
 
 			/*
@@ -1625,7 +1625,7 @@ lf_cancel(struct lockf *state, struct lockf_entry *lock, void *cookie)
 			 * remove it from its wait lists.
 			 */
 			if (!reallock->lf_async_task) {
-				return (ENOENT);
+				return (VOS_ENOENT);
 			}
 
 			/*
@@ -1644,7 +1644,7 @@ lf_cancel(struct lockf *state, struct lockf_entry *lock, void *cookie)
 	/*
 	 * We didn't find a matching lock - not much we can do here.
 	 */
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /*
@@ -1888,7 +1888,7 @@ lf_iteratelocks_sysid(int sysid, lf_iterator *fn, void *arg)
 			if (lf->lf_owner->lo_sysid != sysid)
 				continue;
 
-			ldesc = malloc(sizeof(struct lockdesc), M_LOCKF,
+			ldesc = vos_malloc(sizeof(struct lockdesc), M_LOCKF,
 			    M_WAITOK);
 			ldesc->vp = lf->lf_vnode;
 			vref(ldesc->vp);
@@ -1919,7 +1919,7 @@ lf_iteratelocks_sysid(int sysid, lf_iterator *fn, void *arg)
 		if (!error)
 			error = fn(ldesc->vp, &ldesc->fl, arg);
 		vrele(ldesc->vp);
-		free(ldesc, M_LOCKF);
+		vos_free(ldesc, M_LOCKF);
 	}
 
 	return (error);
@@ -1955,7 +1955,7 @@ lf_iteratelocks_vnode(struct vnode *vp, lf_iterator *fn, void *arg)
 
 	sx_xlock(&ls->ls_lock);
 	LIST_FOREACH(lf, &ls->ls_active, lf_link) {
-		ldesc = malloc(sizeof(struct lockdesc), M_LOCKF,
+		ldesc = vos_malloc(sizeof(struct lockdesc), M_LOCKF,
 		    M_WAITOK);
 		ldesc->vp = lf->lf_vnode;
 		vref(ldesc->vp);
@@ -1989,7 +1989,7 @@ lf_iteratelocks_vnode(struct vnode *vp, lf_iterator *fn, void *arg)
 		if (!error)
 			error = fn(ldesc->vp, &ldesc->fl, arg);
 		vrele(ldesc->vp);
-		free(ldesc, M_LOCKF);
+		vos_free(ldesc, M_LOCKF);
 	}
 
 	return (error);
@@ -2289,7 +2289,7 @@ graph_add_edge(struct owner_graph *g, struct owner_vertex *x,
 				graph_print_vertices(&path);
 			}
 #endif
-			return (EDEADLK);
+			return (VOS_EDEADLK);
 		}
 
 #ifdef LOCKF_DEBUG
@@ -2352,7 +2352,7 @@ graph_add_edge(struct owner_graph *g, struct owner_vertex *x,
 	}
 #endif
 
-	e = malloc(sizeof(struct owner_edge), M_LOCKF, M_WAITOK);
+	e = vos_malloc(sizeof(struct owner_edge), M_LOCKF, M_WAITOK);
 
 	LIST_INSERT_HEAD(&x->v_outedges, e, e_outlink);
 	LIST_INSERT_HEAD(&y->v_inedges, e, e_inlink);
@@ -2393,12 +2393,12 @@ graph_remove_edge(struct owner_graph *g, struct owner_vertex *x,
 #endif
 		LIST_REMOVE(e, e_outlink);
 		LIST_REMOVE(e, e_inlink);
-		free(e, M_LOCKF);
+		vos_free(e, M_LOCKF);
 	}
 }
 
 /*
- * Allocate a vertex from the free list. Return ENOMEM if there are
+ * Allocate a vertex from the free list. Return VOS_ENOMEM if there are
  * none.
  */
 static struct owner_vertex *
@@ -2408,13 +2408,13 @@ graph_alloc_vertex(struct owner_graph *g, struct lock_owner *lo)
 
 	sx_assert(&lf_owner_graph_lock, SX_XLOCKED);
 
-	v = malloc(sizeof(struct owner_vertex), M_LOCKF, M_WAITOK);
+	v = vos_malloc(sizeof(struct owner_vertex), M_LOCKF, M_WAITOK);
 	if (g->g_size == g->g_space) {
-		g->g_vertices = realloc(g->g_vertices,
+		g->g_vertices = vos_realloc(g->g_vertices,
 		    2 * g->g_space * sizeof(struct owner_vertex *),
 		    M_LOCKF, M_WAITOK);
-		free(g->g_indexbuf, M_LOCKF);
-		g->g_indexbuf = malloc(2 * g->g_space * sizeof(int),
+		vos_free(g->g_indexbuf, M_LOCKF);
+		g->g_indexbuf = vos_malloc(2 * g->g_space * sizeof(int),
 		    M_LOCKF, M_WAITOK);
 		g->g_space = 2 * g->g_space;
 	}
@@ -2452,18 +2452,18 @@ graph_free_vertex(struct owner_graph *g, struct owner_vertex *v)
 	}
 	g->g_size--;
 
-	free(v, M_LOCKF);
+	vos_free(v, M_LOCKF);
 }
 
 static struct owner_graph *
 graph_init(struct owner_graph *g)
 {
 
-	g->g_vertices = malloc(10 * sizeof(struct owner_vertex *),
+	g->g_vertices = vos_malloc(10 * sizeof(struct owner_vertex *),
 	    M_LOCKF, M_WAITOK);
 	g->g_size = 0;
 	g->g_space = 10;
-	g->g_indexbuf = malloc(g->g_space * sizeof(int), M_LOCKF, M_WAITOK);
+	g->g_indexbuf = vos_malloc(g->g_space * sizeof(int), M_LOCKF, M_WAITOK);
 	g->g_gen = 0;
 
 	return (g);

@@ -165,12 +165,12 @@ static int howto_masks[] = {
 			case 'P': howto |= RB_PROBE; break;
 			case 'r': howto |= RB_DFLTROOT; break;
 			case 's': howto |= RB_SINGLE; break;
-			case 'S': SETENV("comconsole_speed", v + 1); v += strlen(v); break;
+			case 'S': SETENV("comconsole_speed", v + 1); v += vos_strlen(v); break;
 			case 'v': howto |= RB_VERBOSE; break;
 			}
 		}
 	} else {
-		n = strsep(&v, "=");
+		n = vos_strsep(&v, "=");
 		if (v == NULL)
 			SETENV(n, "1");
 		else
@@ -190,7 +190,7 @@ boot_parse_cmdline_delim(char *cmdline, const char *delim)
 	int howto;
 
 	howto = 0;
-	while ((v = strsep(&cmdline, delim)) != NULL) {
+	while ((v = vos_strsep(&cmdline, delim)) != NULL) {
 		if (*v == '\0')
 			continue;
 		howto |= boot_parse_arg(v);

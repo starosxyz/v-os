@@ -547,7 +547,7 @@ do {								\
 	if (ifp)						\
 		counter_u64_add(((struct in6_ifextra *)		\
 		    ((ifp)->if_afdata[AF_INET6]))->in6_ifstat[	\
-		    offsetof(struct in6_ifstat, tag) / sizeof(uint64_t)], 1);\
+		    vos_offsetof(struct in6_ifstat, tag) / sizeof(uint64_t)], 1);\
 } while (/*CONSTCOND*/ 0)
 
 extern u_char inet6ctlerrmap[];

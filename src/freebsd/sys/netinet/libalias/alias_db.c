@@ -354,7 +354,7 @@ alias_mod_handler(module_t mod, int type, void *data)
 	case MOD_LOAD:
 		return (0);
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 }
 
@@ -2152,7 +2152,7 @@ InitPacketAliasLog(struct libalias *la)
 			fprintf(la->logDesc, "PacketAlias/InitPacketAliasLog: Packet alias logging enabled.\n");	       
 #endif
 		else 
-			return (ENOMEM); /* log initialization failed */
+			return (VOS_ENOMEM); /* log initialization failed */
 		la->packetAliasMode |= PKT_ALIAS_LOG;
 	}
 
@@ -2409,7 +2409,7 @@ LibAliasInit(struct libalias *la)
 	if (la == NULL) {
 #ifdef _KERNEL
 #undef malloc	/* XXX: ugly */
-		la = malloc(sizeof *la, M_ALIAS, M_WAITOK | M_ZERO);
+		la = vos_malloc(sizeof *la, M_ALIAS, M_WAITOK | M_ZERO);
 #else
 		la = calloc(sizeof *la, 1);
 		if (la == NULL)
@@ -2517,7 +2517,7 @@ LibAliasSetMode(
 /* Enable logging? */
 	if (flags & mask & PKT_ALIAS_LOG) {
 		/* Do the enable */
-		if (InitPacketAliasLog(la) == ENOMEM)
+		if (InitPacketAliasLog(la) == VOS_ENOMEM)
 			goto getout;
 	} else
 /* _Disable_ logging? */
@@ -2655,7 +2655,7 @@ static void
 InitPunchFW(struct libalias *la)
 {
 
-	la->fireWallField = malloc(la->fireWallNumNums);
+	la->fireWallField = vos_malloc(la->fireWallNumNums);
 	if (la->fireWallField) {
 		memset(la->fireWallField, 0, la->fireWallNumNums);
 		if (la->fireWallFD < 0) {

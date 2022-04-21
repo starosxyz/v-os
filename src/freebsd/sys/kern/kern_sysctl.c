@@ -219,7 +219,7 @@ sysctl_load_tunable_by_oid_locked(struct sysctl_oid* oidp)
 	path[--rem] = 0;
 
 	for (curr = oidp; curr != NULL; curr = SYSCTL_PARENT(curr)) {
-		len = strlen(curr->oid_name);
+		len = vos_strlen(curr->oid_name);
 		rem -= len;
 		if (curr != oidp)
 			rem -= 1;
@@ -328,7 +328,7 @@ sysctl_load_tunable_by_oid_locked(struct sysctl_oid* oidp)
 		penv = kern_getenv(path + rem);
 		if (penv == NULL)
 			return;
-		req.newlen = strlen(penv);
+		req.newlen = vos_strlen(penv);
 		req.newptr = penv;
 		break;
 	default:
@@ -568,10 +568,10 @@ sysctl_unregister_oid(struct sysctl_oid* oidp)
 
 	SYSCTL_ASSERT_WLOCKED();
 	if (oidp->oid_number == OID_AUTO) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 	else {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		SLIST_FOREACH(p, oidp->oid_parent, oid_link) {
 			if (p == oidp) {
 				SLIST_REMOVE(oidp->oid_parent, oidp,
@@ -599,7 +599,7 @@ sysctl_ctx_init(struct sysctl_ctx_list* c)
 {
 
 	if (c == NULL) {
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	/*
@@ -646,7 +646,7 @@ sysctl_ctx_free(struct sysctl_ctx_list* clist)
 	}
 	if (error) {
 		SYSCTL_WUNLOCK();
-		return(EBUSY);
+		return(VOS_EBUSY);
 	}
 	/* Now really delete the entries */
 	e = TAILQ_FIRST(clist);
@@ -656,7 +656,7 @@ sysctl_ctx_free(struct sysctl_ctx_list* clist)
 		if (error)
 			panic("sysctl_remove_oid: corrupt tree, entry: %s",
 				e->entry->oid_name);
-		free(e, M_SYSCTLOID);
+		vos_free(e, M_SYSCTLOID);
 		e = e1;
 	}
 	SYSCTL_WUNLOCK();
@@ -672,7 +672,7 @@ struct sysctl_ctx_entry*
 	SYSCTL_ASSERT_WLOCKED();
 	if (clist == NULL || oidp == NULL)
 		return(NULL);
-	e = malloc(sizeof(struct sysctl_ctx_entry), M_SYSCTLOID, M_WAITOK);
+	e = vos_malloc(sizeof(struct sysctl_ctx_entry), M_SYSCTLOID, M_WAITOK);
 	e->entry = oidp;
 	TAILQ_INSERT_HEAD(clist, e, link);
 	return (e);
@@ -705,18 +705,18 @@ sysctl_ctx_entry_del(struct sysctl_ctx_list* clist, struct sysctl_oid* oidp)
 	struct sysctl_ctx_entry* e;
 
 	if (clist == NULL || oidp == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	SYSCTL_WLOCK();
 	e = sysctl_ctx_entry_find(clist, oidp);
 	if (e != NULL) {
 		TAILQ_REMOVE(clist, e, link);
 		SYSCTL_WUNLOCK();
-		free(e, M_SYSCTLOID);
+		vos_free(e, M_SYSCTLOID);
 		return (0);
 	}
 	else {
 		SYSCTL_WUNLOCK();
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 }
 
@@ -744,7 +744,7 @@ sysctl_remove_name(struct sysctl_oid* parent, const char* name,
 	struct sysctl_oid* p, * tmp;
 	int error;
 
-	error = ENOENT;
+	error = VOS_ENOENT;
 	SYSCTL_WLOCK();
 	SLIST_FOREACH_SAFE(p, SYSCTL_CHILDREN(parent), oid_link, tmp) {
 		if (strcmp(p->oid_name, name) == 0) {
@@ -776,7 +776,7 @@ sysctl_escape_name(const char* orig)
 	}
 
 	/* Allocate storage for new string */
-	new = malloc(i + 2 * nillegals + 1, M_SYSCTLOID, M_WAITOK);
+	new = vos_malloc(i + 2 * nillegals + 1, M_SYSCTLOID, M_WAITOK);
 
 	/* Copy the name, escaping characters as we go */
 	while (orig[s] != '\0') {
@@ -806,11 +806,11 @@ sysctl_remove_oid_locked(struct sysctl_oid* oidp, int del, int recurse)
 
 	SYSCTL_ASSERT_WLOCKED();
 	if (oidp == NULL)
-		return(EINVAL);
+		return(VOS_EINVAL);
 	if ((oidp->oid_kind & CTLFLAG_DYN) == 0) {
 		printf("Warning: can't remove non-dynamic nodes (%s)!\n",
 			oidp->oid_name);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	/*
 	 * WARNING: normal method to do this should be through
@@ -827,7 +827,7 @@ sysctl_remove_oid_locked(struct sysctl_oid* oidp, int del, int recurse)
 					printf("Warning: failed attempt to "
 						"remove oid %s with child %s\n",
 						oidp->oid_name, p->oid_name);
-					return (ENOTEMPTY);
+					return (VOS_ENOTEMPTY);
 				}
 				error = sysctl_remove_oid_locked(p, del,
 					recurse);
@@ -843,7 +843,7 @@ sysctl_remove_oid_locked(struct sysctl_oid* oidp, int del, int recurse)
 		if (oidp->oid_refcnt == 0) {
 			printf("Warning: bad oid_refcnt=%u (%s)!\n",
 				oidp->oid_refcnt, oidp->oid_name);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		sysctl_unregister_oid(oidp);
 		if (del) {
@@ -858,13 +858,13 @@ sysctl_remove_oid_locked(struct sysctl_oid* oidp, int del, int recurse)
 				SYSCTL_SLEEP(&oidp->oid_running, "oidrm", 0);
 			}
 			if (oidp->oid_descr)
-				free(__DECONST(char*, oidp->oid_descr),
+				vos_free(__DECONST(char*, oidp->oid_descr),
 					M_SYSCTLOID);
 			if (oidp->oid_label)
-				free(__DECONST(char*, oidp->oid_label),
+				vos_free(__DECONST(char*, oidp->oid_label),
 					M_SYSCTLOID);
-			free(__DECONST(char*, oidp->oid_name), M_SYSCTLOID);
-			free(oidp, M_SYSCTLOID);
+			vos_free(__DECONST(char*, oidp->oid_name), M_SYSCTLOID);
+			vos_free(oidp, M_SYSCTLOID);
 		}
 	}
 	return (0);
@@ -890,7 +890,7 @@ struct sysctl_oid*
 	SYSCTL_WLOCK();
 	oidp = sysctl_find_oidname(escaped, parent);
 	if (oidp != NULL) {
-		free(escaped, M_SYSCTLOID);
+		vos_free(escaped, M_SYSCTLOID);
 		if ((oidp->oid_kind & CTLTYPE) == CTLTYPE_NODE) {
 			oidp->oid_refcnt++;
 			/* Update the context */
@@ -905,7 +905,7 @@ struct sysctl_oid*
 			return (NULL);
 		}
 	}
-	oidp = malloc(sizeof(struct sysctl_oid), M_SYSCTLOID, M_WAITOK | M_ZERO);
+	oidp = vos_malloc(sizeof(struct sysctl_oid), M_SYSCTLOID, M_WAITOK | M_ZERO);
 	oidp->oid_parent = parent;
 	SLIST_INIT(&oidp->oid_children);
 	oidp->oid_number = number;
@@ -917,9 +917,9 @@ struct sysctl_oid*
 	oidp->oid_arg2 = arg2;
 	oidp->oid_fmt = fmt;
 	if (descr != NULL)
-		oidp->oid_descr = strdup(descr, M_SYSCTLOID);
+		oidp->oid_descr = vos_strdup(descr, M_SYSCTLOID);
 	if (label != NULL)
-		oidp->oid_label = strdup(label, M_SYSCTLOID);
+		oidp->oid_label = vos_strdup(label, M_SYSCTLOID);
 	/* Update the context, if used */
 	if (clist != NULL)
 		sysctl_ctx_entry_add(clist, oidp);
@@ -938,12 +938,12 @@ sysctl_rename_oid(struct sysctl_oid* oidp, const char* name)
 	char* newname;
 	char* oldname;
 
-	newname = strdup(name, M_SYSCTLOID);
+	newname = vos_strdup(name, M_SYSCTLOID);
 	SYSCTL_WLOCK();
 	oldname = __DECONST(char*, oidp->oid_name);
 	oidp->oid_name = newname;
 	SYSCTL_WUNLOCK();
-	free(oldname, M_SYSCTLOID);
+	vos_free(oldname, M_SYSCTLOID);
 }
 
 /*
@@ -962,7 +962,7 @@ sysctl_move_oid(struct sysctl_oid* oid, struct sysctl_oid_list* parent)
 	oidp = sysctl_find_oidname(oid->oid_name, parent);
 	if (oidp != NULL) {
 		SYSCTL_WUNLOCK();
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
 	sysctl_unregister_oid(oid);
 	oid->oid_parent = parent;
@@ -1080,7 +1080,7 @@ sysctl_sysctl_debug(SYSCTL_HANDLER_ARGS)
 	SYSCTL_RLOCK(&tracker);
 	sysctl_sysctl_debug_dump_node(&sysctl__children, 0);
 	SYSCTL_RUNLOCK(&tracker);
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 SYSCTL_PROC(_sysctl, CTL_SYSCTL_DEBUG, debug, CTLTYPE_STRING | CTLFLAG_RD |
@@ -1109,7 +1109,7 @@ sysctl_sysctl_name(SYSCTL_HANDLER_ARGS)
 			if (req->oldidx)
 				error = SYSCTL_OUT(req, ".", 1);
 			if (!error)
-				error = SYSCTL_OUT(req, buf, strlen(buf));
+				error = SYSCTL_OUT(req, buf, vos_strlen(buf));
 			if (error)
 				goto out;
 			namelen--;
@@ -1125,7 +1125,7 @@ sysctl_sysctl_name(SYSCTL_HANDLER_ARGS)
 				error = SYSCTL_OUT(req, ".", 1);
 			if (!error)
 				error = SYSCTL_OUT(req, oid->oid_name,
-					strlen(oid->oid_name));
+					vos_strlen(oid->oid_name));
 			if (error)
 				goto out;
 
@@ -1318,7 +1318,7 @@ sysctl_sysctl_next(SYSCTL_HANDLER_ARGS)
 		oidp->oid_number == CTL_SYSCTL_NEXT);
 	SYSCTL_RUNLOCK(&tracker);
 	if (!success)
-		return (ENOENT);
+		return (VOS_ENOENT);
 	error = SYSCTL_OUT(req, next, len * sizeof(int));
 	return (error);
 }
@@ -1343,12 +1343,12 @@ name2oid(char* name, int* oid, int* len, struct sysctl_oid** oidpp)
 	SYSCTL_ASSERT_LOCKED();
 
 	for (*len = 0; *len < CTL_MAXNAME;) {
-		p = strsep(&name, ".");
+		p = vos_strsep(&name, ".");
 
 		oidp = SLIST_FIRST(lsp);
 		for (;; oidp = SLIST_NEXT(oidp, oid_link)) {
 			if (oidp == NULL)
-				return (ENOENT);
+				return (VOS_ENOENT);
 			if (strcmp(p, oidp->oid_name) == 0)
 				break;
 		}
@@ -1369,7 +1369,7 @@ name2oid(char* name, int* oid, int* len, struct sysctl_oid** oidpp)
 
 		lsp = SYSCTL_CHILDREN(oidp);
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 static int
@@ -1382,18 +1382,18 @@ sysctl_sysctl_name2oid(SYSCTL_HANDLER_ARGS)
 	char buf[32];
 
 	if (!req->newlen)
-		return (ENOENT);
+		return (VOS_ENOENT);
 	if (req->newlen >= MAXPATHLEN)	/* XXX arbitrary, undocumented */
-		return (ENAMETOOLONG);
+		return (VOS_ENAMETOOLONG);
 
 	p = buf;
 	if (req->newlen >= sizeof(buf))
-		p = malloc(req->newlen + 1, M_SYSCTL, M_WAITOK);
+		p = vos_malloc(req->newlen + 1, M_SYSCTL, M_WAITOK);
 
 	error = SYSCTL_IN(req, p, req->newlen);
 	if (error) {
 		if (p != buf)
-			free(p, M_SYSCTL);
+			vos_free(p, M_SYSCTL);
 		return (error);
 	}
 
@@ -1404,7 +1404,7 @@ sysctl_sysctl_name2oid(SYSCTL_HANDLER_ARGS)
 	SYSCTL_RUNLOCK(&tracker);
 
 	if (p != buf)
-		free(p, M_SYSCTL);
+		vos_free(p, M_SYSCTL);
 
 	if (error)
 		return (error);
@@ -1438,13 +1438,13 @@ sysctl_sysctl_oidfmt(SYSCTL_HANDLER_ARGS)
 		goto out;
 
 	if (oid->oid_fmt == NULL) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto out;
 	}
 	error = SYSCTL_OUT(req, &oid->oid_kind, sizeof(oid->oid_kind));
 	if (error)
 		goto out;
-	error = SYSCTL_OUT(req, oid->oid_fmt, strlen(oid->oid_fmt) + 1);
+	error = SYSCTL_OUT(req, oid->oid_fmt, vos_strlen(oid->oid_fmt) + 1);
 out:
 	SYSCTL_RUNLOCK(&tracker);
 	return (error);
@@ -1470,10 +1470,10 @@ sysctl_sysctl_oiddescr(SYSCTL_HANDLER_ARGS)
 		goto out;
 
 	if (oid->oid_descr == NULL) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto out;
 	}
-	error = SYSCTL_OUT(req, oid->oid_descr, strlen(oid->oid_descr) + 1);
+	error = SYSCTL_OUT(req, oid->oid_descr, vos_strlen(oid->oid_descr) + 1);
 out:
 	SYSCTL_RUNLOCK(&tracker);
 	return (error);
@@ -1499,10 +1499,10 @@ sysctl_sysctl_oidlabel(SYSCTL_HANDLER_ARGS)
 		goto out;
 
 	if (oid->oid_label == NULL) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto out;
 	}
-	error = SYSCTL_OUT(req, oid->oid_label, strlen(oid->oid_label) + 1);
+	error = SYSCTL_OUT(req, oid->oid_label, vos_strlen(oid->oid_label) + 1);
 out:
 	SYSCTL_RUNLOCK(&tracker);
 	return (error);
@@ -1541,7 +1541,7 @@ sysctl_handle_bool(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 	else {
 		error = SYSCTL_IN(req, &temp, sizeof(temp));
 		if (!error)
@@ -1576,7 +1576,7 @@ sysctl_handle_8(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 	else
 		error = SYSCTL_IN(req, arg1, sizeof(tmpout));
 	return (error);
@@ -1608,7 +1608,7 @@ sysctl_handle_16(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 	else
 		error = SYSCTL_IN(req, arg1, sizeof(tmpout));
 	return (error);
@@ -1640,7 +1640,7 @@ sysctl_handle_32(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 	else
 		error = SYSCTL_IN(req, arg1, sizeof(tmpout));
 	return (error);
@@ -1671,7 +1671,7 @@ sysctl_handle_int(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 	else
 		error = SYSCTL_IN(req, arg1, sizeof(int));
 	return (error);
@@ -1696,7 +1696,7 @@ sysctl_msec_to_ticks(SYSCTL_HANDLER_ARGS)
 
 	tt = (int)((int64_t)s * hz / 1000);
 	if (tt < 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	*(int*)arg1 = tt;
 	return (0);
@@ -1738,7 +1738,7 @@ sysctl_handle_long(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 #ifdef SCTL_MASK32
 	else if (req->flags & SCTL_MASK32) {
 		error = SYSCTL_IN(req, &tmpint, sizeof(int));
@@ -1775,7 +1775,7 @@ sysctl_handle_64(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (!arg1)
-		error = EPERM;
+		error = VOS_EPERM;
 	else
 		error = SYSCTL_IN(req, arg1, sizeof(uint64_t));
 	return (error);
@@ -1805,32 +1805,32 @@ sysctl_handle_string(SYSCTL_HANDLER_ARGS)
 	 */
 	if ((oidp->oid_kind & (CTLFLAG_WR | CTLFLAG_TUN)) == 0 ||
 		arg2 == 0 || kdb_active) {
-		arg2 = strlen((char*)arg1) + 1;
+		arg2 = vos_strlen((char*)arg1) + 1;
 		ro_string = 1;
 	}
 
 	if (req->oldptr != NULL) {
 		if (ro_string) {
 			tmparg = arg1;
-			outlen = strlen(tmparg) + 1;
+			outlen = vos_strlen(tmparg) + 1;
 		}
 		else {
-			tmparg = malloc(arg2, M_SYSCTLTMP, M_WAITOK);
+			tmparg = vos_malloc(arg2, M_SYSCTLTMP, M_WAITOK);
 			sx_slock(&sysctlstringlock);
 			memcpy(tmparg, arg1, arg2);
 			sx_sunlock(&sysctlstringlock);
-			outlen = strlen(tmparg) + 1;
+			outlen = vos_strlen(tmparg) + 1;
 		}
 
 		error = SYSCTL_OUT(req, tmparg, outlen);
 
 		if (!ro_string)
-			free(tmparg, M_SYSCTLTMP);
+			vos_free(tmparg, M_SYSCTLTMP);
 	}
 	else {
 		if (!ro_string)
 			sx_slock(&sysctlstringlock);
-		outlen = strlen((char*)arg1) + 1;
+		outlen = vos_strlen((char*)arg1) + 1;
 		if (!ro_string)
 			sx_sunlock(&sysctlstringlock);
 		error = SYSCTL_OUT(req, NULL, outlen);
@@ -1840,7 +1840,7 @@ sysctl_handle_string(SYSCTL_HANDLER_ARGS)
 
 	if (req->newlen - req->newidx >= arg2 ||
 		req->newlen - req->newidx < 0) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 	else if (req->newlen - req->newidx == 0) {
 		sx_xlock(&sysctlstringlock);
@@ -1859,11 +1859,11 @@ sysctl_handle_string(SYSCTL_HANDLER_ARGS)
 	}
 	else {
 		arg2 = req->newlen - req->newidx;
-		tmparg = malloc(arg2, M_SYSCTLTMP, M_WAITOK);
+		tmparg = vos_malloc(arg2, M_SYSCTLTMP, M_WAITOK);
 
 		error = SYSCTL_IN(req, tmparg, arg2);
 		if (error) {
-			free(tmparg, M_SYSCTLTMP);
+			vos_free(tmparg, M_SYSCTLTMP);
 			return (error);
 		}
 
@@ -1871,7 +1871,7 @@ sysctl_handle_string(SYSCTL_HANDLER_ARGS)
 		memcpy(arg1, tmparg, arg2);
 		((char*)arg1)[arg2] = '\0';
 		sx_xunlock(&sysctlstringlock);
-		free(tmparg, M_SYSCTLTMP);
+		vos_free(tmparg, M_SYSCTLTMP);
 		req->newidx += arg2;
 	}
 	return (error);
@@ -1978,7 +1978,7 @@ sysctl_sec_to_timeval(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (secs < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	tv->tv_sec = secs;
 
 	return (0);
@@ -2005,7 +2005,7 @@ sysctl_old_kernel(struct sysctl_req* req, const void* p, size_t l)
 	}
 	req->oldidx += l;
 	if (req->oldptr && i != l)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	return (0);
 }
 
@@ -2015,7 +2015,7 @@ sysctl_new_kernel(struct sysctl_req* req, void* p, size_t l)
 	if (!req->newptr)
 		return (0);
 	if (req->newlen - req->newidx < l)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	bcopy((const char*)req->newptr + req->newidx, p, l);
 	req->newidx += l;
 	return (0);
@@ -2056,7 +2056,7 @@ kernel_sysctl(struct thread* td, int* name, u_int namelen, void* old,
 	if (req.lock == REQ_WIRED && req.validlen > 0)
 		vsunlock(req.oldptr, req.validlen);
 
-	if (error && error != ENOMEM)
+	if (error && error != VOS_ENOMEM)
 		return (error);
 
 	if (retval) {
@@ -2081,7 +2081,7 @@ kernel_sysctlbyname(struct thread* td, char* name, void* old, size_t* oldlenp,
 	oidlen = sizeof(oid);
 
 	error = kernel_sysctl(td, oid, 2, oid, &oidlen,
-		(void*)name, strlen(name), &plen, flags);
+		(void*)name, vos_strlen(name), &plen, flags);
 	if (error)
 		return (error);
 
@@ -2128,7 +2128,7 @@ sysctl_old_user(struct sysctl_req* req, const void* p, size_t l)
 			return (error);
 	}
 	if (i < l)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	return (0);
 }
 
@@ -2140,7 +2140,7 @@ sysctl_new_user(struct sysctl_req* req, void* p, size_t l)
 	if (!req->newptr)
 		return (0);
 	if (req->newlen - req->newidx < l)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	WITNESS_WARN(WARN_GIANTOK | WARN_SLEEPOK, NULL,
 		"sysctl_new_user()");
 	error = copyin((const char*)req->newptr + req->newidx, p, l);
@@ -2165,7 +2165,7 @@ sysctl_wire_old_buffer(struct sysctl_req* req, size_t len)
 		if (wiredlen != 0) {
 			ret = vslock(req->oldptr, wiredlen);
 			if (ret != 0) {
-				if (ret != ENOMEM)
+				if (ret != VOS_ENOMEM)
 					return (ret);
 				wiredlen = 0;
 			}
@@ -2193,7 +2193,7 @@ sysctl_find_oid(int* name, u_int namelen, struct sysctl_oid** noid,
 				break;
 		}
 		if (oid == NULL)
-			return (ENOENT);
+			return (VOS_ENOENT);
 
 		indx++;
 		if ((oid->oid_kind & CTLTYPE) == CTLTYPE_NODE) {
@@ -2209,7 +2209,7 @@ sysctl_find_oid(int* name, u_int namelen, struct sysctl_oid** noid,
 		}
 		else if (indx == namelen) {
 			if ((oid->oid_kind & CTLFLAG_DORMANT) != 0)
-				return (ENOENT);
+				return (VOS_ENOENT);
 			*noid = oid;
 			if (nindx != NULL)
 				*nindx = indx;
@@ -2218,10 +2218,10 @@ sysctl_find_oid(int* name, u_int namelen, struct sysctl_oid** noid,
 			return (0);
 		}
 		else {
-			return (ENOTDIR);
+			return (VOS_ENOTDIR);
 		}
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /*
@@ -2249,14 +2249,14 @@ sysctl_root(SYSCTL_HANDLER_ARGS)
 		 * The indx may or may not be the same as namelen.
 		 */
 		if (oid->oid_handler == NULL) {
-			error = EISDIR;
+			error = VOS_EISDIR;
 			goto out;
 		}
 	}
 
 	/* Is this sysctl writable? */
 	if (req->newptr && !(oid->oid_kind & CTLFLAG_WR)) {
-		error = EPERM;
+		error = VOS_EPERM;
 		goto out;
 	}
 
@@ -2270,7 +2270,7 @@ sysctl_root(SYSCTL_HANDLER_ARGS)
 	if (IN_CAPABILITY_MODE(req->td)) {
 		if ((req->oldptr && !(oid->oid_kind & CTLFLAG_CAPRD)) ||
 			(req->newptr && !(oid->oid_kind & CTLFLAG_CAPWR))) {
-			error = EPERM;
+			error = VOS_EPERM;
 			goto out;
 		}
 	}
@@ -2303,7 +2303,7 @@ sysctl_root(SYSCTL_HANDLER_ARGS)
 	}
 
 	if (!oid->oid_handler) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -2349,7 +2349,7 @@ sys___sysctl(struct thread* td, struct sysctl_args* uap)
 	size_t j;
 
 	if (uap->namelen > CTL_MAXNAME || uap->namelen < 2)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = copyin(uap->name, &name, uap->namelen * sizeof(int));
 	if (error)
@@ -2358,7 +2358,7 @@ sys___sysctl(struct thread* td, struct sysctl_args* uap)
 	error = userland_sysctl(td, name, uap->namelen,
 		uap->old, uap->oldlenp, 0,
 		uap->new, uap->newlen, &j, 0);
-	if (error && error != ENOMEM)
+	if (error && error != VOS_ENOMEM)
 		return (error);
 	if (uap->oldlenp) {
 		i = copyout(&j, uap->oldlenp, sizeof(j));
@@ -2380,10 +2380,10 @@ kern___sysctlbyname(struct thread* td, const char* oname, size_t namelen,
 	int error;
 
 	if (namelen > MAXPATHLEN || namelen == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	name = namebuf;
 	if (namelen > sizeof(namebuf))
-		name = malloc(namelen, M_SYSCTL, M_WAITOK);
+		name = vos_malloc(namelen, M_SYSCTL, M_WAITOK);
 	error = copyin(oname, name, namelen);
 	if (error != 0)
 		goto out;
@@ -2400,7 +2400,7 @@ kern___sysctlbyname(struct thread* td, const char* oname, size_t namelen,
 
 out:
 	if (namelen > sizeof(namebuf))
-		free(name, M_SYSCTL);
+		vos_free(name, M_SYSCTL);
 	return (error);
 }
 
@@ -2484,7 +2484,7 @@ userland_sysctl(struct thread* td, int* name, u_int namelen, void* old,
 		req.oldidx = 0;
 		req.newidx = 0;
 		error = sysctl_root(0, name, namelen, &req);
-		if (error != EAGAIN)
+		if (error != VOS_EAGAIN)
 			break;
 		kern_yield(PRI_USER);
 	}
@@ -2496,7 +2496,7 @@ userland_sysctl(struct thread* td, int* name, u_int namelen, void* old,
 	if (memlocked)
 		sx_xunlock(&sysctlmemlock);
 
-	if (error && error != ENOMEM)
+	if (error && error != VOS_ENOMEM)
 		return (error);
 
 	if (retval) {
@@ -2698,7 +2698,7 @@ sysctl_old_ddb(struct sysctl_req* req, const void* ptr, size_t len)
 				db_printf("%ju", umv);
 			else if (g_ddb_oid->oid_fmt[1] == 'K') {
 				/* Kelvins are currently unsupported. */
-				error = EOPNOTSUPP;
+				error = VOS_EOPNOTSUPP;
 				goto out;
 			}
 			else
@@ -2742,7 +2742,7 @@ sysctl_new_ddb(struct sysctl_req* req, void* p, size_t l)
 		return (0);
 
 	/* Changing sysctls from the debugger is currently unsupported */
-	return (EPERM);
+	return (VOS_EPERM);
 }
 
 /*
@@ -2910,7 +2910,7 @@ db_show_sysctl_all(int* oid, size_t len, int flags)
 		error = kernel_sysctl(kdb_thread, name1, l1,
 			name2, &l2, NULL, 0, &l2, 0);
 		if (error != 0) {
-			if (error == ENOENT)
+			if (error == VOS_ENOENT)
 				return (0);
 			else
 				db_error("sysctl(next)");
@@ -3008,7 +3008,7 @@ DB_FUNC(sysctl, db_sysctl_cmd, db_cmd_table, CS_OWN, NULL)
 		t = db_read_token();
 		if (t != tIDENT) {
 			db_printf("Bad modifier\n");
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		db_strcpy(modif, db_tok_string);
@@ -3029,7 +3029,7 @@ DB_FUNC(sysctl, db_sysctl_cmd, db_cmd_table, CS_OWN, NULL)
 	t = db_read_token();
 	if (t != tIDENT) {
 		db_printf("Need sysctl name\n");
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -3040,12 +3040,12 @@ DB_FUNC(sysctl, db_sysctl_cmd, db_cmd_table, CS_OWN, NULL)
 	t = db_read_token();
 	if (t != tEOL) {
 		db_printf("Unexpected sysctl argument\n");
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
 	error = db_sysctlbyname(name, flags);
-	if (error == ENOENT) {
+	if (error == VOS_ENOENT) {
 		db_printf("unknown oid: '%s'\n", db_tok_string);
 		goto out;
 	}
@@ -3058,7 +3058,7 @@ out:
 	/* Ensure we eat all of our text */
 	db_flush_lex();
 
-	if (error == EINVAL) {
+	if (error == VOS_EINVAL) {
 		db_sysctl_cmd_usage();
 	}
 }

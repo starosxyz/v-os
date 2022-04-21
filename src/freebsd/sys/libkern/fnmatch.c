@@ -144,8 +144,8 @@ fnmatch(const char *pattern, const char *string, int flags)
 			if (c == *string)
 				;
 			else if ((flags & FNM_CASEFOLD) &&
-				 (tolower((unsigned char)c) ==
-				  tolower((unsigned char)*string)))
+				 (vos_tolower((unsigned char)c) ==
+					 vos_tolower((unsigned char)*string)))
 				;
 			else
 				return (FNM_NOMATCH);
@@ -172,7 +172,7 @@ rangematch(const char *pattern, char test, int flags, char **newp)
 		++pattern;
 
 	if (flags & FNM_CASEFOLD)
-		test = tolower((unsigned char)test);
+		test = vos_tolower((unsigned char)test);
 
 	/*
 	 * A right bracket shall lose its special meaning and represent
@@ -191,7 +191,7 @@ rangematch(const char *pattern, char test, int flags, char **newp)
 			return (RANGE_NOMATCH);
 
 		if (flags & FNM_CASEFOLD)
-			c = tolower((unsigned char)c);
+			c = vos_tolower((unsigned char)c);
 
 		if (*pattern == '-'
 		    && (c2 = *(pattern+1)) != EOS && c2 != ']') {
@@ -202,7 +202,7 @@ rangematch(const char *pattern, char test, int flags, char **newp)
 				return (RANGE_ERROR);
 
 			if (flags & FNM_CASEFOLD)
-				c2 = tolower((unsigned char)c2);
+				c2 = vos_tolower((unsigned char)c2);
 
 			if (c <= test && test <= c2)
 				ok = 1;

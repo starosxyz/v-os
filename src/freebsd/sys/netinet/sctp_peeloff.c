@@ -55,30 +55,30 @@ sctp_can_peel_off(struct socket *head, sctp_assoc_t assoc_id)
 	uint32_t state;
 
 	if (head == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EBADF);
-		return (EBADF);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_EBADF);
+		return (VOS_EBADF);
 	}
 	inp = (struct sctp_inpcb *)head->so_pcb;
 	if (inp == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EFAULT);
-		return (EFAULT);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_EFAULT);
+		return (VOS_EFAULT);
 	}
 	if ((inp->sctp_flags & SCTP_PCB_FLAGS_TCPTYPE) ||
 	    (inp->sctp_flags & SCTP_PCB_FLAGS_IN_TCPPOOL)) {
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EOPNOTSUPP);
-		return (EOPNOTSUPP);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 	stcb = sctp_findassociation_ep_asocid(inp, assoc_id, 1);
 	if (stcb == NULL) {
-		SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, ENOENT);
-		return (ENOENT);
+		SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_ENOENT);
+		return (VOS_ENOENT);
 	}
 	state = SCTP_GET_STATE(stcb);
 	if ((state == SCTP_STATE_EMPTY) ||
 	    (state == SCTP_STATE_INUSE)) {
 		SCTP_TCB_UNLOCK(stcb);
-		SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
-		return (ENOTCONN);
+		SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_ENOTCONN);
+		return (VOS_ENOTCONN);
 	}
 	SCTP_TCB_UNLOCK(stcb);
 	/* We are clear to peel this one off */
@@ -94,21 +94,21 @@ sctp_do_peeloff(struct socket *head, struct socket *so, sctp_assoc_t assoc_id)
 
 	inp = (struct sctp_inpcb *)head->so_pcb;
 	if (inp == NULL) {
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, EFAULT);
-		return (EFAULT);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_EFAULT);
+		return (VOS_EFAULT);
 	}
 	stcb = sctp_findassociation_ep_asocid(inp, assoc_id, 1);
 	if (stcb == NULL) {
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
-		return (ENOTCONN);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_ENOTCONN);
+		return (VOS_ENOTCONN);
 	}
 
 	state = SCTP_GET_STATE(stcb);
 	if ((state == SCTP_STATE_EMPTY) ||
 	    (state == SCTP_STATE_INUSE)) {
 		SCTP_TCB_UNLOCK(stcb);
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, ENOTCONN);
-		return (ENOTCONN);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PEELOFF, VOS_ENOTCONN);
+		return (VOS_ENOTCONN);
 	}
 
 	n_inp = (struct sctp_inpcb *)so->so_pcb;

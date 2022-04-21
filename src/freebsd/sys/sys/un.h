@@ -77,7 +77,7 @@ struct sockaddr_un {
 
 /* actual length of an initialized sockaddr_un */
 #define SUN_LEN(su) \
-	(sizeof(*(su)) - sizeof((su)->sun_path) + strlen((su)->sun_path))
+	(sizeof(*(su)) - sizeof((su)->sun_path) + vos_strlen((su)->sun_path))
 
 #endif /* !_KERNEL */
 

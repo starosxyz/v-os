@@ -440,7 +440,7 @@ fo_mmap(struct file* fp, vm_map_t map, vm_offset_t* addr, vm_size_t size,
 {
 
 	if (fp->f_ops->fo_mmap == NULL)
-		return (ENODEV);
+		return (VOS_ENODEV);
 	return ((*fp->f_ops->fo_mmap)(fp, map, addr, size, prot, cap_maxprot,
 		flags, foff, td));
 }
@@ -457,7 +457,7 @@ fo_add_seals(struct file* fp, int seals)
 {
 
 	if (fp->f_ops->fo_add_seals == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return ((*fp->f_ops->fo_add_seals)(fp, seals));
 }
 
@@ -466,7 +466,7 @@ fo_get_seals(struct file* fp, int* seals)
 {
 
 	if (fp->f_ops->fo_get_seals == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return ((*fp->f_ops->fo_get_seals)(fp, seals));
 }
 
@@ -475,7 +475,7 @@ fo_fallocate(struct file* fp, off_t offset, off_t len, struct thread* td)
 {
 
 	if (fp->f_ops->fo_fallocate == NULL)
-		return (ENODEV);
+		return (VOS_ENODEV);
 	return ((*fp->f_ops->fo_fallocate)(fp, offset, len, td));
 }
 

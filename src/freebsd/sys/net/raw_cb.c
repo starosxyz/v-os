@@ -116,5 +116,5 @@ raw_detach(struct rawcb *rp)
 	mtx_lock(&rawcb_mtx);
 	LIST_REMOVE(rp, list);
 	mtx_unlock(&rawcb_mtx);
-	free((caddr_t)(rp), M_PCB);
+	vos_free((caddr_t)(rp), M_PCB);
 }

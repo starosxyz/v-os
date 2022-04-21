@@ -290,19 +290,19 @@ void* memset_early(void* _Nonnull buf, int c, size_t len);
 void* memcpy_early(void* _Nonnull to, const void* _Nonnull from, size_t len);
 void* memmove_early(void* _Nonnull dest, const void* _Nonnull src, size_t n);
 #define bcopy_early(from, to, len) memmove_early((to), (from), (len))
-extern size_t	 strlcpy(char*, const char*, size_t);
+extern size_t	 vos_strlcpy(char*, const char*, size_t);
 static inline int copystr(const char* src, char* dst, size_t len, size_t *outlen)
 {			
 	size_t __r, __len, *__outlen;				
 								
 	__len = (len);						
 	__outlen = (outlen);					
-	__r = strlcpy((dst), (src), __len);			
+	__r = vos_strlcpy((dst), (src), __len);
 	if (__outlen != NULL)
 	{
 		*__outlen = ((__r >= __len) ? __len : __r + 1);
 	}
-	return ((__r >= __len) ? ENAMETOOLONG : 0);			
+	return ((__r >= __len) ? VOS_ENAMETOOLONG : 0);			
 }
 
 int	copyinstr(const void* __restrict udaddr,

@@ -478,7 +478,7 @@ tcp_timer_keep(void *xtp)
 				    &t_template->tt_t, (struct mbuf *)NULL,
 				    tp->rcv_nxt, tp->snd_una - 1, 0);
 			NET_EPOCH_EXIT(et);
-			free(t_template, M_TEMP);
+			vos_free(t_template, M_TEMP);
 		}
 		callout_reset(&tp->t_timers->tt_keep, TP_KEEPINTVL(tp),
 			      tcp_timer_keep, tp);
@@ -503,7 +503,7 @@ dropit:
 		goto out;
 	}
 	NET_EPOCH_ENTER(et);
-	tp = tcp_drop(tp, ETIMEDOUT);
+	tp = tcp_drop(tp, VOS_ETIMEDOUT);
 
 #ifdef TCPDEBUG
 	if (tp != NULL && (tp->t_inpcb->inp_socket->so_options & SO_DEBUG))
@@ -567,7 +567,7 @@ tcp_timer_persist(void *xtp)
 			goto out;
 		}
 		NET_EPOCH_ENTER(et);
-		tp = tcp_drop(tp, ETIMEDOUT);
+		tp = tcp_drop(tp, VOS_ETIMEDOUT);
 		NET_EPOCH_EXIT(et);
 		tcp_inpinfo_lock_del(inp, tp);
 		goto out;
@@ -584,7 +584,7 @@ tcp_timer_persist(void *xtp)
 			goto out;
 		}
 		NET_EPOCH_ENTER(et);
-		tp = tcp_drop(tp, ETIMEDOUT);
+		tp = tcp_drop(tp, VOS_ETIMEDOUT);
 		NET_EPOCH_EXIT(et);
 		tcp_inpinfo_lock_del(inp, tp);
 		goto out;
@@ -656,7 +656,7 @@ tcp_timer_rexmt(void * xtp)
 			goto out;
 		}
 		NET_EPOCH_ENTER(et);
-		tp = tcp_drop(tp, ETIMEDOUT);
+		tp = tcp_drop(tp, VOS_ETIMEDOUT);
 		NET_EPOCH_EXIT(et);
 		tcp_inpinfo_lock_del(inp, tp);
 		goto out;

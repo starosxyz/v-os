@@ -68,19 +68,19 @@ ip6_findroute(struct nhop_object **pnh, const struct sockaddr_in6 *dst,
 		IP6STAT_INC(ip6s_cantforward);
 		icmp6_error(m, ICMP6_DST_UNREACH,
 		    ICMP6_DST_UNREACH_NOROUTE, 0);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 	if (nh->nh_flags & NHF_BLACKHOLE) {
 		IP6STAT_INC(ip6s_cantforward);
 		m_freem(m);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 
 	if (nh->nh_flags & NHF_REJECT) {
 		IP6STAT_INC(ip6s_cantforward);
 		icmp6_error(m, ICMP6_DST_UNREACH,
 		    ICMP6_DST_UNREACH_REJECT, 0);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 
 	*pnh = nh;

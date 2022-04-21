@@ -236,7 +236,7 @@ struct inpcb {
 	/* Cache line #2 (amd64) */
 #define	inp_start_zero	inp_hpts
 #define	inp_zero_size	(sizeof(struct inpcb) - \
-			    offsetof(struct inpcb, inp_start_zero))
+			    vos_offsetof(struct inpcb, inp_start_zero))
 	TAILQ_ENTRY(inpcb) inp_hpts;	/* pacing out queue next lock(b) */
 
 	uint32_t inp_hpts_request;	/* Current hpts request, zero if

@@ -111,7 +111,7 @@ newreno_malloc(struct cc_var *ccv)
 {
 	struct newreno *nreno;
 
-	nreno = malloc(sizeof(struct newreno), M_NEWRENO, M_NOWAIT);
+	nreno = vos_malloc(sizeof(struct newreno), M_NEWRENO, M_NOWAIT);
 	if (nreno != NULL) {
 		/* NB: nreno is not zeroed, so initialise all fields. */
 		nreno->beta = V_newreno_beta;
@@ -125,7 +125,7 @@ newreno_malloc(struct cc_var *ccv)
 static void
 newreno_cb_destroy(struct cc_var *ccv)
 {
-	free(ccv->cc_data, M_NEWRENO);
+	vos_free(ccv->cc_data, M_NEWRENO);
 }
 
 static void
@@ -326,7 +326,7 @@ newreno_ctl_output(struct cc_var *ccv, struct sockopt *sopt, void *buf)
 	struct cc_newreno_opts *opt;
 
 	if (sopt->sopt_valsize != sizeof(struct cc_newreno_opts))
-		return (EMSGSIZE);
+		return (VOS_EMSGSIZE);
 
 	nreno = ccv->cc_data;
 	opt = buf;
@@ -337,7 +337,7 @@ newreno_ctl_output(struct cc_var *ccv, struct sockopt *sopt, void *buf)
 		if (nreno == NULL) {
 			nreno = newreno_malloc(ccv);
 			if (nreno == NULL)
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 		}
 		switch (opt->name) {
 		case CC_NEWRENO_BETA:
@@ -345,11 +345,11 @@ newreno_ctl_output(struct cc_var *ccv, struct sockopt *sopt, void *buf)
 			break;
 		case CC_NEWRENO_BETA_ECN:
 			if (!V_cc_do_abe)
-				return (EACCES);
+				return (VOS_EACCES);
 			nreno->beta_ecn = opt->val;
 			break;
 		default:
-			return (ENOPROTOOPT);
+			return (VOS_ENOPROTOOPT);
 		}
 		break;
 	case SOPT_GET:
@@ -363,11 +363,11 @@ newreno_ctl_output(struct cc_var *ccv, struct sockopt *sopt, void *buf)
 			    V_newreno_beta_ecn : nreno->beta_ecn;
 			break;
 		default:
-			return (ENOPROTOOPT);
+			return (VOS_ENOPROTOOPT);
 		}
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	return (0);
@@ -383,9 +383,9 @@ newreno_beta_handler(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &new, 0, req);
 	if (error == 0 && req->newptr != NULL ) {
 		if (arg1 == &VNET_NAME(newreno_beta_ecn) && !V_cc_do_abe)
-			error = EACCES;
+			error = VOS_EACCES;
 		else if (new == 0 || new > 100)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			*(uint32_t *)arg1 = new;
 	}

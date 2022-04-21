@@ -190,7 +190,7 @@ encap_register_srcaddr(struct srcaddrtab_head *head, encap_srcaddr_t func,
 
 	if (func == NULL)
 		return (NULL);
-	p = malloc(sizeof(*p), M_NETADDR, mflags);
+	p = vos_malloc(sizeof(*p), M_NETADDR, mflags);
 	if (p == NULL)
 		return (NULL);
 	p->srcaddr = func;
@@ -206,7 +206,7 @@ encap_register_srcaddr(struct srcaddrtab_head *head, encap_srcaddr_t func,
 	SRCADDR_WUNLOCK();
 
 	if (tmp != NULL) {
-		free(p, M_NETADDR);
+		vos_free(p, M_NETADDR);
 		p = tmp;
 	}
 	return (p);
@@ -224,12 +224,12 @@ encap_unregister_srcaddr(struct srcaddrtab_head *head,
 			CK_LIST_REMOVE(p, chain);
 			SRCADDR_WUNLOCK();
 			SRCADDR_WAIT();
-			free(p, M_NETADDR);
+			vos_free(p, M_NETADDR);
 			return (0);
 		}
 	}
 	SRCADDR_WUNLOCK();
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 static struct encaptab *
@@ -244,7 +244,7 @@ encap_attach(struct encaptab_head *head, const struct encap_config *cfg,
 	    (cfg->exact_match == ENCAP_DRV_LOOKUP && cfg->lookup == NULL))
 		return (NULL);
 
-	ep = malloc(sizeof(*ep), M_NETADDR, mflags);
+	ep = vos_malloc(sizeof(*ep), M_NETADDR, mflags);
 	if (ep == NULL)
 		return (NULL);
 
@@ -280,12 +280,12 @@ encap_detach(struct encaptab_head *head, const struct encaptab *cookie)
 			CK_LIST_REMOVE(ep, chain);
 			ENCAP_WUNLOCK();
 			ENCAP_WAIT();
-			free(ep, M_NETADDR);
+			vos_free(ep, M_NETADDR);
 			return (0);
 		}
 	}
 	ENCAP_WUNLOCK();
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 static int

@@ -278,10 +278,10 @@ struct shmfd {
 	 * Values maintained solely to make this a better-behaved file
 	 * descriptor for fstat() to run on.
 	 */
-	struct timespec	shm_atime;
-	struct timespec	shm_mtime;
-	struct timespec	shm_ctime;
-	struct timespec	shm_birthtime;
+	struct vos_timespec	shm_atime;
+	struct vos_timespec	shm_mtime;
+	struct vos_timespec	shm_ctime;
+	struct vos_timespec	shm_birthtime;
 	ino_t		shm_ino;
 
 	struct label	*shm_label;		/* MAC label */

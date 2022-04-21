@@ -81,7 +81,7 @@ MTX_SYSINIT(domain, &dom_mtx, "domain list", MTX_DEF);
 
 /*
  * Dummy protocol specific user requests function pointer array.
- * All functions return EOPNOTSUPP.
+ * All functions return VOS_EOPNOTSUPP.
  */
 struct pr_usrreqs nousrreqs = {
 	.pru_accept =		pru_accept_notsupp,
@@ -337,18 +337,18 @@ pf_proto_register(int family, struct protosw *npr)
 
 	/* Sanity checks. */
 	if (family == 0)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 	if (npr->pr_type == 0)
-		return (EPROTOTYPE);
+		return (VOS_EPROTOTYPE);
 	if (npr->pr_protocol == 0)
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 	if (npr->pr_usrreqs == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	/* Try to find the specified domain based on the family. */
 	dp = pffinddomain(family);
 	if (dp == NULL)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 
 	/* Initialize backpointer to struct domain. */
 	npr->pr_domain = dp;
@@ -365,7 +365,7 @@ pf_proto_register(int family, struct protosw *npr)
 		if ((pr->pr_type == npr->pr_type) &&
 		    (pr->pr_protocol == npr->pr_protocol)) {
 			mtx_unlock(&dom_mtx);
-			return (EEXIST);	/* XXX: Check only protocol? */
+			return (VOS_EEXIST);	/* XXX: Check only protocol? */
 		}
 		/* While here, remember the first free spacer. */
 		if ((fpr == NULL) && (pr->pr_protocol == PROTO_SPACER))
@@ -375,7 +375,7 @@ pf_proto_register(int family, struct protosw *npr)
 	/* If no free spacer is found we can't add the new protocol. */
 	if (fpr == NULL) {
 		mtx_unlock(&dom_mtx);
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 
 	/* Copy the new struct protosw over the spacer. */
@@ -408,16 +408,16 @@ pf_proto_unregister(int family, int protocol, int type)
 
 	/* Sanity checks. */
 	if (family == 0)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 	if (protocol == 0)
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 	if (type == 0)
-		return (EPROTOTYPE);
+		return (VOS_EPROTOTYPE);
 
 	/* Try to find the specified domain based on the family type. */
 	dp = pffinddomain(family);
 	if (dp == NULL)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 
 	dpr = NULL;
 
@@ -429,7 +429,7 @@ pf_proto_unregister(int family, int protocol, int type)
 		if ((pr->pr_type == type) && (pr->pr_protocol == protocol)) {
 			if (dpr != NULL) {
 				mtx_unlock(&dom_mtx);
-				return (EMLINK);   /* Should not happen! */
+				return (VOS_EMLINK);   /* Should not happen! */
 			} else
 				dpr = pr;
 		}
@@ -438,7 +438,7 @@ pf_proto_unregister(int family, int protocol, int type)
 	/* Protocol does not exist. */
 	if (dpr == NULL) {
 		mtx_unlock(&dom_mtx);
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 	}
 
 	/* De-orbit the protocol and make the slot available again. */

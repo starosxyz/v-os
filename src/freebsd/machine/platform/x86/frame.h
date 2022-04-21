@@ -111,7 +111,7 @@ struct trapframe_vm86 {
 #define	TF_HAS_STACKREGS(tf)	TRAPF_USERMODE(tf)
 #endif /* __i386__ */
 
-#ifdef __amd64__
+#if defined(__amd64__)||defined(_WIN64)
 /*
  * Exception/Trap Stack Frame
  *

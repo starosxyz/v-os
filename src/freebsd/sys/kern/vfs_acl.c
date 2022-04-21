@@ -88,7 +88,7 @@ acl_copy_oldacl_into_acl(const struct oldacl* source, struct acl* dest)
 	int i;
 
 	if (source->acl_cnt < 0 || source->acl_cnt > OLDACL_MAX_ENTRIES)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	bzero(dest, sizeof(*dest));
 
@@ -110,7 +110,7 @@ acl_copy_acl_into_oldacl(const struct acl* source, struct oldacl* dest)
 	int i;
 
 	if (source->acl_cnt > OLDACL_MAX_ENTRIES)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	bzero(dest, sizeof(*dest));
 
@@ -155,7 +155,7 @@ acl_copyin(const void* user_acl, struct acl* kernel_acl, acl_type_t type)
 	default:
 		error = copyin(user_acl, kernel_acl, sizeof(*kernel_acl));
 		if (kernel_acl->acl_maxcnt != ACL_MAX_ENTRIES)
-			return (EINVAL);
+			return (VOS_EINVAL);
 	}
 
 	return (error);
@@ -180,11 +180,11 @@ acl_copyout(const struct acl* kernel_acl, void* user_acl, acl_type_t type)
 
 	default:
 		error = fueword32((char*)user_acl +
-			offsetof(struct acl, acl_maxcnt), &am);
+			vos_offsetof(struct acl, acl_maxcnt), &am);
 		if (error == -1)
-			return (EFAULT);
+			return (VOS_EFAULT);
 		if (am != ACL_MAX_ENTRIES)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		error = copyout(kernel_acl, user_acl, sizeof(*kernel_acl));
 	}
@@ -582,7 +582,7 @@ struct acl*
 {
 	struct acl* aclp;
 
-	aclp = malloc(sizeof(*aclp), M_ACL, flags);
+	aclp = vos_malloc(sizeof(*aclp), M_ACL, flags);
 	if (aclp == NULL)
 		return (NULL);
 
@@ -595,5 +595,5 @@ void
 acl_free(struct acl* aclp)
 {
 
-	free(aclp, M_ACL);
+	vos_free(aclp, M_ACL);
 }

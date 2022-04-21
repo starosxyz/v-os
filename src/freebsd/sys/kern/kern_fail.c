@@ -80,8 +80,8 @@ ILOG_DEFINE_FOR_FILE(L_ISI_FAIL_POINT, L_ILOG, fail_point);
 #endif
 
 static MALLOC_DEFINE(M_FAIL_POINT, "Fail Points", "fail points system");
-#define fp_free(ptr) free(ptr, M_FAIL_POINT)
-#define fp_malloc(size, flags) malloc((size), M_FAIL_POINT, (flags))
+#define fp_free(ptr) vos_free(ptr, M_FAIL_POINT)
+#define fp_malloc(size, flags) vos_malloc((size), M_FAIL_POINT, (flags))
 #define fs_free(ptr) fp_free(ptr)
 #define fs_malloc() fp_malloc(sizeof(struct fail_point_setting), \
     M_WAITOK | M_ZERO)
@@ -782,7 +782,7 @@ fail_point_set(struct fail_point *fp, char *buf)
 		STAILQ_REMOVE(&fp_setting_garbage, entries,
 		        fail_point_setting, fs_garbage_link);
 		fail_point_setting_destroy(entries);
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto end;
 	}
 
@@ -878,7 +878,7 @@ fail_point_sysctl(SYSCTL_HANDLER_ARGS)
 
 	sb_check = sbuf_new(&sb, NULL, 1024, SBUF_AUTOEXTEND);
 	if (sb_check != &sb)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	sbuf_set_drain(&sb, (sbuf_drain_func *)fail_sysctl_drain_func, req);
 
@@ -890,7 +890,7 @@ fail_point_sysctl(SYSCTL_HANDLER_ARGS)
 	sx_xlock(&sx_fp_set);
 	if (req->newptr) {
 		if (req->newlen > MAX_FAIL_POINT_BUF) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 
@@ -930,7 +930,7 @@ fail_point_sysctl_status(SYSCTL_HANDLER_ARGS)
 
 	sb_check = sbuf_new(&sb, NULL, 1024, SBUF_AUTOEXTEND);
 	if (sb_check != &sb)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	sbuf_set_drain(&sb, (sbuf_drain_func *)fail_sysctl_drain_func, req);
 
@@ -961,7 +961,7 @@ fail_sysctl_drain_func(void *sysctl_args, const char *buf, int len)
 
 	error = SYSCTL_OUT(sa, buf, len);
 
-	if (error == ENOMEM)
+	if (error == VOS_ENOMEM)
 		return (-1);
 	else
 		return (len);
@@ -1014,7 +1014,7 @@ parse_term(struct fail_point_setting *ents, char *p)
 	 */
 
 	/* ( (<float> "%") | (<integer> "*" ) )* */
-	while (isdigit(*p) || *p == '.') {
+	while (vos_isdigit(*p) || *p == '.') {
 		int units, decimal;
 
 		p = parse_number(&units, &decimal, p);
@@ -1047,7 +1047,7 @@ parse_term(struct fail_point_setting *ents, char *p)
 	if (*p != '(')
 		return (p);
 	p++;
-	if (!isdigit(*p) && *p != '-')
+	if (!vos_isdigit(*p) && *p != '-')
 		return (NULL);
 	ent->fe_arg = strtol(p, &p, 0);
 	if (*p++ != ')')
@@ -1055,10 +1055,10 @@ parse_term(struct fail_point_setting *ents, char *p)
 
 	/* [ "[pid " <integer> "]" ] */
 #define PID_STRING "[pid "
-	if (strncmp(p, PID_STRING, sizeof(PID_STRING) - 1) != 0)
+	if (vos_strncmp(p, PID_STRING, sizeof(PID_STRING) - 1) != 0)
 		return (p);
 	p += sizeof(PID_STRING) - 1;
-	if (!isdigit(*p))
+	if (!vos_isdigit(*p))
 		return (NULL);
 	ent->fe_pid = strtol(p, &p, 0);
 	if (*p++ != ']')
@@ -1092,7 +1092,7 @@ parse_number(int *out_units, int *out_decimal, char *p)
 	if (*p == '.') {
 		int digits = 0;
 		p++;
-		while (isdigit(*p)) {
+		while (vos_isdigit(*p)) {
 			int digit = *p - '0';
 			if (digits < PROB_DIGITS - 2)
 				*out_decimal = *out_decimal * 10 + digit;
@@ -1121,7 +1121,7 @@ parse_type(struct fail_point_entry *ent, char *beg)
 
 	for (type = FAIL_POINT_OFF; type < FAIL_POINT_NUMTYPES; type++) {
 		len = fail_type_strings[type].nmlen;
-		if (strncmp(fail_type_strings[type].name, beg, len) == 0) {
+		if (vos_strncmp(fail_type_strings[type].name, beg, len) == 0) {
 			ent->fe_type = type;
 			return (beg + len);
 		}

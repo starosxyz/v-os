@@ -164,9 +164,9 @@ et_init(struct eventtimer* et, et_event_cb_t* event,
 {
 
 	if (event == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (et->et_active)
-		return (EBUSY);
+		return (VOS_EBUSY);
 
 	et->et_active = 1;
 	et->et_event_cb = event;
@@ -185,7 +185,7 @@ et_start(struct eventtimer* et, sbintime_t first, sbintime_t period)
 {
 
 	if (!et->et_active)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	KASSERT(period >= 0, ("et_start: negative period"));
 	KASSERT((et->et_flags & ET_FLAGS_PERIODIC) || period == 0,
 		("et_start: period specified for oneshot-only timer"));
@@ -212,7 +212,7 @@ et_stop(struct eventtimer* et)
 {
 
 	if (!et->et_active)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	if (et->et_stop)
 		return (et->et_stop(et));
 	return (0);
@@ -233,7 +233,7 @@ et_free(struct eventtimer* et)
 {
 
 	if (!et->et_active)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	et->et_active = 0;
 	return (0);

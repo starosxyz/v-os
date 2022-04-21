@@ -160,7 +160,7 @@ ip6_forward(struct mbuf *m, int srcrt)
 		if ((error = IPSEC_FORWARD(ipv6, m)) != 0) {
 			/* mbuf consumed by IPsec */
 			m_freem(mcopy);
-			if (error != EINPROGRESS)
+			if (error != VOS_EINPROGRESS)
 				IP6STAT_INC(ip6s_cantforward);
 			return;
 		}
@@ -412,18 +412,18 @@ pass:
 		}
 		goto freecopy;
 
-	case EMSGSIZE:
+	case VOS_EMSGSIZE:
 		/* xxx MTU is constant in PPP? */
 		goto freecopy;
 
-	case ENOBUFS:
+	case VOS_ENOBUFS:
 		/* Tell source to slow down like source quench in IP? */
 		goto freecopy;
 
-	case ENETUNREACH:	/* shouldn't happen, checked above */
-	case EHOSTUNREACH:
-	case ENETDOWN:
-	case EHOSTDOWN:
+	case VOS_ENETUNREACH:	/* shouldn't happen, checked above */
+	case VOS_EHOSTUNREACH:
+	case VOS_ENETDOWN:
+	case VOS_EHOSTDOWN:
 	default:
 		type = ICMP6_DST_UNREACH;
 		code = ICMP6_DST_UNREACH_ADDR;

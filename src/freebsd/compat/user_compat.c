@@ -113,7 +113,7 @@ vos_init_thread0(void)
 uint64_t
 racct_get_limit(struct proc *p, int resource)
 {
-    return (UINT64_MAX);
+    return (VOS_UINT64_MAX);
 }
 #endif
 

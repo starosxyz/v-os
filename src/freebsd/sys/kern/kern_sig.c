@@ -409,10 +409,10 @@ sigqueue_add(sigqueue_t *sq, int signo, ksiginfo_t *si)
 
 	if (p != NULL && p->p_pendingcnt >= max_pending_per_proc) {
 		signal_overflow++;
-		ret = EAGAIN;
+		ret = VOS_EAGAIN;
 	} else if ((ksi = ksiginfo_alloc(0)) == NULL) {
 		signal_alloc_fail++;
-		ret = EAGAIN;
+		ret = VOS_EAGAIN;
 	} else {
 		if (p != NULL)
 			p->p_pendingcnt++;
@@ -694,12 +694,12 @@ kern_sigaction(struct thread *td, int sig, const struct sigaction *act,
 	struct proc *p = td->td_proc;
 
 	if (!_SIG_VALID(sig))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (act != NULL && act->sa_handler != SIG_DFL &&
 	    act->sa_handler != SIG_IGN && (act->sa_flags & ~(SA_ONSTACK |
 	    SA_RESTART | SA_RESETHAND | SA_NOCLDSTOP | SA_NODEFER |
 	    SA_NOCLDWAIT | SA_SIGINFO)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	PROC_LOCK(p);
 	ps = p->p_sigacts;
@@ -731,7 +731,7 @@ kern_sigaction(struct thread *td, int sig, const struct sigaction *act,
 		    act->sa_handler != SIG_DFL) {
 			mtx_unlock(&ps->ps_mtx);
 			PROC_UNLOCK(p);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 
 		/*
@@ -904,7 +904,7 @@ osigaction(struct thread *td, struct osigaction_args *uap)
 	int error;
 
 	if (uap->signum <= 0 || uap->signum >= ONSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	nsap = (uap->nsa != NULL) ? &nsa : NULL;
 	osap = (uap->osa != NULL) ? &osa : NULL;
@@ -1081,7 +1081,7 @@ kern_sigprocmask(struct thread *td, int how, sigset_t *set, sigset_t *oset,
 			signotify(td);
 			break;
 		default:
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 
@@ -1167,9 +1167,9 @@ sys_sigwait(struct thread *td, struct sigwait_args *uap)
 
 	error = kern_sigtimedwait(td, set, &ksi, NULL);
 	if (error) {
-		if (error == EINTR && td->td_proc->p_osrel < P_OSREL_SIGWAIT)
-			error = ERESTART;
-		if (error == ERESTART)
+		if (error == VOS_EINTR && td->td_proc->p_osrel < P_OSREL_SIGWAIT)
+			error = VOS_ERESTART;
+		if (error == VOS_ERESTART)
 			return (error);
 		td->td_retval[0] = error;
 		return (0);
@@ -1183,8 +1183,8 @@ sys_sigwait(struct thread *td, struct sigwait_args *uap)
 int
 sys_sigtimedwait(struct thread *td, struct sigtimedwait_args *uap)
 {
-	struct timespec ts;
-	struct timespec *timeout;
+	struct vos_timespec ts;
+	struct vos_timespec *timeout;
 	sigset_t set;
 	ksiginfo_t ksi;
 	int error;
@@ -1252,13 +1252,13 @@ proc_td_siginfo_capture(struct thread *td, siginfo_t *si)
 
 int
 kern_sigtimedwait(struct thread *td, sigset_t waitset, ksiginfo_t *ksi,
-	struct timespec *timeout)
+	struct vos_timespec *timeout)
 {
 	struct sigacts *ps;
 	sigset_t saved_mask, new_block;
 	struct proc *p;
 	int error, sig, timo, timevalid = 0;
-	struct timespec rts, ets, ts;
+	struct vos_timespec rts, ets, ts;
 	struct timeval tv;
 	bool traced;
 
@@ -1307,12 +1307,12 @@ kern_sigtimedwait(struct thread *td, sigset_t waitset, ksiginfo_t *ksi,
 		 */
 		if (timeout != NULL) {
 			if (!timevalid) {
-				error = EINVAL;
+				error = VOS_EINVAL;
 				break;
 			}
 			getnanouptime(&rts);
 			if (timespeccmp(&rts, &ets, >=)) {
-				error = EAGAIN;
+				error = VOS_EAGAIN;
 				break;
 			}
 			timespecsub(&ets, &rts, &ts);
@@ -1323,17 +1323,17 @@ kern_sigtimedwait(struct thread *td, sigset_t waitset, ksiginfo_t *ksi,
 		}
 
 		if (traced) {
-			error = EINTR;
+			error = VOS_EINTR;
 			break;
 		}
 
 		error = msleep(ps, &p->p_mtx, PPAUSE|PCATCH, "sigwait", timo);
 
 		if (timeout != NULL) {
-			if (error == ERESTART) {
+			if (error == VOS_ERESTART) {
 				/* Timeout can not be restarted. */
-				error = EINTR;
-			} else if (error == EAGAIN) {
+				error = VOS_EINTR;
+			} else if (error == VOS_EAGAIN) {
 				/* We will calculate timeout by ourself. */
 				error = 0;
 			}
@@ -1342,7 +1342,7 @@ kern_sigtimedwait(struct thread *td, sigset_t waitset, ksiginfo_t *ksi,
 		/*
 		 * If PTRACE_SCE or PTRACE_SCX were set after
 		 * userspace entered the syscall, return spurious
-		 * EINTR after wait was done.  Only do this as last
+		 * VOS_EINTR after wait was done.  Only do this as last
 		 * resort after rechecking for possible queued signals
 		 * and expired timeouts.
 		 */
@@ -1445,7 +1445,7 @@ osigvec(struct thread *td, struct osigvec_args *uap)
 	int error;
 
 	if (uap->signum <= 0 || uap->signum >= ONSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	nsap = (uap->nsv != NULL) ? &nsa : NULL;
 	osap = (uap->osv != NULL) ? &osa : NULL;
 	if (nsap) {
@@ -1551,7 +1551,7 @@ kern_sigsuspend(struct thread *td, sigset_t mask)
 	 * thread. But sigsuspend should return only on signal
 	 * delivery.
 	 */
-	(p->p_sysent->sv_set_syscall_retval)(td, EINTR);
+	(p->p_sysent->sv_set_syscall_retval)(td, VOS_EINTR);
 	for (has_sig = 0; !has_sig;) {
 		while (msleep(&p->p_sigacts, &p->p_mtx, PPAUSE|PCATCH, "pause",
 			0) == 0)
@@ -1567,15 +1567,15 @@ kern_sigsuspend(struct thread *td, sigset_t mask)
 		/*
 		 * If PTRACE_SCE or PTRACE_SCX were set after
 		 * userspace entered the syscall, return spurious
-		 * EINTR.
+		 * VOS_EINTR.
 		 */
 		if ((p->p_ptevents & PTRACE_SYSCALL) != 0)
 			has_sig += 1;
 	}
 	PROC_UNLOCK(p);
-	td->td_errno = EINTR;
+	td->td_errno = VOS_EINTR;
 	td->td_pflags |= TDP_NERRNO;
-	return (EJUSTRETURN);
+	return (VOS_EJUSTRETURN);
 }
 
 #ifdef COMPAT_43	/* XXX - COMPAT_FBSD3 */
@@ -1676,12 +1676,12 @@ kern_sigaltstack(struct thread *td, stack_t *ss, stack_t *oss)
 
 	if (ss != NULL) {
 		if (oonstack)
-			return (EPERM);
+			return (VOS_EPERM);
 		if ((ss->ss_flags & ~SS_DISABLE) != 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (!(ss->ss_flags & SS_DISABLE)) {
 			if (ss->ss_size < p->p_sysent->sv_minsigstksz)
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 
 			td->td_sigstk = *ss;
 			td->td_pflags |= TDP_ALTSTACK;
@@ -1714,11 +1714,11 @@ killpg1_sendsig(struct proc *p, bool notself, struct killpg1_ctx *arg)
 	if (err == 0 && arg->sig != 0)
 		pksignal(p, arg->sig, arg->ksi);
 	PROC_UNLOCK(p);
-	if (err != ESRCH)
+	if (err != VOS_ESRCH)
 		arg->found = true;
 	if (err == 0)
 		arg->sent = true;
-	else if (arg->ret == 0 && err != ESRCH && err != EPERM)
+	else if (arg->ret == 0 && err != VOS_ESRCH && err != VOS_EPERM)
 		arg->ret = err;
 }
 
@@ -1760,7 +1760,7 @@ killpg1(struct thread *td, int sig, int pgid, int all, ksiginfo_t *ksi)
 			pgrp = pgfind(pgid);
 			if (pgrp == NULL) {
 				sx_sunlock(&proctree_lock);
-				return (ESRCH);
+				return (VOS_ESRCH);
 			}
 		}
 		sx_sunlock(&proctree_lock);
@@ -1771,7 +1771,7 @@ killpg1(struct thread *td, int sig, int pgid, int all, ksiginfo_t *ksi)
 	}
 	MPASS(arg.ret != 0 || arg.found || !arg.sent);
 	if (arg.ret == 0 && !arg.sent)
-		arg.ret = arg.found ? EPERM : ESRCH;
+		arg.ret = arg.found ? VOS_EPERM : VOS_ESRCH;
 	return (arg.ret);
 }
 
@@ -1802,12 +1802,12 @@ kern_kill(struct thread *td, pid_t pid, int signum)
 	 * kill(getpid(), SIGABRT).
 	 */
 	if (IN_CAPABILITY_MODE(td) && pid != td->td_proc->p_pid)
-		return (ECAPMODE);
+		return (VOS_ECAPMODE);
 
 	AUDIT_ARG_SIGNUM(signum);
 	AUDIT_ARG_PID(pid);
 	if ((u_int)signum > _SIG_MAXSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ksiginfo_init(&ksi);
 	ksi.ksi_signo = signum;
@@ -1818,7 +1818,7 @@ kern_kill(struct thread *td, pid_t pid, int signum)
 	if (pid > 0) {
 		/* kill single process */
 		if ((p = pfind_any(pid)) == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		AUDIT_ARG_PROCESS(p);
 		error = p_cansignal(td, p, signum);
 		if (error == 0 && signum)
@@ -1846,7 +1846,7 @@ sys_pdkill(struct thread *td, struct pdkill_args *uap)
 	AUDIT_ARG_SIGNUM(uap->signum);
 	AUDIT_ARG_FD(uap->fd);
 	if ((u_int)uap->signum > _SIG_MAXSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = procdesc_find(td, uap->fd, &cap_pdkill_rights, &p);
 	if (error)
@@ -1875,7 +1875,7 @@ okillpg(struct thread *td, struct okillpg_args *uap)
 	AUDIT_ARG_SIGNUM(uap->signum);
 	AUDIT_ARG_PID(uap->pgid);
 	if ((u_int)uap->signum > _SIG_MAXSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ksiginfo_init(&ksi);
 	ksi.ksi_signo = uap->signum;
@@ -1911,17 +1911,17 @@ kern_sigqueue(struct thread *td, pid_t pid, int signum, union sigval *value)
 	int error;
 
 	if ((u_int)signum > _SIG_MAXSIG)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * Specification says sigqueue can only send signal to
 	 * single process.
 	 */
 	if (pid <= 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if ((p = pfind_any(pid)) == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 	error = p_cansignal(td, p, signum);
 	if (error == 0 && signum != 0) {
 		ksiginfo_init(&ksi);
@@ -2129,7 +2129,7 @@ sigev_findtd(struct proc *p ,struct sigevent *sigev, struct thread **ttd)
 	if (sigev->sigev_notify == SIGEV_THREAD_ID) {
 		td = tdfind(sigev->sigev_notify_thread_id, p->p_pid);
 		if (td == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		*ttd = td;
 	} else {
 		*ttd = NULL;
@@ -2219,9 +2219,9 @@ tdsendsignal(struct proc *p, struct thread *td, int sig, ksiginfo_t *ksi)
 	else
 		action = SIG_DFL;
 	if (SIGISMEMBER(ps->ps_sigintr, sig))
-		intrval = EINTR;
+		intrval = VOS_EINTR;
 	else
-		intrval = ERESTART;
+		intrval = VOS_ERESTART;
 	mtx_unlock(&ps->ps_mtx);
 
 	if (prop & SIGPROP_CONT)
@@ -2716,8 +2716,8 @@ reschedule_signals(struct proc *p, sigset_t block, int flags)
 		    (SIGISMEMBER(ps->ps_sigcatch, sig) &&
 		    !SIGISMEMBER(td->td_sigmask, sig))) {
 			tdsigwakeup(td, sig, SIG_CATCH,
-			    (SIGISMEMBER(ps->ps_sigintr, sig) ? EINTR :
-			    ERESTART));
+			    (SIGISMEMBER(ps->ps_sigintr, sig) ? VOS_EINTR :
+			    VOS_ERESTART));
 		}
 		if (!pslocked)
 			mtx_unlock(&ps->ps_mtx);
@@ -3161,7 +3161,7 @@ sig_ast_checksusp(struct thread *td)
 		return (0);
 
 	ret = thread_suspend_check(1);
-	MPASS(ret == 0 || ret == EINTR || ret == ERESTART);
+	MPASS(ret == 0 || ret == VOS_EINTR || ret == VOS_ERESTART);
 	return (ret);
 }
 
@@ -3191,7 +3191,7 @@ sig_ast_needsigchk(struct thread *td)
 		    ("both TDF_SEINTR and TDF_SERESTART"));
 		ret = TD_SBDRY_ERRNO(td);
 	} else if (sig != 0) {
-		ret = SIGISMEMBER(ps->ps_sigintr, sig) ? EINTR : ERESTART;
+		ret = SIGISMEMBER(ps->ps_sigintr, sig) ? VOS_EINTR : VOS_ERESTART;
 		mtx_unlock(&ps->ps_mtx);
 	} else {
 		mtx_unlock(&ps->ps_mtx);
@@ -3206,7 +3206,7 @@ sig_ast_needsigchk(struct thread *td)
 	 */
 	if ((td->td_dbgflags & TDB_FSTP) != 0) {
 		if (ret == 0)
-			ret = EINTR;
+			ret = VOS_EINTR;
 		td->td_dbgflags &= ~TDB_FSTP;
 	}
 
@@ -3445,7 +3445,7 @@ sysctl_compress_user_cores(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (val != 0 && !compressor_avail(val))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	compress_user_cores = val;
 	return (error);
 }
@@ -3531,7 +3531,7 @@ corefile_open(const char *comm, uid_t uid, pid_t pid, struct thread *td,
  * policy checking, and creates the name of the coredump;
  * then it passes on a vnode and a size limit to the process-specific
  * coredump routine if there is one; if there _is not_ one, it returns
- * ENOSYS; otherwise it returns the error from the process-specific routine.
+ * VOS_ENOSYS; otherwise it returns the error from the process-specific routine.
  */
 
 static int
@@ -3569,7 +3569,7 @@ nosys(struct thread *td, struct nosys_args *args)
 		printf("pid %d comm %s: nosys %d\n", p->p_pid, p->p_comm,
 		    td->td_sa.code);
 	}
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 }
 
 /*
@@ -3659,7 +3659,7 @@ sigacts_alloc(void)
 {
 	struct sigacts *ps;
 
-	ps = malloc(sizeof(struct sigacts), M_SUBPROC, M_WAITOK | M_ZERO);
+	ps = vos_malloc(sizeof(struct sigacts), M_SUBPROC, M_WAITOK | M_ZERO);
 	refcount_init(&ps->ps_refcnt, 1);
 	mtx_init(&ps->ps_mtx, "sigacts", NULL, MTX_DEF);
 	return (ps);
@@ -3672,7 +3672,7 @@ sigacts_free(struct sigacts *ps)
 	if (refcount_release(&ps->ps_refcnt) == 0)
 		return;
 	mtx_destroy(&ps->ps_mtx);
-	free(ps, M_SUBPROC);
+	vos_free(ps, M_SUBPROC);
 }
 
 struct sigacts *
@@ -3689,7 +3689,7 @@ sigacts_copy(struct sigacts *dest, struct sigacts *src)
 
 	KASSERT(dest->ps_refcnt == 1, ("sigacts_copy to shared dest"));
 	mtx_lock(&src->ps_mtx);
-	bcopy(src, dest, offsetof(struct sigacts, ps_refcnt));
+	bcopy(src, dest, vos_offsetof(struct sigacts, ps_refcnt));
 	mtx_unlock(&src->ps_mtx);
 }
 
@@ -3781,11 +3781,11 @@ sys_sigfastblock(struct thread *td, struct sigfastblock_args *uap)
 	switch (uap->cmd) {
 	case SIGFASTBLOCK_SETPTR:
 		if ((td->td_pflags & TDP_SIGFASTBLOCK) != 0) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			break;
 		}
 		if (((uintptr_t)(uap->ptr) & (sizeof(uint32_t) - 1)) != 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		td->td_pflags |= TDP_SIGFASTBLOCK;
@@ -3794,7 +3794,7 @@ sys_sigfastblock(struct thread *td, struct sigfastblock_args *uap)
 
 	case SIGFASTBLOCK_UNBLOCK:
 		if ((td->td_pflags & TDP_SIGFASTBLOCK) == 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 
@@ -3802,7 +3802,7 @@ sys_sigfastblock(struct thread *td, struct sigfastblock_args *uap)
 			res = casueword32(td->td_sigblock_ptr,
 			    SIGFASTBLOCK_PEND, &oldval, 0);
 			if (res == -1) {
-				error = EFAULT;
+				error = VOS_EFAULT;
 				sigfastblock_failed(td, false, true);
 				break;
 			}
@@ -3810,7 +3810,7 @@ sys_sigfastblock(struct thread *td, struct sigfastblock_args *uap)
 				break;
 			MPASS(res == 1);
 			if (oldval != SIGFASTBLOCK_PEND) {
-				error = EBUSY;
+				error = VOS_EBUSY;
 				break;
 			}
 			error = thread_check_susp(td, false);
@@ -3824,7 +3824,7 @@ sys_sigfastblock(struct thread *td, struct sigfastblock_args *uap)
 		 * td_sigblock_val is cleared there, but not on a
 		 * syscall exit.  The end effect is that a single
 		 * interruptible sleep, while user sigblock word is
-		 * set, might return EINTR or ERESTART to usermode
+		 * set, might return VOS_EINTR or VOS_ERESTART to usermode
 		 * without delivering signal.  All further sleeps,
 		 * until userspace clears the word and does
 		 * sigfastblock(UNBLOCK), observe current word and no
@@ -3845,22 +3845,22 @@ sys_sigfastblock(struct thread *td, struct sigfastblock_args *uap)
 
 	case SIGFASTBLOCK_UNSETPTR:
 		if ((td->td_pflags & TDP_SIGFASTBLOCK) == 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		if (!sigfastblock_fetch_sig(td, false, &oldval)) {
-			error = EFAULT;
+			error = VOS_EFAULT;
 			break;
 		}
 		if (oldval != 0 && oldval != SIGFASTBLOCK_PEND) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			break;
 		}
 		sigfastblock_clear(td);
 		break;
 
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 	return (error);

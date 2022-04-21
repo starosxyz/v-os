@@ -77,7 +77,7 @@ struct sigcontext {
 	int	sc_fpformat;
 	int	sc_ownedfp;
 	int	sc_flags;
-	int	sc_fpstate[128] __aligned(16);
+	__begin_aligned(16) int	sc_fpstate[128] __aligned(16);
 
 	int	sc_fsbase;
 	int	sc_gsbase;
@@ -113,51 +113,51 @@ typedef long sig_atomic_t;
  */
 struct sigcontext {
 	struct __sigset sc_mask;	/* signal mask to restore */
-	long	sc_onstack;		/* sigstack state to restore */
-	long	sc_rdi;		/* machine state (struct trapframe) */
-	long	sc_rsi;
-	long	sc_rdx;
-	long	sc_rcx;
-	long	sc_r8;
-	long	sc_r9;
-	long	sc_rax;
-	long	sc_rbx;
-	long	sc_rbp;
-	long	sc_r10;
-	long	sc_r11;
-	long	sc_r12;
-	long	sc_r13;
-	long	sc_r14;
-	long	sc_r15;
+	long long	sc_onstack;		/* sigstack state to restore */
+	long long	sc_rdi;		/* machine state (struct trapframe) */
+	long long	sc_rsi;
+	long long	sc_rdx;
+	long long	sc_rcx;
+	long long	sc_r8;
+	long long	sc_r9;
+	long long	sc_rax;
+	long long	sc_rbx;
+	long long	sc_rbp;
+	long long	sc_r10;
+	long long	sc_r11;
+	long long	sc_r12;
+	long long	sc_r13;
+	long long	sc_r14;
+	long long	sc_r15;
 	int	sc_trapno;
 	short	sc_fs;
 	short	sc_gs;
-	long	sc_addr;
+	long long	sc_addr;
 	int	sc_flags;
 	short	sc_es;
 	short	sc_ds;
-	long	sc_err;
-	long	sc_rip;
-	long	sc_cs;
-	long	sc_rflags;
-	long	sc_rsp;
-	long	sc_ss;
-	long	sc_len;			/* sizeof(mcontext_t) */
+	long long	sc_err;
+	long long	sc_rip;
+	long long	sc_cs;
+	long long	sc_rflags;
+	long long	sc_rsp;
+	long long	sc_ss;
+	long long	sc_len;			/* sizeof(mcontext_t) */
 	/*
 	 * See <machine/ucontext.h> and <machine/fpu.h> for the following
 	 * fields.
 	 */
-	long	sc_fpformat;
-	long	sc_ownedfp;
-	long	sc_fpstate[64] __aligned(16);
+	long long	sc_fpformat;
+	long long	sc_ownedfp;
+	__begin_aligned(16)  long long	sc_fpstate[64] __aligned(16);
 
-	long	sc_fsbase;
-	long	sc_gsbase;
+	long long	sc_fsbase;
+	long long	sc_gsbase;
 
-	long	sc_xfpustate;
-	long	sc_xfpustate_len;
+	long long	sc_xfpustate;
+	long long	sc_xfpustate_len;
 
-	long	sc_spare[4];
+	long long	sc_spare[4];
 };
 #endif /* __BSD_VISIBLE */
 #endif /* __amd64__ */

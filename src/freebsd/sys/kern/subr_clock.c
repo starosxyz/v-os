@@ -136,7 +136,7 @@ leapyear(int year)
 }
 
 int
-clock_ct_to_ts(const struct clocktime *ct, struct timespec *ts)
+clock_ct_to_ts(const struct clocktime *ct, struct vos_timespec *ts)
 {
 	int i, year, days;
 
@@ -163,8 +163,8 @@ clock_ct_to_ts(const struct clocktime *ct, struct timespec *ts)
 	    ct->hour > 23 ||  ct->min > 59 || ct->sec > 59 || year < 1970 ||
 	    (sizeof(time_t) == 4 && year > 2037)) {	/* time_t overflow */
 		if (ct_debug)
-			printf(" = EINVAL\n");
-		return (EINVAL);
+			printf(" = VOS_EINVAL\n");
+		return (VOS_EINVAL);
 	}
 
 	/*
@@ -196,7 +196,7 @@ clock_ct_to_ts(const struct clocktime *ct, struct timespec *ts)
 }
 
 int
-clock_bcd_to_ts(const struct bcd_clocktime *bct, struct timespec *ts, bool ampm)
+clock_bcd_to_ts(const struct bcd_clocktime *bct, struct vos_timespec *ts, bool ampm)
 {
 	struct clocktime ct;
 	int bcent, byear;
@@ -221,7 +221,7 @@ clock_bcd_to_ts(const struct bcd_clocktime *bct, struct timespec *ts, bool ampm)
 			    "[%04x-%02x-%02x %02x:%02x:%02x]\n",
 			    bct->year, bct->mon, bct->day,
 			    bct->hour, bct->min, bct->sec);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	ct.year = FROMBCD(byear) + FROMBCD(bcent) * 100;
@@ -245,7 +245,7 @@ clock_bcd_to_ts(const struct bcd_clocktime *bct, struct timespec *ts, bool ampm)
 }
 
 void
-clock_ts_to_ct(const struct timespec *ts, struct clocktime *ct)
+clock_ts_to_ct(const struct vos_timespec *ts, struct clocktime *ct)
 {
 	time_t i, year, days;
 	time_t rsec;	/* remainder seconds */
@@ -306,7 +306,7 @@ clock_ts_to_ct(const struct timespec *ts, struct clocktime *ct)
 }
 
 void
-clock_ts_to_bcd(const struct timespec *ts, struct bcd_clocktime *bct, bool ampm)
+clock_ts_to_bcd(const struct vos_timespec *ts, struct bcd_clocktime *bct, bool ampm)
 {
 	struct clocktime ct;
 
@@ -370,7 +370,7 @@ clock_print_ct(const struct clocktime *ct, int nsdigits)
 }
 
 void
-clock_print_ts(const struct timespec *ts, int nsdigits)
+clock_print_ts(const struct vos_timespec *ts, int nsdigits)
 {
 	struct clocktime ct;
 

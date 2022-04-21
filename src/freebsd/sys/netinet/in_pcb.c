@@ -257,7 +257,7 @@ in_pcblbgroup_alloc(struct inpcblbgrouphead *hdr, u_char vflag,
 	size_t bytes;
 
 	bytes = __offsetof(struct inpcblbgroup, il_inp[size]);
-	grp = malloc(bytes, M_PCB, M_ZERO | M_NOWAIT);
+	grp = vos_malloc(bytes, M_PCB, M_ZERO | M_NOWAIT);
 	if (!grp)
 		return (NULL);
 	grp->il_vflag = vflag;
@@ -275,7 +275,7 @@ in_pcblbgroup_free_deferred(epoch_context_t ctx)
 	struct inpcblbgroup *grp;
 
 	grp = __containerof(ctx, struct inpcblbgroup, il_epoch_ctx);
-	free(grp, M_PCB);
+	vos_free(grp, M_PCB);
 }
 
 static void
@@ -386,7 +386,7 @@ in_pcbinslbgrouphash(struct inpcb *inp, uint8_t numa_domain)
 		    inp->inp_lport, &inp->inp_inc.inc_ie.ie_dependladdr,
 		    INPCBLBGROUP_SIZMIN, numa_domain);
 		if (grp == NULL)
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 	} else if (grp->il_inpcnt == grp->il_inpsiz) {
 		if (grp->il_inpsiz >= INPCBLBGROUP_SIZMAX) {
 			if (ratecheck(&lastprint, &interval))
@@ -398,7 +398,7 @@ in_pcbinslbgrouphash(struct inpcb *inp, uint8_t numa_domain)
 		/* Expand this local group. */
 		grp = in_pcblbgroup_resize(hdr, grp, grp->il_inpsiz * 2);
 		if (grp == NULL)
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 	}
 
 	KASSERT(grp->il_inpcnt < grp->il_inpsiz,
@@ -463,7 +463,7 @@ in_pcblbgroup_numa(struct inpcb *inp, int arg)
 		break;
 	default:
 		if (arg < 0 || arg >= vm_ndomains)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		numa_domain = arg;
 	}
 
@@ -490,7 +490,7 @@ in_pcblbgroup_numa(struct inpcb *inp, int arg)
 			goto abort_with_hash_wlock;
 		}
 	}
-	err = ENOENT;
+	err = VOS_ENOENT;
 abort_with_hash_wlock:
 	INP_HASH_WUNLOCK(pcbinfo);
 	return (err);
@@ -582,7 +582,7 @@ in_pcballoc(struct socket *so, struct inpcbinfo *pcbinfo)
 	error = 0;
 	inp = uma_zalloc(pcbinfo->ipi_zone, M_NOWAIT);
 	if (inp == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	bzero(&inp->inp_start_zero, inp_zero_size);
 #ifdef NUMA
 	inp->inp_numa_domain = M_NODOM;
@@ -651,7 +651,7 @@ in_pcbbind(struct inpcb *inp, struct sockaddr *nam, struct ucred *cred)
 	INP_HASH_WLOCK_ASSERT(inp->inp_pcbinfo);
 
 	if (inp->inp_lport != 0 || inp->inp_laddr.s_addr != INADDR_ANY)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	anonport = nam == NULL || ((struct sockaddr_in *)nam)->sin_port == 0;
 	error = in_pcbbind_setup(inp, nam, &inp->inp_laddr.s_addr,
 	    &inp->inp_lport, cred);
@@ -660,7 +660,7 @@ in_pcbbind(struct inpcb *inp, struct sockaddr *nam, struct ucred *cred)
 	if (in_pcbinshash(inp) != 0) {
 		inp->inp_laddr.s_addr = INADDR_ANY;
 		inp->inp_lport = 0;
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 	if (anonport)
 		inp->inp_flags |= INP_ANONPORT;
@@ -777,7 +777,7 @@ in_pcb_lport_dest(struct inpcb *inp, struct sockaddr *lsa, u_short *lportp,
 
 	do {
 		if (count-- < 0)	/* completely used? */
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 		++*lastport;
 		if (*lastport < first || *lastport > last)
 			*lastport = first;
@@ -922,10 +922,10 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 	INP_HASH_LOCK_ASSERT(pcbinfo);
 
 	if (CK_STAILQ_EMPTY(&V_in_ifaddrhead)) /* XXX broken! */
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	laddr.s_addr = *laddrp;
 	if (nam != NULL && laddr.s_addr != INADDR_ANY)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if ((so->so_options & (SO_REUSEADDR|SO_REUSEPORT|SO_REUSEPORT_LB)) == 0)
 		lookupflags = INPLOOKUP_WILDCARD;
 	if (nam == NULL) {
@@ -934,14 +934,14 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 	} else {
 		sin = (struct sockaddr_in *)nam;
 		if (nam->sa_len != sizeof (*sin))
-			return (EINVAL);
+			return (VOS_EINVAL);
 #ifdef notdef
 		/*
 		 * We should check the family, but old programs
 		 * incorrectly fail to initialize it.
 		 */
 		if (sin->sin_family != AF_INET)
-			return (EAFNOSUPPORT);
+			return (VOS_EAFNOSUPPORT);
 #endif
 		error = prison_local_ip4(cred, &sin->sin_addr);
 		if (error)
@@ -949,7 +949,7 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 		if (sin->sin_port != *lportp) {
 			/* Don't allow the port to change. */
 			if (*lportp != 0)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			lport = sin->sin_port;
 		}
 		/* NB: lport is left as 0 if the port isn't being changed. */
@@ -980,7 +980,7 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 			 */
 			if ((inp->inp_flags & INP_BINDANY) == 0 &&
 			    ifa_ifwithaddr_check((struct sockaddr *)sin) == 0)
-				return (EADDRNOTAVAIL);
+				return (VOS_EADDRNOTAVAIL);
 		}
 		laddr = sin->sin_addr;
 		if (lport) {
@@ -991,7 +991,7 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 			if (ntohs(lport) <= V_ipport_reservedhigh &&
 			    ntohs(lport) >= V_ipport_reservedlow &&
 			    priv_check_cred(cred, PRIV_NETINET_RESERVEDPORT))
-				return (EACCES);
+				return (VOS_EACCES);
 			if (!IN_MULTICAST(ntohl(sin->sin_addr.s_addr)) &&
 			    priv_check_cred(inp->inp_cred, PRIV_NETINET_REUSEPORT) != 0) {
 				t = in_pcblookup_local(pcbinfo, sin->sin_addr,
@@ -1011,7 +1011,7 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 				     (t->inp_flags2 & INP_REUSEPORT_LB) == 0) &&
 				    (inp->inp_cred->cr_uid !=
 				     t->inp_cred->cr_uid))
-					return (EADDRINUSE);
+					return (VOS_EADDRINUSE);
 
 				/*
 				 * If the socket is a BINDMULTI socket, then
@@ -1020,7 +1020,7 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 				 * with BINDMULTI.
 				 */
 				if (t && (! in_pcbbind_check_bindmulti(inp, t)))
-					return (EADDRINUSE);
+					return (VOS_EADDRINUSE);
 			}
 			t = in_pcblookup_local(pcbinfo, sin->sin_addr,
 			    lport, lookupflags, cred);
@@ -1036,7 +1036,7 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 				    ((reuseport & tw->tw_so_options) == 0 &&
 					(reuseport_lb &
 				            tw->tw_so_options) == 0)) {
-					return (EADDRINUSE);
+					return (VOS_EADDRINUSE);
 				}
 			} else if (t &&
 				   ((inp->inp_flags2 & INP_BINDMULTI) == 0) &&
@@ -1050,9 +1050,9 @@ in_pcbbind_setup(struct inpcb *inp, struct sockaddr *nam, in_addr_t *laddrp,
 				    (inp->inp_vflag & INP_IPV6PROTO) == 0 ||
 				    (t->inp_vflag & INP_IPV6PROTO) == 0)
 #endif
-						return (EADDRINUSE);
+						return (VOS_EADDRINUSE);
 				if (t && (! in_pcbbind_check_bindmulti(inp, t)))
-					return (EADDRINUSE);
+					return (VOS_EADDRINUSE);
 			}
 		}
 	}
@@ -1102,7 +1102,7 @@ in_pcbconnect_mbuf(struct inpcb *inp, struct sockaddr *nam,
 		if (in_pcbinshash(inp) != 0) {
 			inp->inp_laddr.s_addr = INADDR_ANY;
 			inp->inp_lport = 0;
-			return (EAGAIN);
+			return (VOS_EAGAIN);
 		}
 	}
 
@@ -1190,7 +1190,7 @@ in_pcbladdr(struct inpcb *inp, struct in_addr *faddr, struct in_addr *laddr,
 						inp->inp_socket->so_fibnum));
 		}
 		if (ia == NULL) {
-			error = ENETUNREACH;
+			error = VOS_ENETUNREACH;
 			goto done;
 		}
 
@@ -1298,7 +1298,7 @@ in_pcbladdr(struct inpcb *inp, struct in_addr *faddr, struct in_addr *laddr,
 
 		if (cred == NULL || !prison_flag(cred, PR_IP4)) {
 			if (ia == NULL) {
-				error = ENETUNREACH;
+				error = VOS_ENETUNREACH;
 				goto done;
 			}
 			laddr->s_addr = ia->ia_addr.sin_addr.s_addr;
@@ -1376,11 +1376,11 @@ in_pcbconnect_setup(struct inpcb *inp, struct sockaddr *nam,
 	if (oinpp != NULL)
 		*oinpp = NULL;
 	if (nam->sa_len != sizeof (*sin))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (sin->sin_family != AF_INET)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 	if (sin->sin_port == 0)
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	laddr.s_addr = *laddrp;
 	lport = *lportp;
 	faddr = sin->sin_addr;
@@ -1450,7 +1450,7 @@ in_pcbconnect_setup(struct inpcb *inp, struct sockaddr *nam,
 						break;
 				}
 				if (ia == NULL)
-					error = EADDRNOTAVAIL;
+					error = VOS_EADDRNOTAVAIL;
 				else {
 					laddr = ia->ia_addr.sin_addr;
 					error = 0;
@@ -1468,7 +1468,7 @@ in_pcbconnect_setup(struct inpcb *inp, struct sockaddr *nam,
 		if (oinp != NULL) {
 			if (oinpp != NULL)
 				*oinpp = oinp;
-			return (EADDRINUSE);
+			return (VOS_EADDRINUSE);
 		}
 	} else {
 		struct sockaddr_in lsin, fsin;
@@ -1690,7 +1690,7 @@ in_pcblist_rele_rlocked(epoch_context_t ctx)
 			INP_RUNLOCK(inp);
 	}
 	INP_INFO_WUNLOCK(pcbinfo);
-	free(il, M_TEMP);
+	vos_free(il, M_TEMP);
 }
 
 static void
@@ -1699,7 +1699,7 @@ inpcbport_free(epoch_context_t ctx)
 	struct inpcbport *phd;
 
 	phd = __containerof(ctx, struct inpcbport, phd_epoch_ctx);
-	free(phd, M_PCB);
+	vos_free(phd, M_PCB);
 }
 
 static void
@@ -1837,7 +1837,7 @@ in_sockaddr(in_port_t port, struct in_addr *addr_p)
 {
 	struct sockaddr_in *sin;
 
-	sin = malloc(sizeof *sin, M_SONAME,
+	sin = vos_malloc(sizeof *sin, M_SONAME,
 		M_WAITOK | M_ZERO);
 	sin->sin_family = AF_INET;
 	sin->sin_len = sizeof(*sin);
@@ -2670,7 +2670,7 @@ in_pcbinshash_internal(struct inpcb *inp, struct mbuf *m)
 	if (so_options & SO_REUSEPORT_LB) {
 		int ret = in_pcbinslbgrouphash(inp, M_NODOM);
 		if (ret) {
-			/* pcb lb group malloc fail (ret=ENOBUFS). */
+			/* pcb lb group malloc fail (ret=VOS_ENOBUFS). */
 			return (ret);
 		}
 	}
@@ -2686,9 +2686,9 @@ in_pcbinshash_internal(struct inpcb *inp, struct mbuf *m)
 	 * If none exists, malloc one and tack it on.
 	 */
 	if (phd == NULL) {
-		phd = malloc(sizeof(struct inpcbport), M_PCB, M_NOWAIT);
+		phd = vos_malloc(sizeof(struct inpcbport), M_PCB, M_NOWAIT);
 		if (phd == NULL) {
-			return (ENOBUFS); /* XXX */
+			return (VOS_ENOBUFS); /* XXX */
 		}
 		bzero(&phd->phd_epoch_ctx, sizeof(struct epoch_context));
 		phd->phd_port = inp->inp_lport;
@@ -3309,14 +3309,14 @@ in_pcbmodify_txrtlmt(struct inpcb *inp, uint32_t max_pacing_rate)
 
 	mst = inp->inp_snd_tag;
 	if (mst == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ifp = mst->ifp;
 	if (ifp == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (ifp->if_snd_tag_modify == NULL) {
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 	} else {
 		error = ifp->if_snd_tag_modify(mst, &params);
 	}
@@ -3337,14 +3337,14 @@ in_pcbquery_txrtlmt(struct inpcb *inp, uint32_t *p_max_pacing_rate)
 
 	mst = inp->inp_snd_tag;
 	if (mst == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ifp = mst->ifp;
 	if (ifp == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (ifp->if_snd_tag_query == NULL) {
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 	} else {
 		error = ifp->if_snd_tag_query(mst, &params);
 		if (error == 0 &&  p_max_pacing_rate != NULL)
@@ -3367,14 +3367,14 @@ in_pcbquery_txrlevel(struct inpcb *inp, uint32_t *p_txqueue_level)
 
 	mst = inp->inp_snd_tag;
 	if (mst == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ifp = mst->ifp;
 	if (ifp == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (ifp->if_snd_tag_query == NULL)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	error = ifp->if_snd_tag_query(mst, &params);
 	if (error == 0 &&  p_txqueue_level != NULL)
@@ -3410,14 +3410,14 @@ in_pcbattach_txrtlmt(struct inpcb *inp, struct ifnet *ifp,
 	 * tags may leak.
 	 */
 	if (*st != NULL || (inp->inp_flags & (INP_TIMEWAIT | INP_DROPPED)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = m_snd_tag_alloc(ifp, &params, st);
 #ifdef INET
 	if (error == 0) {
 		counter_u64_add(rate_limit_set_ok, 1);
 		counter_u64_add(rate_limit_active, 1);
-	} else if (error != EOPNOTSUPP)
+	} else if (error != VOS_EOPNOTSUPP)
 		  counter_u64_add(rate_limit_alloc_fail, 1);
 #endif
 	return (error);
@@ -3492,7 +3492,7 @@ in_pcboutput_txrtlmt_locked(struct inpcb *inp, struct ifnet *ifp, struct mbuf *m
 		 * can proceed:
 		 */
 		if (M_HASHTYPE_GET(mb) == M_HASHTYPE_NONE) {
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 		} else {
 			error = in_pcbattach_txrtlmt(inp, ifp, M_HASHTYPE_GET(mb),
 			    mb->m_pkthdr.flowid, max_pacing_rate, &inp->inp_snd_tag);
@@ -3500,7 +3500,7 @@ in_pcboutput_txrtlmt_locked(struct inpcb *inp, struct ifnet *ifp, struct mbuf *m
 	} else {
 		error = in_pcbmodify_txrtlmt(inp, max_pacing_rate);
 	}
-	if (error == 0 || error == EOPNOTSUPP)
+	if (error == 0 || error == VOS_EOPNOTSUPP)
 		inp->inp_flags2 &= ~INP_RATE_LIMIT_CHANGED;
 
 	return (error);

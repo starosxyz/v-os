@@ -184,7 +184,7 @@ sysinit_add(struct sysinit** set, struct sysinit** set_end)
 		count += newsysinit_end - newsysinit;
 	else
 		count += sysinit_end - sysinit;
-	newset = malloc(count * sizeof(*sipp), M_TEMP, M_NOWAIT);
+	newset = vos_malloc(count * sizeof(*sipp), M_TEMP, M_NOWAIT);
 	if (newset == NULL)
 		panic("cannot malloc for sysinit");
 	xipp = newset;
@@ -197,7 +197,7 @@ sysinit_add(struct sysinit** set, struct sysinit** set_end)
 	for (sipp = set; sipp < set_end; sipp++)
 		*xipp++ = *sipp;
 	if (newsysinit)
-		free(newsysinit, M_TEMP);
+		vos_free(newsysinit, M_TEMP);
 	newsysinit = newset;
 	newsysinit_end = newset + count;
 }
@@ -329,7 +329,7 @@ restart:
 		/* Check if we've installed more sysinit items via KLD */
 		if (newsysinit != NULL) {
 			if (sysinit != SET_BEGIN(sysinit_set))
-				free(sysinit, M_TEMP);
+				vos_free(sysinit, M_TEMP);
 			sysinit = newsysinit;
 			sysinit_end = newsysinit_end;
 			newsysinit = NULL;
@@ -362,7 +362,7 @@ print_version(void* data __unused)
 	int len;
 
 	/* Strip a trailing newline from version. */
-	len = strlen(version);
+	len = vos_strlen(version);
 	while (len > 0 && version[len - 1] == '\n')
 		len--;
 	printf("%.*s %s\n", len, version, machine);
@@ -526,8 +526,8 @@ proc0_init(void* dummy __unused)
 	p->p_treeflag |= P_TREE_REAPER;
 	LIST_INIT(&p->p_reaplist);
 
-	strncpy(p->p_comm, "kernel", sizeof(p->p_comm));
-	strncpy(td->td_name, "swapper", sizeof(td->td_name));
+	vos_strncpy(p->p_comm, "kernel", sizeof(p->p_comm));
+	vos_strncpy(td->td_name, "swapper", sizeof(td->td_name));
 
 	callout_init_mtx(&p->p_itcallout, &p->p_mtx, 0);
 	callout_init_mtx(&p->p_limco, &p->p_mtx, 0);
@@ -740,12 +740,12 @@ start_init(void* dummy)
 	}
 
 	if ((var = kern_getenv("init_path")) != NULL) {
-		strlcpy(init_path, var, sizeof(init_path));
+		vos_strlcpy(init_path, var, sizeof(init_path));
 		freeenv(var);
 	}
-	free_init_path = tmp_init_path = strdup(init_path, M_TEMP);
+	free_init_path = tmp_init_path = vos_strdup(init_path, M_TEMP);
 
-	while ((path = strsep(&tmp_init_path, ":")) != NULL) {
+	while ((path = vos_strsep(&tmp_init_path, ":")) != NULL) {
 		if (bootverbose)
 			printf("start_init: trying %s\n", path);
 
@@ -778,17 +778,17 @@ start_init(void* dummy)
 		oldvmspace = p->p_vmspace;
 		error = kern_execve(td, &args, NULL, oldvmspace);
 		KASSERT(error != 0,
-			("kern_execve returned success, not EJUSTRETURN"));
-		if (error == EJUSTRETURN) {
+			("kern_execve returned success, not VOS_EJUSTRETURN"));
+		if (error == VOS_EJUSTRETURN) {
 			exec_cleanup(td, oldvmspace);
-			free(free_init_path, M_TEMP);
+			vos_free(free_init_path, M_TEMP);
 			TSEXIT();
 			return;
 		}
-		if (error != ENOENT)
+		if (error != VOS_ENOENT)
 			printf("exec %s: error %d\n", path, error);
 	}
-	free(free_init_path, M_TEMP);
+	vos_free(free_init_path, M_TEMP);
 	printf("init: not found in path %s\n", init_path);
 	panic("no init");
 }

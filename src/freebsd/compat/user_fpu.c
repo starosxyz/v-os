@@ -104,7 +104,7 @@ CTASSERT(sizeof(struct pcb) % XSAVE_AREA_ALIGN == 0);
  * Ensure the copy of XCR0 saved in a core is contained in the padding
  * area.
  */
-CTASSERT(X86_XSTATE_XCR0_OFFSET >= offsetof(struct savefpu, sv_pad) &&
+CTASSERT(X86_XSTATE_XCR0_OFFSET >= vos_offsetof(struct savefpu, sv_pad) &&
     X86_XSTATE_XCR0_OFFSET + sizeof(uint64_t) <= sizeof(struct savefpu));
 
 static	void	fpu_clean_state(void);
@@ -365,7 +365,7 @@ fpuinitstate(void *arg __unused)
 	fpu_initialstate = uma_zalloc(fpu_save_area_zone, M_WAITOK | M_ZERO);
 	if (use_xsave) {
 		max_ext_n = flsl(xsave_mask);
-		xsave_area_desc = malloc(max_ext_n * sizeof(struct
+		xsave_area_desc = vos_malloc(max_ext_n * sizeof(struct
 		    xsave_area_elm_descr), M_DEVBUF, M_WAITOK | M_ZERO);
 	}
 
@@ -398,7 +398,7 @@ fpuinitstate(void *arg __unused)
 	 */
 	if (use_xsave) {
 		xstate_bv = (uint64_t *)((char *)(fpu_initialstate + 1) +
-		    offsetof(struct xstate_hdr, xstate_bv));
+			vos_offsetof(struct xstate_hdr, xstate_bv));
 		*xstate_bv = XFEATURE_ENABLED_X87 | XFEATURE_ENABLED_SSE;
 
 		/* x87 state */
@@ -820,7 +820,7 @@ fpugetregs(struct thread *td)
 		 */
 		sa = (char *)get_pcb_user_save_pcb(pcb);
 		xstate_bv = (uint64_t *)(sa + sizeof(struct savefpu) +
-		    offsetof(struct xstate_hdr, xstate_bv));
+			vos_offsetof(struct xstate_hdr, xstate_bv));
 		max_ext_n = flsl(xsave_mask);
 		for (i = 0; i < max_ext_n; i++) {
 			bit = 1ULL << i;
@@ -862,14 +862,14 @@ fpusetxstate(struct thread *td, char *xfpustate, size_t xfpustate_size)
 	if (xfpustate == NULL)
 		return (0);
 	if (!use_xsave)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	len = xfpustate_size;
 	if (len < sizeof(struct xstate_hdr))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	max_len = cpu_max_ext_state_size - sizeof(struct savefpu);
 	if (len > max_len)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ehdr = (struct xstate_hdr *)xfpustate;
 	bv = ehdr->xstate_bv;
@@ -878,7 +878,7 @@ fpusetxstate(struct thread *td, char *xfpustate, size_t xfpustate_size)
 	 * Avoid #gp.
 	 */
 	if (bv & ~xsave_mask)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	hdr = (struct xstate_hdr *)(get_pcb_user_save_td(td) + 1);
 
@@ -1046,7 +1046,7 @@ fpu_kern_alloc_ctx_domain(int domain, u_int flags)
 struct fpu_kern_ctx *
 fpu_kern_alloc_ctx(u_int flags)
 {
-	return (malloc(fpu_kern_alloc_sz(cpu_max_ext_state_size),
+	return (vos_malloc(fpu_kern_alloc_sz(cpu_max_ext_state_size),
 	    M_FPUKERN_CTX, fpu_kern_malloc_flags(flags)));
 }
 
@@ -1056,7 +1056,7 @@ fpu_kern_free_ctx(struct fpu_kern_ctx *ctx)
 
 	KASSERT((ctx->flags & FPU_KERN_CTX_INUSE) == 0, ("free'ing inuse ctx"));
 	/* XXXKIB clear the memory ? */
-	free(ctx, M_FPUKERN_CTX);
+	vos_free(ctx, M_FPUKERN_CTX);
 }
 
 static struct savefpu *

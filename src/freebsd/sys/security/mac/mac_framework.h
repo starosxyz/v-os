@@ -338,7 +338,7 @@ mac_priv_grant(struct ucred *cred, int priv)
 
 	if (mac_priv_grant_enabled())
 		return (mac_priv_grant_impl(cred, priv));
-	return (EPERM);
+	return (VOS_EPERM);
 }
 
 int	mac_proc_check_debug(struct ucred *cred, struct proc *p);

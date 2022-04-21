@@ -211,7 +211,7 @@ rangeset_remove_pred(struct rangeset *rs, uint64_t start, uint64_t end,
 			 */
 			rn = rs->rs_dup_data(rs->rs_data_ctx, r);
 			if (rn == NULL) {
-				error = ENOMEM;
+				error = VOS_ENOMEM;
 				break;
 			}
 			rn->re_start = end;
@@ -295,7 +295,7 @@ rangeset_copy(struct rangeset *dst_rs, struct rangeset *src_rs)
 		src_r = __containerof(r1, struct rs_el, re_start);
 		dst_r = dst_rs->rs_dup_data(dst_rs->rs_data_ctx, src_r);
 		if (dst_r == NULL) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			break;
 		}
 		error = pctrie_insert(&dst_rs->rs_trie, &dst_r->re_start,

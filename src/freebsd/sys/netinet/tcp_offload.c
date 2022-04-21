@@ -66,7 +66,7 @@ tcp_offload_connect(struct socket *so, struct sockaddr *nam)
 	struct toedev *tod;
 	struct nhop_object *nh;
 	struct epoch_tracker et;
-	int error = EOPNOTSUPP;
+	int error = VOS_EOPNOTSUPP;
 
 	INP_WLOCK_ASSERT(sotoinpcb(so));
 	KASSERT(nam->sa_family == AF_INET || nam->sa_family == AF_INET6,
@@ -92,7 +92,7 @@ tcp_offload_connect(struct socket *so, struct sockaddr *nam)
 #endif
 	if (nh == NULL) {
 		NET_EPOCH_EXIT(et);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 
 	ifp = nh->nh_ifp;

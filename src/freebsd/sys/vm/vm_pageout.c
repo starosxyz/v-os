@@ -642,7 +642,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 		if (vp->v_type == VREG &&
 			vn_start_write(vp, &mp, V_NOWAIT) != 0) {
 			mp = NULL;
-			error = EDEADLK;
+			error = VOS_EDEADLK;
 			goto unlock_all;
 		}
 		KASSERT(mp != NULL,
@@ -652,7 +652,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 		VM_OBJECT_WUNLOCK(object);
 		if (vget(vp, vn_lktype_write(NULL, vp) | LK_TIMELOCK) != 0) {
 			vp = NULL;
-			error = EDEADLK;
+			error = VOS_EDEADLK;
 			goto unlock_mp;
 		}
 		VM_OBJECT_WLOCK(object);
@@ -662,7 +662,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 		 * while locks were dropped.
 		 */
 		if (vp->v_object != object) {
-			error = ENOENT;
+			error = VOS_ENOENT;
 			goto unlock_all;
 		}
 
@@ -675,7 +675,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 		 */
 		if (!vm_page_in_laundry(m) || m->object != object ||
 			m->pindex != pindex || m->dirty == 0) {
-			error = ENXIO;
+			error = VOS_ENXIO;
 			goto unlock_all;
 		}
 
@@ -684,7 +684,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 		 * released.
 		 */
 		if (vm_page_tryxbusy(m) == 0) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto unlock_all;
 		}
 	}
@@ -694,7 +694,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 	 */
 	if (!vm_page_try_remove_write(m)) {
 		vm_page_xunbusy(m);
-		error = EBUSY;
+		error = VOS_EBUSY;
 		goto unlock_all;
 	}
 
@@ -705,7 +705,7 @@ vm_pageout_clean(vm_page_t m, int* numpagedout)
 	 * start the cleaning operation.
 	 */
 	if ((*numpagedout = vm_pageout_cluster(m)) == 0)
-		error = EIO;
+		error = VOS_EIO;
 
 unlock_all:
 	VM_OBJECT_WUNLOCK(object);
@@ -938,7 +938,7 @@ scan:
 				launder -= numpagedout;
 				ss.scanned += numpagedout;
 			}
-			else if (error == EDEADLK) {
+			else if (error == VOS_EDEADLK) {
 				pageout_lock_miss++;
 				vnodes_skipped++;
 			}

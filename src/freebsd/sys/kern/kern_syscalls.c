@@ -90,7 +90,7 @@ syscall_thread_enter(struct thread* td, struct sysent* se)
 	do {
 		oldcnt = se->sy_thrcnt;
 		if ((oldcnt & (SY_THR_DRAINING | SY_THR_ABSENT)) != 0)
-			return (ENOSYS);
+			return (VOS_ENOSYS);
 		cnt = oldcnt + SY_THR_INCR;
 	} while (atomic_cmpset_acq_32(&se->sy_thrcnt, oldcnt, cnt) == 0);
 	return (0);
@@ -117,24 +117,24 @@ kern_syscall_register(struct sysent* sysents, int* offset,
 	int i;
 
 	if ((flags & ~SY_THR_STATIC) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (*offset == NO_SYSCALL) {
 		for (i = 1; i < SYS_MAXSYSCALL; ++i)
 			if (sysents[i].sy_call == (sy_call_t*)lkmnosys)
 				break;
 		if (i == SYS_MAXSYSCALL)
-			return (ENFILE);
+			return (VOS_ENFILE);
 		*offset = i;
 	}
 	else if (*offset < 0 || *offset >= SYS_MAXSYSCALL) {
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	else if (sysents[*offset].sy_call != (sy_call_t*)lkmnosys &&
 		sysents[*offset].sy_call != (sy_call_t*)lkmressys) {
 		KASSERT(sysents[*offset].sy_call != NULL,
 			("undefined syscall %d", *offset));
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
 
 	KASSERT(sysents[*offset].sy_thrcnt == SY_THR_ABSENT,
@@ -157,7 +157,7 @@ kern_syscall_deregister(struct sysent* sysents, int offset,
 
 	se = &sysents[offset];
 	if ((se->sy_thrcnt & SY_THR_STATIC) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	syscall_thread_drain(se);
 	sysents[offset] = *old_sysent;
 	return (0);
@@ -213,7 +213,7 @@ kern_syscall_module_handler(struct sysent* sysents, struct module* mod,
 	default:
 		if (data->chainevh)
 			return (data->chainevh(mod, what, data->chainarg));
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	/* NOTREACHED */

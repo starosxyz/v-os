@@ -164,7 +164,7 @@ ip_findroute(struct nhop_object **pnh, struct in_addr dest, struct mbuf *m)
 		IPSTAT_INC(ips_noroute);
 		IPSTAT_INC(ips_cantforward);
 		icmp_error(m, ICMP_UNREACH, ICMP_UNREACH_HOST, 0, 0);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 	/*
 	 * Drop blackholed traffic and directed broadcasts.
@@ -172,13 +172,13 @@ ip_findroute(struct nhop_object **pnh, struct in_addr dest, struct mbuf *m)
 	if ((nh->nh_flags & (NHF_BLACKHOLE | NHF_BROADCAST)) != 0) {
 		IPSTAT_INC(ips_cantforward);
 		m_freem(m);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 
 	if (nh->nh_flags & NHF_REJECT) {
 		IPSTAT_INC(ips_cantforward);
 		icmp_error(m, ICMP_UNREACH, ICMP_UNREACH_HOST, 0, 0);
-		return (EHOSTUNREACH);
+		return (VOS_EHOSTUNREACH);
 	}
 
 	*pnh = nh;
@@ -455,7 +455,7 @@ passout:
 		    (struct sockaddr *)&dst, NULL);
 	} else {
 		/*
-		 * Handle EMSGSIZE with icmp reply needfrag for TCP MTU discovery
+		 * Handle VOS_EMSGSIZE with icmp reply needfrag for TCP MTU discovery
 		 */
 		if (ip_off & IP_DF) {
 			IPSTAT_INC(ips_cantfrag);

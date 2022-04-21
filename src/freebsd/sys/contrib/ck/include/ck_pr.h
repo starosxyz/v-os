@@ -787,7 +787,7 @@ CK_PR_UNARY_S(inc, add, 64, uint64_t)
 
 #ifndef CK_F_PR_INC_64_ZERO
 #define CK_F_PR_INC_64_ZERO
-CK_PR_UNARY_Z_S(inc, 64, uint64_t, +, UINT64_MAX)
+CK_PR_UNARY_Z_S(inc, 64, uint64_t, +, VOS_UINT64_MAX)
 #else
 CK_PR_UNARY_Z_STUB(inc, 64, uint64_t)
 #endif /* CK_F_PR_INC_64_ZERO */
@@ -815,7 +815,7 @@ CK_PR_UNARY_S(inc, add, 32, uint32_t)
 
 #ifndef CK_F_PR_INC_32_ZERO
 #define CK_F_PR_INC_32_ZERO
-CK_PR_UNARY_Z_S(inc, 32, uint32_t, +, UINT32_MAX)
+CK_PR_UNARY_Z_S(inc, 32, uint32_t, +, VOS_UINT32_MAX)
 #else
 CK_PR_UNARY_Z_STUB(inc, 32, uint32_t)
 #endif /* CK_F_PR_INC_32_ZERO */
@@ -843,7 +843,7 @@ CK_PR_UNARY_S(inc, add, 16, uint16_t)
 
 #ifndef CK_F_PR_INC_16_ZERO
 #define CK_F_PR_INC_16_ZERO
-CK_PR_UNARY_Z_S(inc, 16, uint16_t, +, UINT16_MAX)
+CK_PR_UNARY_Z_S(inc, 16, uint16_t, +, VOS_UINT16_MAX)
 #else
 CK_PR_UNARY_Z_STUB(inc, 16, uint16_t)
 #endif /* CK_F_PR_INC_16_ZERO */
@@ -871,7 +871,7 @@ CK_PR_UNARY_S(inc, add, 8, uint8_t)
 
 #ifndef CK_F_PR_INC_8_ZERO
 #define CK_F_PR_INC_8_ZERO
-CK_PR_UNARY_Z_S(inc, 8, uint8_t, +, UINT8_MAX)
+CK_PR_UNARY_Z_S(inc, 8, uint8_t, +, VOS_UINT8_MAX)
 #else
 CK_PR_UNARY_Z_STUB(inc, 8, uint8_t)
 #endif /* CK_F_PR_INC_8_ZERO */

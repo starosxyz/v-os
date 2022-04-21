@@ -124,7 +124,7 @@ struct vmmeter {
 	counter_u64_t v_kthreadpages;	/* (p) ... and by kernel fork() */
 	counter_u64_t v_wire_count;	/* (p) pages wired down */
 #define	VM_METER_NCOUNTERS	\
-	(offsetof(struct vmmeter, v_page_size) / sizeof(counter_u64_t))
+	(vos_offsetof(struct vmmeter, v_page_size) / sizeof(counter_u64_t))
 	/*
 	 * Distribution of page usages.
 	 */

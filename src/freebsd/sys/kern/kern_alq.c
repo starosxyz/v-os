@@ -130,7 +130,7 @@ ald_add(struct alq *alq)
 
 	ALD_LOCK();
 	if (ald_shutingdown) {
-		error = EBUSY;
+		error = VOS_EBUSY;
 		goto done;
 	}
 	LIST_INSERT_HEAD(&ald_queues, alq, aq_link);
@@ -152,7 +152,7 @@ ald_rem(struct alq *alq)
 
 	ALD_LOCK();
 	if (ald_shutingdown) {
-		error = EBUSY;
+		error = VOS_EBUSY;
 		goto done;
 	}
 	LIST_REMOVE(alq, aq_link);
@@ -296,8 +296,8 @@ alq_destroy(struct alq *alq)
 	alq_shutdown(alq);
 
 	mtx_destroy(&alq->aq_mtx);
-	free(alq->aq_entbuf, M_ALD);
-	free(alq, M_ALD);
+	vos_free(alq->aq_entbuf, M_ALD);
+	vos_free(alq, M_ALD);
 }
 
 /*
@@ -451,7 +451,7 @@ alq_open_flags(struct alq **alqp, const char *file, struct ucred *cred, int cmod
 	/* We just unlock so we hold a reference */
 	VOP_UNLOCK(nd.ni_vp);
 
-	alq = malloc(sizeof(*alq), M_ALD, M_WAITOK|M_ZERO);
+	alq = vos_malloc(sizeof(*alq), M_ALD, M_WAITOK|M_ZERO);
 	alq->aq_vp = nd.ni_vp;
 	alq->aq_cred = crhold(cred);
 
@@ -462,7 +462,7 @@ alq_open_flags(struct alq **alqp, const char *file, struct ucred *cred, int cmod
 	alq->aq_entlen = 0;
 
 	alq->aq_freebytes = alq->aq_buflen;
-	alq->aq_entbuf = malloc(alq->aq_buflen, M_ALD, M_WAITOK|M_ZERO);
+	alq->aq_entbuf = vos_malloc(alq->aq_buflen, M_ALD, M_WAITOK|M_ZERO);
 	alq->aq_writehead = alq->aq_writetail = 0;
 	if (flags & ALQ_ORDERED)
 		alq->aq_flags |= AQ_ORDERED;
@@ -518,7 +518,7 @@ alq_writen(struct alq *alq, void *data, int len, int flags)
 	ALQ_LOCK(alq);
 
 	/*
-	 * Fail to perform the write and return EWOULDBLOCK if:
+	 * Fail to perform the write and return VOS_EWOULDBLOCK if:
 	 * - The message is larger than our underlying buffer.
 	 * - The ALQ is being shutdown.
 	 * - There is insufficient free space in our underlying buffer
@@ -532,7 +532,7 @@ alq_writen(struct alq *alq, void *data, int len, int flags)
 	    (((flags & ALQ_NOWAIT) || (!(alq->aq_flags & AQ_ACTIVE) &&
 	    HAS_PENDING_DATA(alq))) && alq->aq_freebytes < len)) {
 		ALQ_UNLOCK(alq);
-		return (EWOULDBLOCK);
+		return (VOS_EWOULDBLOCK);
 	}
 
 	/*
@@ -595,7 +595,7 @@ alq_writen(struct alq *alq, void *data, int len, int flags)
 
 	/* Bail if we're shutting down. */
 	if (alq->aq_flags & AQ_SHUTDOWN) {
-		ret = EWOULDBLOCK;
+		ret = VOS_EWOULDBLOCK;
 		goto unlock;
 	}
 
@@ -941,18 +941,18 @@ alq_load_handler(module_t mod, int what, void *arg)
 			mtx_destroy(&ald_mtx);
 		} else {
 			ALD_UNLOCK();
-			ret = EBUSY;
+			ret = VOS_EBUSY;
 		}
 		break;
 
 	case MOD_UNLOAD:
 		/* If MOD_QUIESCE failed we must fail here too. */
 		if (ald_shutingdown == 0)
-			ret = EBUSY;
+			ret = VOS_EBUSY;
 		break;
 
 	default:
-		ret = EINVAL;
+		ret = VOS_EINVAL;
 		break;
 	}
 

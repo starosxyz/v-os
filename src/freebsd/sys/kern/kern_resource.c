@@ -161,11 +161,11 @@ kern_getpriority(struct thread *td, int which, int who)
 		break;
 
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 	if (low == PRIO_MAX + 1 && error == 0)
-		error = ESRCH;
+		error = VOS_ESRCH;
 	td->td_retval[0] = low;
 	return (error);
 }
@@ -253,11 +253,11 @@ kern_setpriority(struct thread *td, int which, int who, int prio)
 		break;
 
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 	if (found == 0 && error == 0)
-		error = ESRCH;
+		error = VOS_ESRCH;
 	return (error);
 }
 
@@ -277,7 +277,7 @@ donice(struct thread *td, struct proc *p, int n)
 	if (n < PRIO_MIN)
 		n = PRIO_MIN;
 	if (n < p->p_nice && priv_check(td, PRIV_SCHED_SETPRIORITY) != 0)
-		return (EACCES);
+		return (VOS_EACCES);
 	sched_nice(p, n);
 	return (0);
 }
@@ -317,7 +317,7 @@ sys_rtprio_thread(struct thread *td, struct rtprio_thread_args *uap)
 	} else {
 		td1 = tdfind(uap->lwpid, -1);
 		if (td1 == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		p = td1->td_proc;
 	}
 
@@ -360,7 +360,7 @@ sys_rtprio_thread(struct thread *td, struct rtprio_thread_args *uap)
 		error = rtp_to_pri(&rtp, td1);
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 	PROC_UNLOCK(p);
@@ -397,7 +397,7 @@ sys_rtprio(struct thread *td, struct rtprio_args *uap)
 	} else {
 		p = pfind(uap->pid);
 		if (p == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 	}
 
 	switch (uap->function) {
@@ -464,7 +464,7 @@ sys_rtprio(struct thread *td, struct rtprio_args *uap)
 		}
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 	PROC_UNLOCK(p);
@@ -479,21 +479,21 @@ rtp_to_pri(struct rtprio *rtp, struct thread *td)
 	switch (RTP_PRIO_BASE(rtp->type)) {
 	case RTP_PRIO_REALTIME:
 		if (rtp->prio > RTP_PRIO_MAX)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		newpri = PRI_MIN_REALTIME + rtp->prio;
 		break;
 	case RTP_PRIO_NORMAL:
 		if (rtp->prio > (PRI_MAX_TIMESHARE - PRI_MIN_TIMESHARE))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		newpri = PRI_MIN_TIMESHARE + rtp->prio;
 		break;
 	case RTP_PRIO_IDLE:
 		if (rtp->prio > RTP_PRIO_MAX)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		newpri = PRI_MIN_IDLE + rtp->prio;
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	thread_lock(td);
@@ -572,16 +572,16 @@ ogetrlimit(struct thread *td, struct ogetrlimit_args *uap)
 	int error;
 
 	if (uap->which >= RLIM_NLIMITS)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	lim_rlimit(td, uap->which, &rl);
 
 	/*
 	 * XXX would be more correct to convert only RLIM_INFINITY to the
-	 * old RLIM_INFINITY and fail with EOVERFLOW for other larger
+	 * old RLIM_INFINITY and fail with VOS_EOVERFLOW for other larger
 	 * values.  Most 64->32 and 32->16 conversions, including not
 	 * unimportant ones of uids are even more broken than what we
 	 * do here (they blindly truncate).  We don't do this correctly
-	 * here since we have little experience with EOVERFLOW yet.
+	 * here since we have little experience with VOS_EOVERFLOW yet.
 	 * Elsewhere, getuid() can't fail...
 	 */
 	olim.rlim_cur = rl.rlim_cur > 0x7fffffff ? 0x7fffffff : rl.rlim_cur;
@@ -661,7 +661,7 @@ kern_proc_setrlimit(struct thread *td, struct proc *p, u_int which,
 	int error;
 
 	if (which >= RLIM_NLIMITS)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * Preserve historical bugs by treating negative limits as unsigned.
@@ -792,7 +792,7 @@ sys_getrlimit(struct thread *td, struct __getrlimit_args *uap)
 	int error;
 
 	if (uap->which >= RLIM_NLIMITS)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	lim_rlimit(td, uap->which, &rlim);
 	error = copyout(&rlim, uap->rlp, sizeof(struct rlimit));
 	return (error);
@@ -1086,7 +1086,7 @@ kern_getrusage(struct thread *td, int who, struct rusage *rup)
 		break;
 
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 	PROC_UNLOCK(p);
 	return (error);
@@ -1202,7 +1202,7 @@ lim_alloc()
 {
 	struct plimit *limp;
 
-	limp = malloc(sizeof(struct plimit), M_PLIMIT, M_WAITOK);
+	limp = vos_malloc(sizeof(struct plimit), M_PLIMIT, M_WAITOK);
 	refcount_init(&limp->pl_refcnt, 1);
 	return (limp);
 }
@@ -1234,7 +1234,7 @@ lim_free(struct plimit *limp)
 {
 
 	if (refcount_release(&limp->pl_refcnt))
-		free((void *)limp, M_PLIMIT);
+		vos_free((void *)limp, M_PLIMIT);
 }
 
 void
@@ -1242,7 +1242,7 @@ lim_freen(struct plimit *limp, int n)
 {
 
 	if (refcount_releasen(&limp->pl_refcnt, n))
-		free((void *)limp, M_PLIMIT);
+		vos_free((void *)limp, M_PLIMIT);
 }
 
 /*
@@ -1388,7 +1388,7 @@ uifind(uid_t uid)
 	if (uip != NULL)
 		return (uip);
 
-	new_uip = malloc(sizeof(*new_uip), M_UIDINFO, M_WAITOK | M_ZERO);
+	new_uip = vos_malloc(sizeof(*new_uip), M_UIDINFO, M_WAITOK | M_ZERO);
 	racct_create(&new_uip->ui_racct);
 	refcount_init(&new_uip->ui_ref, 1);
 	new_uip->ui_uid = uid;
@@ -1406,7 +1406,7 @@ uifind(uid_t uid)
 	} else {
 		rw_wunlock(&uihashtbl_lock);
 		racct_destroy(&new_uip->ui_racct);
-		free(new_uip, M_UIDINFO);
+		vos_free(new_uip, M_UIDINFO);
 	}
 	return (uip);
 }
@@ -1462,7 +1462,7 @@ uifree(struct uidinfo *uip)
 	if (uip->ui_vmsize != 0)
 		printf("freeing uidinfo: uid = %d, swapuse = %lld\n",
 		    uip->ui_uid, (unsigned long long)uip->ui_vmsize);
-	free(uip, M_UIDINFO);
+	vos_free(uip, M_UIDINFO);
 }
 
 #ifdef RACCT

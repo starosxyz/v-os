@@ -154,7 +154,7 @@ sysctl_netinet6_intr_queue_maxlen(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (qlimit < 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (netisr_setqlimit(&ip6_nh, qlimit));
 }
 SYSCTL_DECL(_net_inet6_ip6);
@@ -183,7 +183,7 @@ sysctl_netinet6_intr_direct_queue_maxlen(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (qlimit < 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (netisr_setqlimit(&ip6_direct_nh, qlimit));
 }
 SYSCTL_PROC(_net_inet6_ip6, IPV6CTL_INTRDQMAXLEN, intr_direct_queue_maxlen,
@@ -299,7 +299,7 @@ ip6proto_register(short ip6proto)
 
 	/* Sanity checks. */
 	if (ip6proto <= 0 || ip6proto >= IPPROTO_MAX)
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 
 	/*
 	 * The protocol slot must not be occupied by another protocol
@@ -307,9 +307,9 @@ ip6proto_register(short ip6proto)
 	 */
 	pr = pffindproto(PF_INET6, IPPROTO_RAW, SOCK_RAW);
 	if (pr == NULL)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 	if (ip6_protox[ip6proto] != pr - inet6sw)	/* IPPROTO_RAW */
-		return (EEXIST);
+		return (VOS_EEXIST);
 
 	/*
 	 * Find the protocol position in inet6sw[] and set the index.
@@ -322,7 +322,7 @@ ip6proto_register(short ip6proto)
 			return (0);
 		}
 	}
-	return (EPROTONOSUPPORT);
+	return (VOS_EPROTONOSUPPORT);
 }
 
 int
@@ -332,14 +332,14 @@ ip6proto_unregister(short ip6proto)
 
 	/* Sanity checks. */
 	if (ip6proto <= 0 || ip6proto >= IPPROTO_MAX)
-		return (EPROTONOSUPPORT);
+		return (VOS_EPROTONOSUPPORT);
 
 	/* Check if the protocol was indeed registered. */
 	pr = pffindproto(PF_INET6, IPPROTO_RAW, SOCK_RAW);
 	if (pr == NULL)
-		return (EPFNOSUPPORT);
+		return (VOS_EPFNOSUPPORT);
 	if (ip6_protox[ip6proto] == pr - inet6sw)	/* IPPROTO_RAW */
-		return (ENOENT);
+		return (VOS_ENOENT);
 
 	/* Reset the protocol slot to IPPROTO_RAW. */
 	ip6_protox[ip6proto] = pr - inet6sw;
@@ -1186,10 +1186,10 @@ ip6_savecontrol_v4(struct inpcb *inp, struct mbuf *m, struct mbuf **mp,
 		union {
 			struct timeval tv;
 			struct bintime bt;
-			struct timespec ts;
+			struct vos_timespec ts;
 		} t;
 		struct bintime boottimebin, bt1;
-		struct timespec ts1;
+		struct vos_timespec ts1;
 		bool stamped;
 
 		stamped = false;
@@ -1597,7 +1597,7 @@ ip6_get_prevhdr(const struct mbuf *m, int off)
 	int len, nlen, nxt;
 
 	if (off == sizeof(struct ip6_hdr))
-		return (offsetof(struct ip6_hdr, ip6_nxt));
+		return (vos_offsetof(struct ip6_hdr, ip6_nxt));
 	if (off < sizeof(struct ip6_hdr))
 		panic("%s: off < sizeof(struct ip6_hdr)", __func__);
 
@@ -1731,9 +1731,9 @@ ip6_lasthdr(const struct mbuf *m, int off, int proto, int *nxtp)
 
 u_char	inet6ctlerrmap[PRC_NCMDS] = {
 	0,		0,		0,		0,
-	0,		EMSGSIZE,	EHOSTDOWN,	EHOSTUNREACH,
-	EHOSTUNREACH,	EHOSTUNREACH,	ECONNREFUSED,	ECONNREFUSED,
-	EMSGSIZE,	EHOSTUNREACH,	0,		0,
-	0,		0,		EHOSTUNREACH,	0,
-	ENOPROTOOPT,	ECONNREFUSED
+	0,		VOS_EMSGSIZE,	VOS_EHOSTDOWN,	VOS_EHOSTUNREACH,
+	VOS_EHOSTUNREACH,	VOS_EHOSTUNREACH,	VOS_ECONNREFUSED,	VOS_ECONNREFUSED,
+	VOS_EMSGSIZE,	VOS_EHOSTUNREACH,	0,		0,
+	0,		0,		VOS_EHOSTUNREACH,	0,
+	VOS_ENOPROTOOPT,	VOS_ECONNREFUSED
 };

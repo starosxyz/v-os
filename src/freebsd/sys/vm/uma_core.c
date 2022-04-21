@@ -1052,7 +1052,7 @@ hash_alloc(struct uma_hash* hash, u_int size)
 	if (size > UMA_HASH_SIZE_INIT) {
 		hash->uh_hashsize = size;
 		alloc = sizeof(hash->uh_slab_hash[0]) * hash->uh_hashsize;
-		hash->uh_slab_hash = malloc(alloc, M_UMAHASH, M_NOWAIT);
+		hash->uh_slab_hash = vos_malloc(alloc, M_UMAHASH, M_NOWAIT);
 	}
 	else {
 		alloc = sizeof(hash->uh_slab_hash[0]) * UMA_HASH_SIZE_INIT;
@@ -1131,7 +1131,7 @@ hash_free(struct uma_hash* hash)
 	if (hash->uh_hashsize == UMA_HASH_SIZE_INIT)
 		zone_free_item(hashzone, hash->uh_slab_hash, NULL, SKIP_NONE);
 	else
-		free(hash->uh_slab_hash, M_UMAHASH);
+		vos_free(hash->uh_slab_hash, M_UMAHASH);
 }
 
 /*
@@ -2429,13 +2429,13 @@ zone_alloc_sysctl(uma_zone_t zone, void* unused)
 		/* Count the number of decimal digits and '_' separator. */
 		for (i = 1, cnt = zone->uz_namecnt; cnt != 0; i++)
 			cnt /= 10;
-		zone->uz_ctlname = malloc(strlen(zone->uz_name) + i + 1,
+		zone->uz_ctlname = vos_malloc(vos_strlen(zone->uz_name) + i + 1,
 			M_UMA, M_WAITOK);
 		sprintf(zone->uz_ctlname, "%s_%d", zone->uz_name,
 			zone->uz_namecnt);
 	}
 	else
-		zone->uz_ctlname = strdup(zone->uz_name, M_UMA);
+		zone->uz_ctlname = vos_strdup(zone->uz_name, M_UMA);
 	for (c = zone->uz_ctlname; *c != '\0'; c++)
 		if (strchr("./\\ -", *c) != NULL)
 			*c = '_';
@@ -2719,7 +2719,7 @@ zone_ctor(void* mem, int size, void* udata, int flags)
 	else if (keg == NULL) {
 		if ((keg = uma_kcreate(zone, arg->size, arg->uminit, arg->fini,
 			arg->align, arg->flags)) == NULL)
-			return (ENOMEM);
+			return (VOS_ENOMEM);
 	}
 	else {
 		struct uma_kctor_args karg;
@@ -2852,7 +2852,7 @@ zone_dtor(void* arg, int size, void* udata)
 	counter_u64_free(zone->uz_frees);
 	counter_u64_free(zone->uz_fails);
 	counter_u64_free(zone->uz_xdomain);
-	free(zone->uz_ctlname, M_UMA);
+	vos_free(zone->uz_ctlname, M_UMA);
 	for (i = 0; i < vm_ndomains; i++)
 		ZDOM_LOCK_FINI(ZDOM_GET(zone, i));
 	ZONE_CROSS_LOCK_FINI(zone);
@@ -3334,7 +3334,7 @@ uma_zalloc_debug(uma_zone_t zone, void** itemp, void* udata, int flags)
 		void* item;
 		item = memguard_alloc(zone->uz_size, flags);
 		if (item != NULL) {
-			error = EJUSTRETURN;
+			error = VOS_EJUSTRETURN;
 			if (zone->uz_init != NULL &&
 				zone->uz_init(item, zone->uz_size, flags) != 0) {
 				*itemp = NULL;
@@ -3370,7 +3370,7 @@ uma_zfree_debug(uma_zone_t zone, void* item, void* udata)
 		if (zone->uz_fini != NULL)
 			zone->uz_fini(item, zone->uz_size);
 		memguard_free(item);
-		return (EJUSTRETURN);
+		return (VOS_EJUSTRETURN);
 	}
 #endif
 	return (0);
@@ -3428,7 +3428,7 @@ uma_zalloc_smr(uma_zone_t zone, int flags)
 
 	KASSERT((zone->uz_flags & UMA_ZONE_SMR) != 0,
 		("uma_zalloc_arg: called with non-SMR zone."));
-	if (uma_zalloc_debug(zone, &item, NULL, flags) == EJUSTRETURN)
+	if (uma_zalloc_debug(zone, &item, NULL, flags) == VOS_EJUSTRETURN)
 		return (item);
 #endif
 
@@ -3459,7 +3459,7 @@ uma_zalloc_arg(uma_zone_t zone, void* udata, int flags)
 
 	KASSERT((zone->uz_flags & UMA_ZONE_SMR) == 0,
 		("uma_zalloc_arg: called with SMR zone."));
-	if (uma_zalloc_debug(zone, &item, udata, flags) == EJUSTRETURN)
+	if (uma_zalloc_debug(zone, &item, udata, flags) == VOS_EJUSTRETURN)
 		return (item);
 #endif
 
@@ -4159,7 +4159,7 @@ uma_zfree_smr(uma_zone_t zone, void* item)
 		("uma_zfree_smr: called with non-SMR zone."));
 	KASSERT(item != NULL, ("uma_zfree_smr: Called with NULL pointer."));
 	SMR_ASSERT_NOT_ENTERED(zone->uz_smr);
-	if (uma_zfree_debug(zone, item, NULL) == EJUSTRETURN)
+	if (uma_zfree_debug(zone, item, NULL) == VOS_EJUSTRETURN)
 		return;
 #endif
 	cache = &zone->uz_cpu[curcpu];
@@ -4210,7 +4210,7 @@ uma_zfree_arg(uma_zone_t zone, void* item, void* udata)
 #ifdef UMA_ZALLOC_DEBUG
 	KASSERT((zone->uz_flags & UMA_ZONE_SMR) == 0,
 		("uma_zfree_arg: called with SMR zone."));
-	if (uma_zfree_debug(zone, item, udata) == EJUSTRETURN)
+	if (uma_zfree_debug(zone, item, udata) == VOS_EJUSTRETURN)
 		return;
 #endif
 	/* uma_zfree(..., NULL) does nothing, to match free(9). */
@@ -5214,7 +5214,7 @@ sysctl_vm_zone_stats(SYSCTL_HANDLER_ARGS)
 		return (error);
 	sbuf_new_for_sysctl(&sbuf, NULL, 128, req);
 	sbuf_clear_flags(&sbuf, SBUF_INCLUDENUL);
-	ups = malloc((mp_maxid + 1) * sizeof(*ups), M_TEMP, M_WAITOK);
+	ups = vos_malloc((mp_maxid + 1) * sizeof(*ups), M_TEMP, M_WAITOK);
 
 	count = 0;
 	rw_rlock(&uma_rwlock);
@@ -5243,7 +5243,7 @@ sysctl_vm_zone_stats(SYSCTL_HANDLER_ARGS)
 		}
 		LIST_FOREACH(z, &kz->uk_zones, uz_link) {
 			bzero(&uth, sizeof(uth));
-			strlcpy(uth.uth_name, z->uz_name, UTH_MAX_NAME);
+			vos_strlcpy(uth.uth_name, z->uz_name, UTH_MAX_NAME);
 			uth.uth_align = kz->uk_align;
 			uth.uth_size = kz->uk_size;
 			uth.uth_rsize = kz->uk_rsize;
@@ -5275,7 +5275,7 @@ sysctl_vm_zone_stats(SYSCTL_HANDLER_ARGS)
 	}
 	LIST_FOREACH(z, &uma_cachezones, uz_link) {
 		bzero(&uth, sizeof(uth));
-		strlcpy(uth.uth_name, z->uz_name, UTH_MAX_NAME);
+		vos_strlcpy(uth.uth_name, z->uz_name, UTH_MAX_NAME);
 		uth.uth_size = z->uz_size;
 		uma_vm_zone_stats(&uth, z, &sbuf, ups, false);
 		(void)sbuf_bcat(&sbuf, &uth, sizeof(uth));
@@ -5286,7 +5286,7 @@ sysctl_vm_zone_stats(SYSCTL_HANDLER_ARGS)
 	rw_runlock(&uma_rwlock);
 	error = sbuf_finish(&sbuf);
 	sbuf_delete(&sbuf);
-	free(ups, M_TEMP);
+	vos_free(ups, M_TEMP);
 	return (error);
 }
 
@@ -5352,14 +5352,10 @@ sysctl_handle_uma_zone_flags(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	sbuf_new_for_sysctl(&sbuf, NULL, 0, req);
-#pragma GCC diagnostic ignored "-Wformat"
-#pragma GCC diagnostic ignored "-Wformat-extra-args"
 	if (zone->uz_flags != 0)
 		sbuf_printf(&sbuf, "0x%b", zone->uz_flags, PRINT_UMA_ZFLAGS);
 	else
 		sbuf_printf(&sbuf, "0");
-#pragma GCC diagnostic error "-Wformat"
-#pragma GCC diagnostic ignored "-Wformat-extra-args"
 	error = sbuf_finish(&sbuf);
 	sbuf_delete(&sbuf);
 
@@ -5577,7 +5573,7 @@ DB_SHOW_COMMAND(uma, db_show_uma)
 
 	/* Sort the zones with largest size first. */
 	last_zone = NULL;
-	last_size = INT64_MAX;
+	last_size = VOS_INT64_MAX;
 	for (;;) {
 		cur_zone = NULL;
 		cur_size = -1;

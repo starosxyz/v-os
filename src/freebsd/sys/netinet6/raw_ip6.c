@@ -449,7 +449,7 @@ rip6_output(struct mbuf *m, struct socket *so, ...)
 		struct icmp6_hdr *icmp6;
 		if (m->m_len < sizeof(struct icmp6_hdr) &&
 		    (m = m_pullup(m, sizeof(struct icmp6_hdr))) == NULL) {
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			goto bad;
 		}
 		icmp6 = mtod(m, struct icmp6_hdr *);
@@ -459,7 +459,7 @@ rip6_output(struct mbuf *m, struct socket *so, ...)
 
 	M_PREPEND(m, sizeof(*ip6), M_NOWAIT);
 	if (m == NULL) {
-		error = ENOBUFS;
+		error = VOS_ENOBUFS;
 		goto bad;
 	}
 	ip6 = mtod(m, struct ip6_hdr *);
@@ -512,11 +512,11 @@ rip6_output(struct mbuf *m, struct socket *so, ...)
 
 		/* Compute checksum. */
 		if (so->so_proto->pr_protocol == IPPROTO_ICMPV6)
-			off = offsetof(struct icmp6_hdr, icmp6_cksum);
+			off = vos_offsetof(struct icmp6_hdr, icmp6_cksum);
 		else
 			off = inp->in6p_cksum;
 		if (plen < off + 2) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto bad;
 		}
 		off += sizeof(struct ip6_hdr);
@@ -599,7 +599,7 @@ rip6_ctloutput(struct socket *so, struct sockopt *sopt)
 			INP_WUNLOCK(inp);
 			return (0);
 		}
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	error = 0;
@@ -615,7 +615,7 @@ rip6_ctloutput(struct socket *so, struct sockopt *sopt)
 		case MRT6_DEL_MFC:
 		case MRT6_PIM:
 			error = ip6_mrouter_get ?  ip6_mrouter_get(so, sopt) :
-			    EOPNOTSUPP;
+			    VOS_EOPNOTSUPP;
 			break;
 		case IPV6_CHECKSUM:
 			error = ip6_raw_ctloutput(so, sopt);
@@ -636,7 +636,7 @@ rip6_ctloutput(struct socket *so, struct sockopt *sopt)
 		case MRT6_DEL_MFC:
 		case MRT6_PIM:
 			error = ip6_mrouter_set ?  ip6_mrouter_set(so, sopt) :
-			    EOPNOTSUPP;
+			    VOS_EOPNOTSUPP;
 			break;
 		case IPV6_CHECKSUM:
 			error = ip6_raw_ctloutput(so, sopt);
@@ -667,14 +667,14 @@ rip6_attach(struct socket *so, int proto, struct thread *td)
 	error = soreserve(so, rip_sendspace, rip_recvspace);
 	if (error)
 		return (error);
-	filter = malloc(sizeof(struct icmp6_filter), M_PCB, M_NOWAIT);
+	filter = vos_malloc(sizeof(struct icmp6_filter), M_PCB, M_NOWAIT);
 	if (filter == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	INP_INFO_WLOCK(&V_ripcbinfo);
 	error = in_pcballoc(so, &V_ripcbinfo);
 	if (error) {
 		INP_INFO_WUNLOCK(&V_ripcbinfo);
-		free(filter, M_PCB);
+		vos_free(filter, M_PCB);
 		return (error);
 	}
 	inp = (struct inpcb *)so->so_pcb;
@@ -702,7 +702,7 @@ rip6_detach(struct socket *so)
 	/* xxx: RSVP */
 	INP_INFO_WLOCK(&V_ripcbinfo);
 	INP_WLOCK(inp);
-	free(inp->in6p_icmp6filt, M_PCB);
+	vos_free(inp->in6p_icmp6filt, M_PCB);
 	in_pcbdetach(inp);
 	in_pcbfree(inp);
 	INP_INFO_WUNLOCK(&V_ripcbinfo);
@@ -740,7 +740,7 @@ rip6_disconnect(struct socket *so)
 	KASSERT(inp != NULL, ("rip6_disconnect: inp == NULL"));
 
 	if ((so->so_state & SS_ISCONNECTED) == 0)
-		return (ENOTCONN);
+		return (VOS_ENOTCONN);
 	inp->in6p_faddr = in6addr_any;
 	rip6_abort(so);
 	return (0);
@@ -759,11 +759,11 @@ rip6_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 	KASSERT(inp != NULL, ("rip6_bind: inp == NULL"));
 
 	if (nam->sa_len != sizeof(*addr))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if ((error = prison_check_ip6(td->td_ucred, &addr->sin6_addr)) != 0)
 		return (error);
 	if (CK_STAILQ_EMPTY(&V_ifnet) || addr->sin6_family != AF_INET6)
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	if ((error = sa6_embedscope(addr, V_ip6_use_defzone)) != 0)
 		return (error);
 
@@ -771,14 +771,14 @@ rip6_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 	if (!IN6_IS_ADDR_UNSPECIFIED(&addr->sin6_addr) &&
 	    (ifa = ifa_ifwithaddr((struct sockaddr *)addr)) == NULL) {
 		NET_EPOCH_EXIT(et);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 	if (ifa != NULL &&
 	    ((struct in6_ifaddr *)ifa)->ia6_flags &
 	    (IN6_IFF_ANYCAST|IN6_IFF_NOTREADY|
 	     IN6_IFF_DETACHED|IN6_IFF_DEPRECATED)) {
 		NET_EPOCH_EXIT(et);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 	NET_EPOCH_EXIT(et);
 	INP_INFO_WLOCK(&V_ripcbinfo);
@@ -801,11 +801,11 @@ rip6_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 	KASSERT(inp != NULL, ("rip6_connect: inp == NULL"));
 
 	if (nam->sa_len != sizeof(*addr))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (CK_STAILQ_EMPTY(&V_ifnet))
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	if (addr->sin6_family != AF_INET6)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	/*
 	 * Application should provide a proper zone ID or the use of default
@@ -870,7 +870,7 @@ rip6_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 	if (so->so_state & SS_ISCONNECTED) {
 		if (nam) {
 			m_freem(m);
-			return (EISCONN);
+			return (VOS_EISCONN);
 		}
 		/* XXX */
 		bzero(&tmp, sizeof(tmp));
@@ -884,11 +884,11 @@ rip6_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 	} else {
 		if (nam == NULL) {
 			m_freem(m);
-			return (ENOTCONN);
+			return (VOS_ENOTCONN);
 		}
 		if (nam->sa_len != sizeof(struct sockaddr_in6)) {
 			m_freem(m);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		tmp = *(struct sockaddr_in6 *)nam;
 		dst = &tmp;
@@ -904,7 +904,7 @@ rip6_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 			dst->sin6_family = AF_INET6;
 		} else if (dst->sin6_family != AF_INET6) {
 			m_freem(m);
-			return(EAFNOSUPPORT);
+			return(VOS_EAFNOSUPPORT);
 		}
 	}
 	ret = rip6_output(m, so, dst, control);

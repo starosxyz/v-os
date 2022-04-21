@@ -189,13 +189,13 @@ sys_uuidgen(struct thread *td, struct uuidgen_args *uap)
 	 * XXX probably needs to be tunable.
 	 */
 	if (uap->count < 1 || uap->count > 2048)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	count = uap->count;
-	store = malloc(count * sizeof(struct uuid), M_TEMP, M_WAITOK);
+	store = vos_malloc(count * sizeof(struct uuid), M_TEMP, M_WAITOK);
 	kern_uuidgen(store, count);
 	error = copyout(store, uap->store, count * sizeof(struct uuid));
-	free(store, M_TEMP);
+	vos_free(store, M_TEMP);
 	return (error);
 }
 
@@ -209,12 +209,12 @@ uuid_ether_add(const uint8_t *addr)
 	 * (flag 0x2) and no 'all-zeroes' addresses.
 	 */
 	if (addr[0] & 0x03)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	sum = 0;
 	for (i = 0; i < UUID_NODE_LEN; i++)
 		sum += addr[i];
 	if (sum == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	mtx_lock(&uuid_mutex);
 
@@ -223,13 +223,13 @@ uuid_ether_add(const uint8_t *addr)
 	while (i < UUID_NETHER && uuid_ether[i].state == UUID_ETHER_UNIQUE) {
 		if (!bcmp(addr, uuid_ether[i].node, UUID_NODE_LEN)) {
 			mtx_unlock(&uuid_mutex);
-			return (EEXIST);
+			return (VOS_EEXIST);
 		}
 		i++;
 	}
 	if (i == UUID_NETHER) {
 		mtx_unlock(&uuid_mutex);
-		return (ENOSPC);
+		return (VOS_ENOSPC);
 	}
 
 	/* Insert MAC at index, moving the non-empty entry if possible. */
@@ -253,7 +253,7 @@ uuid_ether_del(const uint8_t *addr)
 		i++;
 	if (i == UUID_NETHER || uuid_ether[i].state != UUID_ETHER_UNIQUE) {
 		mtx_unlock(&uuid_mutex);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	/* Remove it by shifting higher index entries down. */
@@ -395,12 +395,12 @@ validate_uuid(const char *str, size_t size, struct uuid *uuid, int flags)
 			return (0);
 		}
 
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	/* The UUID string representation has a fixed length. */
 	if (size != 36)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * We only work with "new" UUIDs. New UUIDs have the form:
@@ -409,14 +409,14 @@ validate_uuid(const char *str, size_t size, struct uuid *uuid, int flags)
 	 *      0123456789ab.cd.ef.01.23.45.67.89.ab
 	 */
 	if (str[8] != '-')
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Now check the format. */
 	n = sscanf(str, "%8x-%4x-%4x-%2x%2x-%2x%2x%2x%2x%2x%2x", c + 0, c + 1,
 	    c + 2, c + 3, c + 4, c + 5, c + 6, c + 7, c + 8, c + 9, c + 10);
 	/* Make sure we have all conversions. */
 	if (n != 11)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Successful scan. Build the UUID if requested. */
 	if (uuid != NULL) {
@@ -434,7 +434,7 @@ validate_uuid(const char *str, size_t size, struct uuid *uuid, int flags)
 
 	return (((c[3] & 0x80) != 0x00 &&		/* variant 0? */
 	    (c[3] & 0xc0) != 0x80 &&			/* variant 1? */
-	    (c[3] & 0xe0) != 0xc0) ? EINVAL : 0);	/* variant 2? */
+	    (c[3] & 0xe0) != 0xc0) ? VOS_EINVAL : 0);	/* variant 2? */
 }
 
 #define	VUUIDF_PARSEFLAGS	(VUUIDF_EMPTYOK | VUUIDF_CHECKSEMANTICS)
@@ -443,7 +443,7 @@ int
 parse_uuid(const char *str, struct uuid *uuid)
 {
 
-	return (validate_uuid(str, strlen(str), uuid, VUUIDF_PARSEFLAGS));
+	return (validate_uuid(str, vos_strlen(str), uuid, VUUIDF_PARSEFLAGS));
 }
 
 int

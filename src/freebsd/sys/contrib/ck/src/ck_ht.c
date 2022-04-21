@@ -62,17 +62,17 @@
 
 #if defined(CK_F_PR_LOAD_8) && defined(CK_F_PR_STORE_8)
 #define CK_HT_WORD	    uint8_t
-#define CK_HT_WORD_MAX	    UINT8_MAX
+#define CK_HT_WORD_MAX	    VOS_UINT8_MAX
 #define CK_HT_STORE(x, y)   ck_pr_store_8(x, y)
 #define CK_HT_LOAD(x)	    ck_pr_load_8(x)
 #elif defined(CK_F_PR_LOAD_16) && defined(CK_F_PR_STORE_16)
 #define CK_HT_WORD	    uint16_t
-#define CK_HT_WORD_MAX	    UINT16_MAX
+#define CK_HT_WORD_MAX	    VOS_UINT16_MAX
 #define CK_HT_STORE(x, y)   ck_pr_store_16(x, y)
 #define CK_HT_LOAD(x)	    ck_pr_load_16(x)
 #elif defined(CK_F_PR_LOAD_32) && defined(CK_F_PR_STORE_32)
 #define CK_HT_WORD	    uint32_t
-#define CK_HT_WORD_MAX	    UINT32_MAX
+#define CK_HT_WORD_MAX	    VOS_UINT32_MAX
 #define CK_HT_STORE(x, y)   ck_pr_store_32(x, y)
 #define CK_HT_LOAD(x)	    ck_pr_load_32(x)
 #else

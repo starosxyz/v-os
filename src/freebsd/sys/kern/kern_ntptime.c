@@ -184,7 +184,7 @@ MTX_SYSINIT(ntp, &ntp_lock, "ntp", MTX_SPIN);
 #define PPS_MAXWANDER	100000		/* max PPS wander (ns/s) */
 #define PPS_POPCORN	2		/* popcorn spike threshold (shift) */
 
-static struct timespec pps_tf[3];	/* phase median filter */
+static struct vos_timespec pps_tf[3];	/* phase median filter */
 static l_fp pps_freq;			/* scaled frequency offset (ns/s) */
 static long long pps_fcount;			/* frequency accumulator */
 static long long pps_jitter;			/* nominal jitter (ns) */
@@ -252,7 +252,7 @@ ntp_is_time_error(int tsl)
 static void
 ntp_gettime1(struct ntptimeval *ntvp)
 {
-	struct timespec atv;	/* nanosecond time */
+	struct vos_timespec atv;	/* nanosecond time */
 
 	NTP_ASSERT_LOCKED();
 
@@ -771,7 +771,7 @@ long long offset;		/* clock offset (ns) */
  * nsec - hardware counter at PPS
  */
 void
-hardpps(struct timespec *tsp, long nsec)
+hardpps(struct vos_timespec *tsp, long nsec)
 {
 	long long u_sec, u_nsec, v_nsec; /* temps */
 	l_fp ftemp;

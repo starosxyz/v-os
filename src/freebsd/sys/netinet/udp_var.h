@@ -119,7 +119,7 @@ VNET_PCPUSTAT_DECLARE(struct udpstat, udpstat);
  */
 void	kmod_udpstat_inc(int statnum);
 #define	KMOD_UDPSTAT_INC(name)	\
-    kmod_udpstat_inc(offsetof(struct udpstat, name) / sizeof(uint64_t))
+    kmod_udpstat_inc(vos_offsetof(struct udpstat, name) / sizeof(uint64_t))
 #endif
 
 /*

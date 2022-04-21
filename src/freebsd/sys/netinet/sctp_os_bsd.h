@@ -219,17 +219,17 @@ MALLOC_DECLARE(SCTP_M_MCORE);
  */
 #define SCTP_MALLOC(var, type, size, name) \
 	do { \
-		var = (type)malloc(size, name, M_NOWAIT); \
+		var = (type)vos_malloc(size, name, M_NOWAIT); \
 	} while (0)
 
-#define SCTP_FREE(var, type)	free(var, type)
+#define SCTP_FREE(var, type)	vos_free(var, type)
 
 #define SCTP_MALLOC_SONAME(var, type, size) \
 	do { \
-		var = (type)malloc(size, M_SONAME, M_WAITOK | M_ZERO); \
+		var = (type)vos_malloc(size, M_SONAME, M_WAITOK | M_ZERO); \
 	} while (0)
 
-#define SCTP_FREE_SONAME(var)	free(var, M_SONAME)
+#define SCTP_FREE_SONAME(var)	vos_free(var, M_SONAME)
 
 #define SCTP_PROCESS_STRUCT struct proc *
 
@@ -347,7 +347,7 @@ typedef struct callout sctp_os_timer_t;
 #define SCTP_RELEASE_PKT(m)	sctp_m_freem(m)
 #define SCTP_ENABLE_UDP_CSUM(m) do { \
 					m->m_pkthdr.csum_flags = CSUM_UDP; \
-					m->m_pkthdr.csum_data = offsetof(struct udphdr, uh_sum); \
+					m->m_pkthdr.csum_data = vos_offsetof(struct udphdr, uh_sum); \
 				} while (0)
 
 #define SCTP_GET_PKT_VRFID(m, vrf_id)  ((vrf_id = SCTP_DEFAULT_VRFID) != SCTP_DEFAULT_VRFID)

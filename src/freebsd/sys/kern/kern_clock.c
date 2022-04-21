@@ -823,7 +823,7 @@ watchdog_fire(void)
 	while (--nintr >= 0) {
 		if (*curintr)
 			printf("%-12s %20lu\n", curname, *curintr);
-		curname += strlen(curname) + 1;
+		curname += vos_strlen(curname) + 1;
 		inttotal += *curintr++;
 	}
 	printf("Total        %20ju\n", (uintmax_t)inttotal);

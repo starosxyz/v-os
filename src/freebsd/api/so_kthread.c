@@ -30,7 +30,6 @@ static void context_init_thread_kthread(void* p)
 	newtd->td_state = TDS_RUNNING;
 	pcurthread = newtd;
 	thread_unlock(newtd);
-	return (0);
 }
 static int
 kthread_add_(void (*func)(void*), void* arg, struct proc* p,
@@ -49,7 +48,7 @@ kthread_add_(void (*func)(void*), void* arg, struct proc* p,
 	/* Initialize our new td  */
 	newtd = thread_alloc(pages);
 	if (newtd == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	PROC_LOCK(p);
 	oldtd = FIRST_THREAD_IN_PROC(p);

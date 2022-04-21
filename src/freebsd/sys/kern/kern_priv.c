@@ -132,7 +132,7 @@ priv_check_cred_post(struct ucred *cred, int priv, int error, bool handled)
 	 * The default is deny, so if no policies have granted it, reject
 	 * with a privilege error here.
 	 */
-	error = EPERM;
+	error = VOS_EPERM;
 out:
 	if (SDT_PROBES_ENABLED()) {
 		if (error)
@@ -305,7 +305,7 @@ priv_check_cred_vfs_lookup(struct ucred *cred)
 	    mac_priv_grant_fp_flag || SDT_PROBES_ENABLED()))
 		return (priv_check_cred_vfs_lookup_slow(cred));
 
-	error = EPERM;
+	error = VOS_EPERM;
 	if (cred->cr_uid == 0 && suser_enabled(cred))
 		error = 0;
 	return (error);
@@ -318,9 +318,9 @@ priv_check_cred_vfs_lookup_nomac(struct ucred *cred)
 
 	if (__predict_false(mac_priv_check_fp_flag ||
 	    mac_priv_grant_fp_flag || SDT_PROBES_ENABLED()))
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 
-	error = EPERM;
+	error = VOS_EPERM;
 	if (cred->cr_uid == 0 && suser_enabled(cred))
 		error = 0;
 	return (error);
@@ -336,7 +336,7 @@ priv_check_cred_vfs_generation_slow(struct ucred *cred)
 		goto out;
 
 	if (jailed(cred)) {
-		error = EPERM;
+		error = VOS_EPERM;
 		goto out;
 	}
 
@@ -360,7 +360,7 @@ priv_check_cred_vfs_generation(struct ucred *cred)
 	    mac_priv_grant_fp_flag || SDT_PROBES_ENABLED()))
 		return (priv_check_cred_vfs_generation_slow(cred));
 
-	error = EPERM;
+	error = VOS_EPERM;
 	if (!jailed(cred) && cred->cr_uid == 0 && suser_enabled(cred))
 		error = 0;
 	return (error);

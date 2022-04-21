@@ -148,7 +148,7 @@ raw_uclose(struct socket *so)
 	soisdisconnected(so);
 }
 
-/* pru_accept is EOPNOTSUPP */
+/* pru_accept is VOS_EOPNOTSUPP */
 
 static int
 raw_uattach(struct socket *so, int proto, struct thread *td)
@@ -173,18 +173,18 @@ static int
 raw_ubind(struct socket *so, struct sockaddr *nam, struct thread *td)
 {
 
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 static int
 raw_uconnect(struct socket *so, struct sockaddr *nam, struct thread *td)
 {
 
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
-/* pru_connect2 is EOPNOTSUPP */
-/* pru_control is EOPNOTSUPP */
+/* pru_connect2 is VOS_EOPNOTSUPP */
+/* pru_control is VOS_EOPNOTSUPP */
 
 static void
 raw_udetach(struct socket *so)
@@ -202,10 +202,10 @@ raw_udisconnect(struct socket *so)
 
 	KASSERT(sotorawcb(so) != NULL, ("raw_udisconnect: rp == NULL"));
 
-	return (ENOTCONN);
+	return (VOS_ENOTCONN);
 }
 
-/* pru_listen is EOPNOTSUPP */
+/* pru_listen is VOS_EOPNOTSUPP */
 
 static int
 raw_upeeraddr(struct socket *so, struct sockaddr **nam)
@@ -213,11 +213,11 @@ raw_upeeraddr(struct socket *so, struct sockaddr **nam)
 
 	KASSERT(sotorawcb(so) != NULL, ("raw_upeeraddr: rp == NULL"));
 
-	return (ENOTCONN);
+	return (VOS_ENOTCONN);
 }
 
-/* pru_rcvd is EOPNOTSUPP */
-/* pru_rcvoob is EOPNOTSUPP */
+/* pru_rcvd is VOS_EOPNOTSUPP */
+/* pru_rcvoob is VOS_EOPNOTSUPP */
 
 static int
 raw_usend(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
@@ -231,7 +231,7 @@ raw_usend(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 			m_freem(m);
 		if (control != NULL)
 			m_freem(control);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	/*
@@ -259,7 +259,7 @@ raw_usockaddr(struct socket *so, struct sockaddr **nam)
 
 	KASSERT(sotorawcb(so) != NULL, ("raw_usockaddr: rp == NULL"));
 
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 struct pr_usrreqs raw_usrreqs = {

@@ -165,10 +165,10 @@ vfs_freeopt(struct vfsoptlist *opts, struct vfsopt *opt)
 {
 
 	TAILQ_REMOVE(opts, opt, link);
-	free(opt->name, M_MOUNT);
+	vos_free(opt->name, M_MOUNT);
 	if (opt->value != NULL)
-		free(opt->value, M_MOUNT);
-	free(opt, M_MOUNT);
+		vos_free(opt->value, M_MOUNT);
+	vos_free(opt, M_MOUNT);
 }
 
 /* Release all resources related to the mount options. */
@@ -181,7 +181,7 @@ vfs_freeopts(struct vfsoptlist *opts)
 		opt = TAILQ_FIRST(opts);
 		vfs_freeopt(opts, opt);
 	}
-	free(opts, M_MOUNT);
+	vos_free(opts, M_MOUNT);
 }
 
 void
@@ -228,20 +228,20 @@ vfs_equalopts(const char *opt1, const char *opt2)
 	if (strcmp(opt1, opt2) == 0)
 		return (1);
 	/* "noopt" vs. "opt" */
-	if (strncmp(opt1, "no", 2) == 0 && strcmp(opt1 + 2, opt2) == 0)
+	if (vos_strncmp(opt1, "no", 2) == 0 && strcmp(opt1 + 2, opt2) == 0)
 		return (1);
 	/* "opt" vs. "noopt" */
-	if (strncmp(opt2, "no", 2) == 0 && strcmp(opt1, opt2 + 2) == 0)
+	if (vos_strncmp(opt2, "no", 2) == 0 && strcmp(opt1, opt2 + 2) == 0)
 		return (1);
 	while ((p = strchr(opt1, '.')) != NULL &&
-	    !strncmp(opt1, opt2, ++p - opt1)) {
+	    !vos_strncmp(opt1, opt2, ++p - opt1)) {
 		opt2 += p - opt1;
 		opt1 = p;
 		/* "foo.noopt" vs. "foo.opt" */
-		if (strncmp(opt1, "no", 2) == 0 && strcmp(opt1 + 2, opt2) == 0)
+		if (vos_strncmp(opt1, "no", 2) == 0 && strcmp(opt1 + 2, opt2) == 0)
 			return (1);
 		/* "foo.opt" vs. "foo.noopt" */
-		if (strncmp(opt2, "no", 2) == 0 && strcmp(opt1, opt2 + 2) == 0)
+		if (vos_strncmp(opt2, "no", 2) == 0 && strcmp(opt1, opt2 + 2) == 0)
 			return (1);
 	}
 	/* "ro" / "rdonly" / "norw" / "rw" / "noro" */
@@ -287,7 +287,7 @@ vfs_buildopts(struct uio *auio, struct vfsoptlist **options)
 	unsigned int i, iovcnt;
 	int error;
 
-	opts = malloc(sizeof(struct vfsoptlist), M_MOUNT, M_WAITOK);
+	opts = vos_malloc(sizeof(struct vfsoptlist), M_MOUNT, M_WAITOK);
 	TAILQ_INIT(opts);
 	memused = 0;
 	iovcnt = auio->uio_iovcnt;
@@ -302,12 +302,12 @@ vfs_buildopts(struct uio *auio, struct vfsoptlist **options)
 		if (memused > VFS_MOUNTARG_SIZE_MAX ||
 		    optlen > VFS_MOUNTARG_SIZE_MAX ||
 		    namelen > VFS_MOUNTARG_SIZE_MAX) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto bad;
 		}
 
-		opt = malloc(sizeof(struct vfsopt), M_MOUNT, M_WAITOK);
-		opt->name = malloc(namelen, M_MOUNT, M_WAITOK);
+		opt = vos_malloc(sizeof(struct vfsopt), M_MOUNT, M_WAITOK);
+		opt->name = vos_malloc(namelen, M_MOUNT, M_WAITOK);
 		opt->value = NULL;
 		opt->len = 0;
 		opt->pos = i / 2;
@@ -329,12 +329,12 @@ vfs_buildopts(struct uio *auio, struct vfsoptlist **options)
 		}
 		/* Ensure names are null-terminated strings. */
 		if (namelen == 0 || opt->name[namelen - 1] != '\0') {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto bad;
 		}
 		if (optlen != 0) {
 			opt->len = optlen;
-			opt->value = malloc(optlen, M_MOUNT, M_WAITOK);
+			opt->value = vos_malloc(optlen, M_MOUNT, M_WAITOK);
 			if (auio->uio_segflg == UIO_SYSSPACE) {
 				bcopy(auio->uio_iov[i + 1].iov_base, opt->value,
 				    optlen);
@@ -368,10 +368,10 @@ vfs_mergeopts(struct vfsoptlist *toopts, struct vfsoptlist *oldopts)
 	struct vfsopt *opt, *new;
 
 	TAILQ_FOREACH(opt, oldopts, link) {
-		new = malloc(sizeof(struct vfsopt), M_MOUNT, M_WAITOK);
-		new->name = strdup(opt->name, M_MOUNT);
+		new = vos_malloc(sizeof(struct vfsopt), M_MOUNT, M_WAITOK);
+		new->name = vos_strdup(opt->name, M_MOUNT);
 		if (opt->len != 0) {
-			new->value = malloc(opt->len, M_MOUNT, M_WAITOK);
+			new->value = vos_malloc(opt->len, M_MOUNT, M_WAITOK);
 			bcopy(opt->value, new->value, opt->len);
 		} else
 			new->value = NULL;
@@ -428,7 +428,7 @@ sys_nmount(struct thread *td, struct nmount_args *uap)
 	if ((iovcnt & 1) || (iovcnt < 4)) {
 		CTR2(KTR_VFS, "%s: failed for invalid iovcnt %d", __func__,
 		    uap->iovcnt);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	error = copyinuio(uap->iovp, iovcnt, &auio);
@@ -439,7 +439,7 @@ sys_nmount(struct thread *td, struct nmount_args *uap)
 	}
 	error = vfs_donmount(td, flags, auio);
 
-	free(auio, M_IOV);
+	vos_free(auio, M_IOV);
 	return (error);
 }
 
@@ -516,11 +516,11 @@ vfs_mount_alloc(struct vnode *vp, struct vfsconf *vfsp, const char *fspath,
 	mp->mnt_vfc = vfsp;
 	mp->mnt_stat.f_type = vfsp->vfc_typenum;
 	mp->mnt_gen++;
-	strlcpy(mp->mnt_stat.f_fstypename, vfsp->vfc_name, MFSNAMELEN);
+	vos_strlcpy(mp->mnt_stat.f_fstypename, vfsp->vfc_name, MFSNAMELEN);
 	mp->mnt_vnodecovered = vp;
 	mp->mnt_cred = crdup(cred);
 	mp->mnt_stat.f_owner = cred->cr_uid;
-	strlcpy(mp->mnt_stat.f_mntonname, fspath, MNAMELEN);
+	vos_strlcpy(mp->mnt_stat.f_mntonname, fspath, MNAMELEN);
 	mp->mnt_iosize_max = DFLTPHYS;
 #ifdef MAC
 	mac_mount_init(mp);
@@ -605,9 +605,9 @@ vfs_should_downgrade_to_ro_mount(uint64_t fsflags, int error)
 		return (false);
 
 	switch (error) {
-	case ENODEV:	/* generic, geom, ... */
-	case EACCES:	/* cam/scsi, ... */
-	case EROFS:	/* md, mmcsd, ... */
+	case VOS_ENODEV:	/* generic, geom, ... */
+	case VOS_EACCES:	/* cam/scsi, ... */
+	case VOS_EROFS:	/* md, mmcsd, ... */
 		/*
 		 * These errors can be returned by the storage layer to signal
 		 * that the media is read-only.  No harm in the R/O mount
@@ -648,17 +648,17 @@ vfs_donmount(struct thread *td, uint64_t fsflags, struct uio *fsoptions)
 	fstypelen = 0;
 	error = vfs_getopt(optlist, "fstype", (void **)&fstype, &fstypelen);
 	if (error || fstypelen <= 0 || fstype[fstypelen - 1] != '\0') {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		if (errmsg != NULL)
-			strncpy(errmsg, "Invalid fstype", errmsg_len);
+			vos_strncpy(errmsg, "Invalid fstype", errmsg_len);
 		goto bail;
 	}
 	fspathlen = 0;
 	error = vfs_getopt(optlist, "fspath", (void **)&fspath, &fspathlen);
 	if (error || fspathlen <= 0 || fspath[fspathlen - 1] != '\0') {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		if (errmsg != NULL)
-			strncpy(errmsg, "Invalid fspath", errmsg_len);
+			vos_strncpy(errmsg, "Invalid fspath", errmsg_len);
 		goto bail;
 	}
 
@@ -692,38 +692,38 @@ vfs_donmount(struct thread *td, uint64_t fsflags, struct uio *fsoptions)
 		else if (strcmp(opt->name, "noatime") == 0)
 			fsflags |= MNT_NOATIME;
 		else if (strcmp(opt->name, "atime") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("nonoatime", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("nonoatime", M_MOUNT);
 		}
 		else if (strcmp(opt->name, "noclusterr") == 0)
 			fsflags |= MNT_NOCLUSTERR;
 		else if (strcmp(opt->name, "clusterr") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("nonoclusterr", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("nonoclusterr", M_MOUNT);
 		}
 		else if (strcmp(opt->name, "noclusterw") == 0)
 			fsflags |= MNT_NOCLUSTERW;
 		else if (strcmp(opt->name, "clusterw") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("nonoclusterw", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("nonoclusterw", M_MOUNT);
 		}
 		else if (strcmp(opt->name, "noexec") == 0)
 			fsflags |= MNT_NOEXEC;
 		else if (strcmp(opt->name, "exec") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("nonoexec", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("nonoexec", M_MOUNT);
 		}
 		else if (strcmp(opt->name, "nosuid") == 0)
 			fsflags |= MNT_NOSUID;
 		else if (strcmp(opt->name, "suid") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("nonosuid", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("nonosuid", M_MOUNT);
 		}
 		else if (strcmp(opt->name, "nosymfollow") == 0)
 			fsflags |= MNT_NOSYMFOLLOW;
 		else if (strcmp(opt->name, "symfollow") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("nonosymfollow", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("nonosymfollow", M_MOUNT);
 		}
 		else if (strcmp(opt->name, "noro") == 0) {
 			fsflags &= ~MNT_RDONLY;
@@ -738,8 +738,8 @@ vfs_donmount(struct thread *td, uint64_t fsflags, struct uio *fsoptions)
 			autoro = false;
 		}
 		else if (strcmp(opt->name, "rdonly") == 0) {
-			free(opt->name, M_MOUNT);
-			opt->name = strdup("ro", M_MOUNT);
+			vos_free(opt->name, M_MOUNT);
+			opt->name = vos_strdup("ro", M_MOUNT);
 			fsflags |= MNT_RDONLY;
 			autoro = false;
 		}
@@ -779,7 +779,7 @@ vfs_donmount(struct thread *td, uint64_t fsflags, struct uio *fsoptions)
 	 * terminating NUL.
 	 */
 	if (fstypelen > MFSNAMELEN || fspathlen > MNAMELEN) {
-		error = ENAMETOOLONG;
+		error = VOS_ENAMETOOLONG;
 		goto bail;
 	}
 
@@ -856,23 +856,23 @@ sys_mount(struct thread *td, struct mount_args *uap)
 	 */
 	flags &= ~MNT_ROOTFS;
 
-	fstype = malloc(MFSNAMELEN, M_TEMP, M_WAITOK);
+	fstype = vos_malloc(MFSNAMELEN, M_TEMP, M_WAITOK);
 	error = copyinstr(uap->type, fstype, MFSNAMELEN, NULL);
 	if (error) {
-		free(fstype, M_TEMP);
+		vos_free(fstype, M_TEMP);
 		return (error);
 	}
 
 	AUDIT_ARG_TEXT(fstype);
 	vfsp = vfs_byname_kld(fstype, td, &error);
-	free(fstype, M_TEMP);
+	vos_free(fstype, M_TEMP);
 	if (vfsp == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 	if (((vfsp->vfc_flags & VFCF_SBDRY) != 0 &&
 	    vfsp->vfc_vfsops_sd->vfs_cmount == NULL) ||
 	    ((vfsp->vfc_flags & VFCF_SBDRY) == 0 &&
 	    vfsp->vfc_vfsops->vfs_cmount == NULL))
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	ma = mount_argsu(ma, "fstype", uap->type, MFSNAMELEN);
 	ma = mount_argsu(ma, "fspath", uap->path, MNAMELEN);
@@ -938,8 +938,8 @@ vfs_domount(
 	 * variables will fit in our mp buffers, including the
 	 * terminating NUL.
 	 */
-	if (strlen(fstype) >= MFSNAMELEN || strlen(fspath) >= MNAMELEN)
-		return (ENAMETOOLONG);
+	if (vos_strlen(fstype) >= MFSNAMELEN || vos_strlen(fspath) >= MNAMELEN)
+		return (VOS_ENAMETOOLONG);
 
 	if (jailed(td->td_ucred) || usermount == 0) {
 		if ((error = priv_check(td, PRIV_VFS_MOUNT)) != 0)
@@ -976,7 +976,7 @@ vfs_domount(
 		else
 			vfsp = vfs_byname_kld(fstype, td, &error);
 		if (vfsp == NULL)
-			return (ENODEV);
+			return (VOS_ENODEV);
 	}
 
 	/*
@@ -993,16 +993,16 @@ vfs_domount(
 		if ((vp->v_vflag & VV_ROOT) != 0 &&
 		    (fsflags & MNT_NOCOVER) != 0) {
 			vput(vp);
-			return (EBUSY);
+			return (VOS_EBUSY);
 		}
-		pathbuf = malloc(MNAMELEN, M_TEMP, M_WAITOK);
-		strcpy(pathbuf, fspath);
+		pathbuf = vos_malloc(MNAMELEN, M_TEMP, M_WAITOK);
+		vos_strcpy(pathbuf, fspath);
 		error = vn_path_to_global_path(td, vp, pathbuf, MNAMELEN);
 		if (error == 0) {
 			error = vfs_domount_first(td, vfsp, pathbuf, vp,
 			    fsflags, optlist);
 		}
-		free(pathbuf, M_TEMP);
+		vos_free(pathbuf, M_TEMP);
 	} else
 		error = vfs_domount_update(td, vp, fsflags, optlist);
 
@@ -1044,18 +1044,18 @@ kern_unmount(struct thread *td, const char *path, int flags)
 			return (error);
 	}
 
-	pathbuf = malloc(MNAMELEN, M_TEMP, M_WAITOK);
+	pathbuf = vos_malloc(MNAMELEN, M_TEMP, M_WAITOK);
 	error = copyinstr(path, pathbuf, MNAMELEN, NULL);
 	if (error) {
-		free(pathbuf, M_TEMP);
+		vos_free(pathbuf, M_TEMP);
 		return (error);
 	}
 	if (flags & MNT_BYFSID) {
 		AUDIT_ARG_TEXT(pathbuf);
 		/* Decode the filesystem ID. */
 		if (sscanf(pathbuf, "FSID:%d:%d", &id0, &id1) != 2) {
-			free(pathbuf, M_TEMP);
-			return (EINVAL);
+			vos_free(pathbuf, M_TEMP);
+			return (VOS_EINVAL);
 		}
 
 		mtx_lock(&mountlist_mtx);
@@ -1089,15 +1089,15 @@ kern_unmount(struct thread *td, const char *path, int flags)
 		}
 		mtx_unlock(&mountlist_mtx);
 	}
-	free(pathbuf, M_TEMP);
+	vos_free(pathbuf, M_TEMP);
 	if (mp == NULL) {
 		/*
-		 * Previously we returned ENOENT for a nonexistent path and
-		 * EINVAL for a non-mountpoint.  We cannot tell these apart
+		 * Previously we returned VOS_ENOENT for a nonexistent path and
+		 * VOS_EINVAL for a non-mountpoint.  We cannot tell these apart
 		 * now, so in the !MNT_BYFSID case return the more likely
-		 * EINVAL for compatibility.
+		 * VOS_EINVAL for compatibility.
 		 */
-		return ((flags & MNT_BYFSID) ? ENOENT : EINVAL);
+		return ((flags & MNT_BYFSID) ? VOS_ENOENT : VOS_EINVAL);
 	}
 
 	/*
@@ -1105,7 +1105,7 @@ kern_unmount(struct thread *td, const char *path, int flags)
 	 */
 	if (mp->mnt_flag & MNT_ROOTFS) {
 		vfs_rel(mp);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	error = dounmount(mp, flags, td);
 	return (error);
@@ -1128,7 +1128,7 @@ vfs_check_usecounts(struct mount *mp)
 		    vp->v_usecount != 0) {
 			VI_UNLOCK(vp);
 			MNT_VNODE_FOREACH_ALL_ABORT(mp, mvp);
-			return (EBUSY);
+			return (VOS_EBUSY);
 		}
 		VI_UNLOCK(vp);
 	}
@@ -1440,12 +1440,12 @@ vfs_filteropt(struct vfsoptlist *opts, const char **legal)
 			continue;
 		snprintf(errmsg, sizeof(errmsg),
 		    "mount option <%s> is unknown", p);
-		ret = EINVAL;
+		ret = VOS_EINVAL;
 	}
 	if (ret != 0) {
 		TAILQ_FOREACH(opt, opts, link) {
 			if (strcmp(opt->name, "errmsg") == 0) {
-				strncpy((char *)opt->value, errmsg, opt->len);
+				vos_strncpy((char *)opt->value, errmsg, opt->len);
 				break;
 			}
 		}
@@ -1458,7 +1458,7 @@ vfs_filteropt(struct vfsoptlist *opts, const char **legal)
 /*
  * Get a mount option by its name.
  *
- * Return 0 if the option was found, ENOENT otherwise.
+ * Return 0 if the option was found, VOS_ENOENT otherwise.
  * If len is non-NULL it will be filled with the length
  * of the option. If buf is non-NULL, it will be filled
  * with the address of the option.
@@ -1480,7 +1480,7 @@ vfs_getopt(struct vfsoptlist *opts, const char *name, void **buf, int *len)
 			return (0);
 		}
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 int
@@ -1511,14 +1511,14 @@ vfs_getopt_size(struct vfsoptlist *opts, const char *name, off_t *value)
 	if (error != 0)
 		return (error);
 	if (opt_len == 0 || opt_value == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (opt_value[0] == '\0' || opt_value[opt_len - 1] != '\0')
-		return (EINVAL);
+		return (VOS_EINVAL);
 	iv = strtoq(opt_value, &vtp, 0);
 	if (vtp == opt_value || (vtp[0] != '\0' && vtp[1] != '\0'))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (iv < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	switch (vtp[0]) {
 	case 't': case 'T':
 		iv *= 1024;
@@ -1534,7 +1534,7 @@ vfs_getopt_size(struct vfsoptlist *opts, const char *name, off_t *value)
 	case '\0':
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	*value = iv;
 
@@ -1553,12 +1553,12 @@ vfs_getopts(struct vfsoptlist *opts, const char *name, int *error)
 		opt->seen = 1;
 		if (opt->len == 0 ||
 		    ((char *)opt->value)[opt->len - 1] != '\0') {
-			*error = EINVAL;
+			*error = VOS_EINVAL;
 			return (NULL);
 		}
 		return (opt->value);
 	}
-	*error = ENOENT;
+	*error = VOS_ENOENT;
 	return (NULL);
 }
 
@@ -1619,12 +1619,12 @@ vfs_setopt(struct vfsoptlist *opts, const char *name, void *value, int len)
 			opt->len = len;
 		else {
 			if (opt->len != len)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			bcopy(value, opt->value, len);
 		}
 		return (0);
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 int
@@ -1640,13 +1640,13 @@ vfs_setopt_part(struct vfsoptlist *opts, const char *name, void *value, int len)
 			opt->len = len;
 		else {
 			if (opt->len < len)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			opt->len = len;
 			bcopy(value, opt->value, len);
 		}
 		return (0);
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 int
@@ -1659,12 +1659,12 @@ vfs_setopts(struct vfsoptlist *opts, const char *name, const char *value)
 			continue;
 		opt->seen = 1;
 		if (opt->value == NULL)
-			opt->len = strlen(value) + 1;
-		else if (strlcpy(opt->value, value, opt->len) >= opt->len)
-			return (EINVAL);
+			opt->len = vos_strlen(value) + 1;
+		else if (vos_strlcpy(opt->value, value, opt->len) >= opt->len)
+			return (VOS_EINVAL);
 		return (0);
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 /*
@@ -1672,8 +1672,8 @@ vfs_setopts(struct vfsoptlist *opts, const char *name, const char *value)
  *
  * The size of the buffer has to be specified
  * in len, if it is not the same length as the
- * mount option, EINVAL is returned.
- * Returns ENOENT if the option is not found.
+ * mount option, VOS_EINVAL is returned.
+ * Returns VOS_ENOENT if the option is not found.
  */
 int
 vfs_copyopt(struct vfsoptlist *opts, const char *name, void *dest, int len)
@@ -1686,12 +1686,12 @@ vfs_copyopt(struct vfsoptlist *opts, const char *name, void *dest, int len)
 		if (strcmp(name, opt->name) == 0) {
 			opt->seen = 1;
 			if (len != opt->len)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			bcopy(opt->value, dest, opt->len);
 			return (0);
 		}
 	}
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 int
@@ -1720,7 +1720,7 @@ vfs_mountedfrom(struct mount *mp, const char *from)
 {
 
 	bzero(mp->mnt_stat.f_mntfromname, sizeof mp->mnt_stat.f_mntfromname);
-	strlcpy(mp->mnt_stat.f_mntfromname, from,
+	vos_strlcpy(mp->mnt_stat.f_mntfromname, from,
 	    sizeof mp->mnt_stat.f_mntfromname);
 }
 
@@ -1776,16 +1776,16 @@ mount_argf(struct mntarg *ma, const char *name, const char *fmt, ...)
 	int len;
 
 	if (ma == NULL) {
-		ma = malloc(sizeof *ma, M_MOUNT, M_WAITOK | M_ZERO);
+		ma = vos_malloc(sizeof *ma, M_MOUNT, M_WAITOK | M_ZERO);
 		SLIST_INIT(&ma->list);
 	}
 	if (ma->error)
 		return (ma);
 
-	ma->v = realloc(ma->v, sizeof *ma->v * (ma->len + 2),
+	ma->v = vos_realloc(ma->v, sizeof *ma->v * (ma->len + 2),
 	    M_MOUNT, M_WAITOK);
 	ma->v[ma->len].iov_base = (void *)(uintptr_t)name;
-	ma->v[ma->len].iov_len = strlen(name) + 1;
+	ma->v[ma->len].iov_len = vos_strlen(name) + 1;
 	ma->len++;
 
 	sb = sbuf_new_auto();
@@ -1794,7 +1794,7 @@ mount_argf(struct mntarg *ma, const char *name, const char *fmt, ...)
 	va_end(ap);
 	sbuf_finish(sb);
 	len = sbuf_len(sb) + 1;
-	maa = malloc(sizeof *maa + len, M_MOUNT, M_WAITOK | M_ZERO);
+	maa = vos_malloc(sizeof *maa + len, M_MOUNT, M_WAITOK | M_ZERO);
 	SLIST_INSERT_HEAD(&ma->list, maa, next);
 	bcopy(sbuf_data(sb), maa + 1, len);
 	sbuf_delete(sb);
@@ -1818,12 +1818,12 @@ mount_argsu(struct mntarg *ma, const char *name, const void *val, int len)
 	if (val == NULL)
 		return (ma);
 	if (ma == NULL) {
-		ma = malloc(sizeof *ma, M_MOUNT, M_WAITOK | M_ZERO);
+		ma = vos_malloc(sizeof *ma, M_MOUNT, M_WAITOK | M_ZERO);
 		SLIST_INIT(&ma->list);
 	}
 	if (ma->error)
 		return (ma);
-	maa = malloc(sizeof *maa + len, M_MOUNT, M_WAITOK | M_ZERO);
+	maa = vos_malloc(sizeof *maa + len, M_MOUNT, M_WAITOK | M_ZERO);
 	SLIST_INSERT_HEAD(&ma->list, maa, next);
 	tbuf = (void *)(maa + 1);
 	ma->error = copyinstr(val, tbuf, len, NULL);
@@ -1840,21 +1840,21 @@ mount_arg(struct mntarg *ma, const char *name, const void *val, int len)
 {
 
 	if (ma == NULL) {
-		ma = malloc(sizeof *ma, M_MOUNT, M_WAITOK | M_ZERO);
+		ma = vos_malloc(sizeof *ma, M_MOUNT, M_WAITOK | M_ZERO);
 		SLIST_INIT(&ma->list);
 	}
 	if (ma->error)
 		return (ma);
 
-	ma->v = realloc(ma->v, sizeof *ma->v * (ma->len + 2),
+	ma->v = vos_realloc(ma->v, sizeof *ma->v * (ma->len + 2),
 	    M_MOUNT, M_WAITOK);
 	ma->v[ma->len].iov_base = (void *)(uintptr_t)name;
-	ma->v[ma->len].iov_len = strlen(name) + 1;
+	ma->v[ma->len].iov_len = vos_strlen(name) + 1;
 	ma->len++;
 
 	ma->v[ma->len].iov_base = (void *)(uintptr_t)val;
 	if (len < 0)
-		ma->v[ma->len].iov_len = strlen(val) + 1;
+		ma->v[ma->len].iov_len = vos_strlen(val) + 1;
 	else
 		ma->v[ma->len].iov_len = len;
 	ma->len++;
@@ -1872,10 +1872,10 @@ free_mntarg(struct mntarg *ma)
 	while (!SLIST_EMPTY(&ma->list)) {
 		maa = SLIST_FIRST(&ma->list);
 		SLIST_REMOVE_HEAD(&ma->list, next);
-		free(maa, M_MOUNT);
+		vos_free(maa, M_MOUNT);
 	}
-	free(ma->v, M_MOUNT);
-	free(ma, M_MOUNT);
+	vos_free(ma->v, M_MOUNT);
+	vos_free(ma, M_MOUNT);
 }
 
 /*
@@ -1964,7 +1964,7 @@ mount_devctl_event(const char *type, struct mount *mp, bool donew)
 	struct statfs *sfp = &mp->mnt_stat;
 	char *buf;
 
-	buf = malloc(DEVCTL_LEN, M_MOUNT, M_NOWAIT);
+	buf = vos_malloc(DEVCTL_LEN, M_MOUNT, M_NOWAIT);
 	if (buf == NULL)
 		return;
 	sbuf_new(&sb, buf, DEVCTL_LEN, SBUF_FIXEDLEN);
@@ -1994,7 +1994,7 @@ mount_devctl_event(const char *type, struct mount *mp, bool donew)
 	if (sbuf_error(&sb) == 0)
 		devctl_notify("VFS", "FS", type, sbuf_data(&sb));
 	sbuf_delete(&sb);
-	free(buf, M_MOUNT);
+	vos_free(buf, M_MOUNT);
 }
 
 /*

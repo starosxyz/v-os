@@ -46,7 +46,7 @@ __FBSDID("$FreeBSD$");
  * context.  The next field is uc_link; we want to avoid destroying the link
  * when copying out contexts.
  */
-#define	UC_COPY_SIZE	offsetof(ucontext_t, uc_link)
+#define	UC_COPY_SIZE	vos_offsetof(ucontext_t, uc_link)
 
 #ifndef _SYS_SYSPROTO_H_
 struct getcontext_args {
@@ -68,7 +68,7 @@ sys_getcontext(struct thread *td, struct getcontext_args *uap)
 	int ret;
 
 	if (uap->ucp == NULL)
-		ret = EINVAL;
+		ret = VOS_EINVAL;
 	else {
 		bzero(&uc, sizeof(ucontext_t));
 		get_mcontext(td, &uc.uc_mcontext, GET_MC_CLEAR_RET);
@@ -87,7 +87,7 @@ sys_setcontext(struct thread *td, struct setcontext_args *uap)
 	int ret;
 
 	if (uap->ucp == NULL)
-		ret = EINVAL;
+		ret = VOS_EINVAL;
 	else {
 		ret = copyin(uap->ucp, &uc, UC_COPY_SIZE);
 		if (ret == 0) {
@@ -98,7 +98,7 @@ sys_setcontext(struct thread *td, struct setcontext_args *uap)
 			}
 		}
 	}
-	return (ret == 0 ? EJUSTRETURN : ret);
+	return (ret == 0 ? VOS_EJUSTRETURN : ret);
 }
 
 int
@@ -108,7 +108,7 @@ sys_swapcontext(struct thread *td, struct swapcontext_args *uap)
 	int ret;
 
 	if (uap->oucp == NULL || uap->ucp == NULL)
-		ret = EINVAL;
+		ret = VOS_EINVAL;
 	else {
 		bzero(&uc, sizeof(ucontext_t));
 		get_mcontext(td, &uc.uc_mcontext, GET_MC_CLEAR_RET);
@@ -127,5 +127,5 @@ sys_swapcontext(struct thread *td, struct swapcontext_args *uap)
 			}
 		}
 	}
-	return (ret == 0 ? EJUSTRETURN : ret);
+	return (ret == 0 ? VOS_EJUSTRETURN : ret);
 }

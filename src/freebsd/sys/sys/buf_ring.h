@@ -88,7 +88,7 @@ buf_ring_enqueue(struct buf_ring *br, void *buf)
 			    cons_tail == br->br_cons_tail) {
 				br->br_drops++;
 				critical_exit();
-				return (ENOBUFS);
+				return (VOS_ENOBUFS);
 			}
 			continue;
 		}

@@ -94,7 +94,7 @@ int
 kobj_error_method(void)
 {
 
-	return ENXIO;
+	return VOS_ENXIO;
 }
 
 static void
@@ -133,9 +133,9 @@ kobj_class_compile1(kobj_class_t cls, int mflags)
 
 	KOBJ_ASSERT(MA_NOTOWNED);
 
-	ops = malloc(sizeof(struct kobj_ops), M_KOBJ, mflags);
+	ops = vos_malloc(sizeof(struct kobj_ops), M_KOBJ, mflags);
 	if (ops == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	/*
 	 * We may have lost a race for kobj_class_compile here - check
@@ -145,7 +145,7 @@ kobj_class_compile1(kobj_class_t cls, int mflags)
 	KOBJ_LOCK();
 	if (cls->ops) {
 		KOBJ_UNLOCK();
-		free(ops, M_KOBJ);
+		vos_free(ops, M_KOBJ);
 		return (0);
 	}
 	kobj_class_compile_common(cls, ops);
@@ -257,7 +257,7 @@ kobj_class_free(kobj_class_t cls)
 	KOBJ_UNLOCK();
 
 	if (ops)
-		free(ops, M_KOBJ);
+		vos_free(ops, M_KOBJ);
 }
 
 static void
@@ -296,11 +296,11 @@ kobj_create(kobj_class_t cls, struct malloc_type* mtype, int mflags)
 {
 	kobj_t obj;
 
-	obj = malloc(cls->size, mtype, mflags | M_ZERO);
+	obj = vos_malloc(cls->size, mtype, mflags | M_ZERO);
 	if (obj == NULL)
 		return (NULL);
 	if (kobj_init1(obj, cls, mflags) != 0) {
-		free(obj, mtype);
+		vos_free(obj, mtype);
 		return (NULL);
 	}
 	return (obj);
@@ -348,5 +348,5 @@ kobj_delete(kobj_t obj, struct malloc_type* mtype)
 
 	obj->ops = NULL;
 	if (mtype)
-		free(obj, mtype);
+		vos_free(obj, mtype);
 }

@@ -251,7 +251,7 @@ sys_sigreturn(struct thread* td, struct sigreturn_args* uap)
 	if ((ucp->uc_mcontext.mc_flags & ~_MC_FLAG_MASK) != 0) {
 		uprintf("pid %d (%s): sigreturn mc_flags %x\n", p->p_pid,
 			td->td_name, ucp->uc_mcontext.mc_flags);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	regs = td->td_frame;
 	rflags = ucp->uc_mcontext.mc_rflags;
@@ -261,7 +261,7 @@ sys_sigreturn(struct thread* td, struct sigreturn_args* uap)
 	if (!EFL_SECURE(rflags, regs->tf_rflags)) {
 		uprintf("pid %d (%s): sigreturn rflags = 0x%lx\n", p->p_pid,
 			td->td_name, rflags);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	/*
@@ -279,7 +279,7 @@ sys_sigreturn(struct thread* td, struct sigreturn_args* uap)
 		ksi.ksi_trapno = T_PROTFLT;
 		ksi.ksi_addr = (void*)regs->tf_rip;
 		trapsignal(td, &ksi);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	if ((uc.uc_mcontext.mc_flags & _MC_HASFPXSTATE) != 0) {
@@ -288,7 +288,7 @@ sys_sigreturn(struct thread* td, struct sigreturn_args* uap)
 			sizeof(struct savefpu)) {
 			uprintf("pid %d (%s): sigreturn xfpusave_len = 0x%zx\n",
 				p->p_pid, td->td_name, xfpustate_len);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		xfpustate = (char*)fpu_save_area_alloc();
 		error = copyin((const void*)uc.uc_mcontext.mc_xfpustate,
@@ -325,7 +325,7 @@ sys_sigreturn(struct thread* td, struct sigreturn_args* uap)
 #endif
 
 	kern_sigprocmask(td, SIG_SETMASK, &ucp->uc_sigmask, NULL, 0);
-	return (EJUSTRETURN);
+	return (VOS_EJUSTRETURN);
 }
 
 #ifdef COMPAT_FREEBSD4
@@ -469,7 +469,7 @@ set_regs(struct thread* td, struct reg* regs)
 	tp = td->td_frame;
 	rflags = regs->r_rflags & 0xffffffff;
 	if (!EFL_SECURE(rflags, tp->tf_rflags) || !CS_SECURE(regs->r_cs))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	tp->tf_r15 = regs->r_r15;
 	tp->tf_r14 = regs->r_r14;
 	tp->tf_r13 = regs->r_r13;
@@ -661,13 +661,13 @@ set_mcontext(struct thread* td, mcontext_t* mcp)
 	tp = td->td_frame;
 	if (mcp->mc_len != sizeof(*mcp) ||
 		(mcp->mc_flags & ~_MC_FLAG_MASK) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	rflags = (mcp->mc_rflags & PSL_USERCHANGE) |
 		(tp->tf_rflags & ~PSL_USERCHANGE);
 	if (mcp->mc_flags & _MC_HASFPXSTATE) {
 		if (mcp->mc_xfpustate_len > cpu_max_ext_state_size -
 			sizeof(struct savefpu))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		xfpustate = (char*)fpu_save_area_alloc();
 		ret = copyin((void*)mcp->mc_xfpustate, xfpustate,
 			mcp->mc_xfpustate_len);
@@ -747,7 +747,7 @@ set_fpcontext(struct thread* td, mcontext_t* mcp, char* xfpustate,
 	if (mcp->mc_fpformat == _MC_FPFMT_NODEV)
 		return (0);
 	else if (mcp->mc_fpformat != _MC_FPFMT_XMM)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	else if (mcp->mc_ownedfp == _MC_FPOWNED_NONE) {
 		/* We don't care what state is left in the FPU or PCB. */
 		fpstate_drop(td);
@@ -759,7 +759,7 @@ set_fpcontext(struct thread* td, mcontext_t* mcp, char* xfpustate,
 			xfpustate, xfpustate_len);
 	}
 	else
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (error);
 }
 
@@ -845,14 +845,14 @@ set_dbregs(struct thread* td, struct dbreg* dbregs)
 		 */
 		for (i = 0; i < 4; i++) {
 			if (DBREG_DR7_ACCESS(dbregs->dr[7], i) == 0x02)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			if (td->td_frame->tf_cs == _ucode32sel &&
 				DBREG_DR7_LEN(dbregs->dr[7], i) == DBREG_DR7_LEN_8)
-				return (EINVAL);
+				return (VOS_EINVAL);
 		}
 		if ((dbregs->dr[6] & 0xffffffff00000000ul) != 0 ||
 			(dbregs->dr[7] & 0xffffffff00000000ul) != 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		pcb = td->td_pcb;
 
@@ -873,22 +873,22 @@ set_dbregs(struct thread* td, struct dbreg* dbregs)
 		if (DBREG_DR7_ENABLED(dbregs->dr[7], 0)) {
 			/* dr0 is enabled */
 			if (dbregs->dr[0] >= VM_MAXUSER_ADDRESS)
-				return (EINVAL);
+				return (VOS_EINVAL);
 		}
 		if (DBREG_DR7_ENABLED(dbregs->dr[7], 1)) {
 			/* dr1 is enabled */
 			if (dbregs->dr[1] >= VM_MAXUSER_ADDRESS)
-				return (EINVAL);
+				return (VOS_EINVAL);
 		}
 		if (DBREG_DR7_ENABLED(dbregs->dr[7], 2)) {
 			/* dr2 is enabled */
 			if (dbregs->dr[2] >= VM_MAXUSER_ADDRESS)
-				return (EINVAL);
+				return (VOS_EINVAL);
 		}
 		if (DBREG_DR7_ENABLED(dbregs->dr[7], 3)) {
 			/* dr3 is enabled */
 			if (dbregs->dr[3] >= VM_MAXUSER_ADDRESS)
-				return (EINVAL);
+				return (VOS_EINVAL);
 		}
 
 		pcb->pcb_dr0 = dbregs->dr[0];

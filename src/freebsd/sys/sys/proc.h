@@ -594,7 +594,7 @@ do {									\
 #define	TD_SBDRY_INTR(td) \
     (((td)->td_flags & (TDF_SEINTR | TDF_SERESTART)) != 0)
 #define	TD_SBDRY_ERRNO(td) \
-    (((td)->td_flags & TDF_SEINTR) != 0 ? EINTR : ERESTART)
+    (((td)->td_flags & TDF_SEINTR) != 0 ? VOS_EINTR : VOS_ERESTART)
 
 						/*
 						 * Process structure.

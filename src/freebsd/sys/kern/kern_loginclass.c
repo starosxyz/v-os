@@ -97,7 +97,7 @@ loginclass_free(struct loginclass *lc)
 	LIST_REMOVE(lc, lc_next);
 	rw_wunlock(&loginclasses_lock);
 
-	free(lc, M_LOGINCLASS);
+	vos_free(lc, M_LOGINCLASS);
 }
 
 /*
@@ -132,7 +132,7 @@ loginclass_find(const char *name)
 {
 	struct loginclass *lc, *new_lc;
 
-	if (name[0] == '\0' || strlen(name) >= MAXLOGNAME)
+	if (name[0] == '\0' || vos_strlen(name) >= MAXLOGNAME)
 		return (NULL);
 
 	lc = curthread->td_ucred->cr_loginclass;
@@ -147,10 +147,10 @@ loginclass_find(const char *name)
 	if (lc != NULL)
 		return (lc);
 
-	new_lc = malloc(sizeof(*new_lc), M_LOGINCLASS, M_ZERO | M_WAITOK);
+	new_lc = vos_malloc(sizeof(*new_lc), M_LOGINCLASS, M_ZERO | M_WAITOK);
 	racct_create(&new_lc->lc_racct);
 	refcount_init(&new_lc->lc_refcount, 1);
-	strcpy(new_lc->lc_name, name);
+	vos_strcpy(new_lc->lc_name, name);
 
 	rw_wlock(&loginclasses_lock);
 	/*
@@ -165,7 +165,7 @@ loginclass_find(const char *name)
 	} else {
 		rw_wunlock(&loginclasses_lock);
 		racct_destroy(&new_lc->lc_racct);
-		free(new_lc, M_LOGINCLASS);
+		vos_free(new_lc, M_LOGINCLASS);
 	}
 
 	return (lc);
@@ -188,9 +188,9 @@ sys_getloginclass(struct thread *td, struct getloginclass_args *uap)
 	size_t lcnamelen;
 
 	lc = td->td_ucred->cr_loginclass;
-	lcnamelen = strlen(lc->lc_name) + 1;
+	lcnamelen = vos_strlen(lc->lc_name) + 1;
 	if (lcnamelen > uap->namelen)
-		return (ERANGE);
+		return (VOS_ERANGE);
 	return (copyout(lc->lc_name, uap->namebuf, lcnamelen));
 }
 
@@ -221,7 +221,7 @@ sys_setloginclass(struct thread *td, struct setloginclass_args *uap)
 
 	newlc = loginclass_find(lcname);
 	if (newlc == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	newcred = crget();
 
 	PROC_LOCK(p);

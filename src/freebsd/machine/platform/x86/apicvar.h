@@ -229,9 +229,6 @@ struct apic_ops {
 	void	(*disable_vector)(u_int, u_int);
 	void	(*free_vector)(u_int, u_int, u_int);
 
-	/* Timer */
-	void	(*calibrate_timer)(void);
-
 	/* PMC */
 	int	(*enable_pmc)(void);
 	void	(*disable_pmc)(void);
@@ -379,13 +376,6 @@ apic_free_vector(u_int apic_id, u_int vector, u_int irq)
 	apic_ops.free_vector(apic_id, vector, irq);
 }
 
-static inline void
-lapic_calibrate_timer(void)
-{
-
-	apic_ops.calibrate_timer();
-}
-
 static inline int
 lapic_enable_pmc(void)
 {
@@ -453,7 +443,7 @@ static inline void
 lapic_ipi_free(int vector)
 {
 
-	return (apic_ops.ipi_free(vector));
+	 (apic_ops.ipi_free(vector));
 }
 
 static inline int

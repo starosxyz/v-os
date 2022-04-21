@@ -61,7 +61,7 @@
  * For long-mode apps, %cs only has the conforming bit in sd_type, the sd_dpl,
  * sd_p, sd_l and sd_def32 which must be zero).  %ds only has sd_p.
  */
-struct segment_descriptor {
+__begin_packed struct segment_descriptor {
 	unsigned sd_lolimit:16;		/* segment extent (lsb) */
 	unsigned sd_lobase:24;		/* segment base address (lsb) */
 	unsigned sd_type:5;		/* segment type */
@@ -74,7 +74,7 @@ struct segment_descriptor {
 	unsigned sd_hibase:8;		/* segment base address  (msb) */
 } __packed;
 
-struct user_segment_descriptor {
+__begin_packed struct user_segment_descriptor {
 	unsigned sd_lolimit:16;		/* segment extent (lsb) */
 	unsigned sd_lobase:24;		/* segment base address (lsb) */
 	unsigned sd_type:5;		/* segment type */
@@ -122,7 +122,7 @@ union descriptor {
  * Gate descriptors (e.g. indirect descriptors, trap, interrupt etc. 128 bit)
  * Only interrupt and trap gates have gd_ist.
  */
-struct gate_descriptor {
+__begin_packed struct gate_descriptor {
 	uint64_t gd_looffset:16;	/* gate offset (lsb) */
 	uint64_t gd_selector:16;	/* gate segment selector */
 	uint64_t gd_ist:3;		/* IST table index */

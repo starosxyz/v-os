@@ -100,8 +100,8 @@ __FBSDID("$FreeBSD$");
 #include <netinet/ip6.h>
 #include <netinet6/ip6_var.h>
 
-#ifndef INT32_MAX
-#define INT32_MAX	0x7fffffffU
+#ifndef VOS_INT32_MAX
+#define VOS_INT32_MAX	0x7fffffffU
 #endif
 
 struct randomtab {

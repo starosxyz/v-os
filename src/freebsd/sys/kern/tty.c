@@ -117,7 +117,7 @@ SYSCTL_INT(_kern, OID_AUTO, tty_drainwait, CTLFLAG_RWTUN,
 /*
  * Allocate buffer space if necessary, and set low watermarks, based on speed.
  * Note that the ttyxxxq_setsize() functions may drop and then reacquire the tty
- * lock during memory allocation.  They will return ENXIO if the tty disappears
+ * lock during memory allocation.  They will return VOS_ENXIO if the tty disappears
  * while unlocked.
  */
 static int
@@ -176,7 +176,7 @@ tty_drain(struct tty *tp, int leaving)
 	 * Polling is required for devices which are not able to signal an
 	 * interrupt when the transmitter becomes idle (most USB serial devs).
 	 * The unusual structure of this loop ensures we check for busy one more
-	 * time after tty_timedwait() returns EWOULDBLOCK, so that success has
+	 * time after tty_timedwait() returns VOS_EWOULDBLOCK, so that success has
 	 * higher priority than timeout if the IO completed in the last 100mS.
 	 */
 	error = 0;
@@ -188,7 +188,7 @@ tty_drain(struct tty *tp, int leaving)
 			return (error);
 		ttydevsw_outwakeup(tp);
 		error = tty_timedwait(tp, &tp->t_outwait, hz / 10);
-		if (error != 0 && error != EWOULDBLOCK)
+		if (error != 0 && error != VOS_EWOULDBLOCK)
 			return (error);
 		else if (timeout_at == 0 || getsbinuptime() < timeout_at)
 			error = 0;
@@ -219,7 +219,7 @@ ttydev_enter(struct tty *tp)
 	if (tty_gone(tp) || !tty_opened(tp)) {
 		/* Device is already gone. */
 		tty_unlock(tp);
-		return (ENXIO);
+		return (VOS_ENXIO);
 	}
 
 	return (0);
@@ -282,7 +282,7 @@ ttydev_open(struct cdev *dev, int oflags, int devtype __unused,
 	if (tty_gone(tp)) {
 		/* Device is already gone. */
 		tty_unlock(tp);
-		return (ENXIO);
+		return (VOS_ENXIO);
 	}
 
 	/*
@@ -304,18 +304,18 @@ ttydev_open(struct cdev *dev, int oflags, int devtype __unused,
 	 */
 	if (TTY_CALLOUT(tp, dev)) {
 		if (tp->t_flags & (TF_OPENED_CONS | TF_OPENED_IN)) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto done;
 		}
 	} else {
 		if (tp->t_flags & TF_OPENED_OUT) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto done;
 		}
 	}
 
 	if (tp->t_flags & TF_EXCLUDE && priv_check(td, PRIV_TTY_EXCLUSIVE)) {
-		error = EBUSY;
+		error = VOS_EBUSY;
 		goto done;
 	}
 
@@ -467,7 +467,7 @@ tty_wait_background(struct tty *tp, struct thread *td, int sig)
 			/* Only allow them in write()/ioctl(). */
 			PROC_UNLOCK(p);
 			PGRP_UNLOCK(pg);
-			return (sig == SIGTTOU ? 0 : EIO);
+			return (sig == SIGTTOU ? 0 : VOS_EIO);
 		}
 
 		if ((p->p_flag & P_PPWAIT) != 0 ||
@@ -475,7 +475,7 @@ tty_wait_background(struct tty *tp, struct thread *td, int sig)
 			/* Don't allow the action to happen. */
 			PROC_UNLOCK(p);
 			PGRP_UNLOCK(pg);
-			return (EIO);
+			return (VOS_EIO);
 		}
 		PROC_UNLOCK(p);
 
@@ -515,7 +515,7 @@ ttydev_read(struct cdev *dev, struct uio *uio, int ioflag)
 	 * The read() call should not throw an error when the device is
 	 * being destroyed. Silently convert it to an EOF.
 	 */
-done:	if (error == ENXIO)
+done:	if (error == VOS_ENXIO)
 		error = 0;
 	return (error);
 }
@@ -784,7 +784,7 @@ ttydev_kqfilter(struct cdev *dev, struct knote *kn)
 		knlist_add(&tp->t_outpoll.si_note, kn, 1);
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 
@@ -821,7 +821,7 @@ ttyil_open(struct cdev *dev, int oflags __unused, int devtype __unused,
 	error = 0;
 	tty_lock(tp);
 	if (tty_gone(tp))
-		error = ENODEV;
+		error = VOS_ENODEV;
 	tty_unlock(tp);
 
 	return (error);
@@ -840,7 +840,7 @@ ttyil_rdwr(struct cdev *dev __unused, struct uio *uio __unused,
     int ioflag __unused)
 {
 
-	return (ENODEV);
+	return (VOS_ENODEV);
 }
 
 static int
@@ -852,12 +852,12 @@ ttyil_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 
 	tty_lock(tp);
 	if (tty_gone(tp)) {
-		error = ENODEV;
+		error = VOS_ENODEV;
 		goto done;
 	}
 
 	error = ttydevsw_cioctl(tp, dev2unit(dev), cmd, data, td);
-	if (error != ENOIOCTL)
+	if (error != VOS_ENOIOCTL)
 		goto done;
 	error = 0;
 
@@ -880,7 +880,7 @@ ttyil_ioctl(struct cdev *dev, u_long cmd, caddr_t data, int fflag,
 		bzero(data, sizeof(struct winsize));
 		break;
 	default:
-		error = ENOTTY;
+		error = VOS_ENOTTY;
 	}
 
 done:	tty_unlock(tp);
@@ -966,7 +966,7 @@ ttydevsw_defioctl(struct tty *tp __unused, u_long cmd __unused,
     caddr_t data __unused, struct thread *td __unused)
 {
 
-	return (ENOIOCTL);
+	return (VOS_ENOIOCTL);
 }
 
 static int
@@ -974,7 +974,7 @@ ttydevsw_defcioctl(struct tty *tp __unused, int unit __unused,
     u_long cmd __unused, caddr_t data __unused, struct thread *td __unused)
 {
 
-	return (ENOIOCTL);
+	return (VOS_ENOIOCTL);
 }
 
 static int
@@ -1074,7 +1074,7 @@ tty_alloc_mutex(struct ttydevsw *tsw, void *sc, struct mtx *mutex)
 	PATCH_FUNC(busy);
 #undef PATCH_FUNC
 
-	tp = malloc(sizeof(struct tty) + TTY_PRBUF_SIZE, M_TTY,
+	tp = vos_malloc(sizeof(struct tty) + TTY_PRBUF_SIZE, M_TTY,
 	    M_WAITOK | M_ZERO);
 	tp->t_prbufsz = TTY_PRBUF_SIZE;
 	tp->t_devsw = tsw;
@@ -1132,7 +1132,7 @@ tty_dealloc(void *arg)
 	if (tp->t_mtx == &tp->t_mtxobj)
 		mtx_destroy(&tp->t_mtxobj);
 	ttydevsw_free(tp);
-	free(tp, M_TTY);
+	vos_free(tp, M_TTY);
 }
 
 static void
@@ -1232,23 +1232,23 @@ tty_drop_ctty(struct tty *tp, struct proc *p)
 	tty_lock(tp);
 	if (tty_gone(tp)) {
 		sx_xunlock(&proctree_lock);
-		return (ENODEV);
+		return (VOS_ENODEV);
 	}
 
 	/*
 	 * If the session doesn't have a controlling TTY, or if we weren't
-	 * invoked on the controlling TTY, we'll return ENOIOCTL as we've
+	 * invoked on the controlling TTY, we'll return VOS_ENOIOCTL as we've
 	 * historically done.
 	 */
 	session = p->p_session;
 	if (session->s_ttyp == NULL || session->s_ttyp != tp) {
 		sx_xunlock(&proctree_lock);
-		return (ENOTTY);
+		return (VOS_ENOTTY);
 	}
 
 	if (!SESS_LEADER(p)) {
 		sx_xunlock(&proctree_lock);
-		return (EPERM);
+		return (VOS_EPERM);
 	}
 
 	PROC_LOCK(p);
@@ -1318,7 +1318,7 @@ sysctl_kern_ttys(SYSCTL_HANDLER_ARGS)
 		return (0);
 	}
 
-	xtlist = xt = malloc(lsize, M_TTY, M_WAITOK);
+	xtlist = xt = vos_malloc(lsize, M_TTY, M_WAITOK);
 
 	TAILQ_FOREACH(tp, &tty_list, t_list) {
 		tty_lock(tp);
@@ -1329,7 +1329,7 @@ sysctl_kern_ttys(SYSCTL_HANDLER_ARGS)
 	sx_sunlock(&tty_list_sx);
 
 	error = SYSCTL_OUT(req, xtlist, lsize);
-	free(xtlist, M_TTY);
+	vos_free(xtlist, M_TTY);
 	return (error);
 }
 
@@ -1556,11 +1556,11 @@ tty_wait(struct tty *tp, struct cv *cv)
 
 	/* Bail out when the device slipped away. */
 	if (tty_gone(tp))
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	/* Restart the system call when we may have been revoked. */
 	if (tp->t_revokecnt != revokecnt)
-		return (ERESTART);
+		return (VOS_ERESTART);
 
 	return (error);
 }
@@ -1578,11 +1578,11 @@ tty_timedwait(struct tty *tp, struct cv *cv, int hz)
 
 	/* Bail out when the device slipped away. */
 	if (tty_gone(tp))
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	/* Restart the system call when we may have been revoked. */
 	if (tp->t_revokecnt != revokecnt)
-		return (ERESTART);
+		return (VOS_ERESTART);
 
 	return (error);
 }
@@ -1679,7 +1679,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 	case FIOSETOWN:
 		if (tp->t_session != NULL && !tty_is_ctty(tp, td->td_proc))
 			/* Not allowed to set ownership. */
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 
 		/* Temporarily unlock the TTY to set ownership. */
 		tty_unlock(tp);
@@ -1689,7 +1689,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 	case FIOGETOWN:
 		if (tp->t_session != NULL && !tty_is_ctty(tp, td->td_proc))
 			/* Not allowed to set ownership. */
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 
 		/* Get ownership. */
 		*(int *)data = fgetown(&tp->t_sigio);
@@ -1787,7 +1787,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 		return (0);
 	case TIOCGPGRP:
 		if (!tty_is_ctty(tp, td->td_proc))
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 
 		if (tp->t_pgrp != NULL)
 			*(int *)data = tp->t_pgrp->pg_id;
@@ -1796,7 +1796,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 		return (0);
 	case TIOCGSID:
 		if (!tty_is_ctty(tp, td->td_proc))
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 
 		MPASS(tp->t_session);
 		*(int *)data = tp->t_session->s_sid;
@@ -1814,7 +1814,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 		if (!SESS_LEADER(p)) {
 			/* Only the session leader may do this. */
 			sx_xunlock(&proctree_lock);
-			return (EPERM);
+			return (VOS_EPERM);
 		}
 
 		if (tp->t_session != NULL && tp->t_session == p->p_session) {
@@ -1838,7 +1838,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 			 * killed or the TTY revoked.
 			 */
 			sx_xunlock(&proctree_lock);
-			return (EPERM);
+			return (VOS_EPERM);
 		}
 
 		/* Connect the session to the TTY. */
@@ -1871,7 +1871,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 		if (pg == NULL || pg->pg_session != td->td_proc->p_session) {
 			sx_sunlock(&proctree_lock);
 			tty_lock(tp);
-			return (EPERM);
+			return (VOS_EPERM);
 		}
 		tty_lock(tp);
 
@@ -1881,7 +1881,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 		 */
 		if (!tty_is_ctty(tp, td->td_proc)) {
 			sx_sunlock(&proctree_lock);
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 		}
 		tp->t_pgrp = pg;
 		sx_sunlock(&proctree_lock);
@@ -1926,7 +1926,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 			if (constty == tp)
 				return (0);
 			if (constty != NULL)
-				return (EBUSY);
+				return (VOS_EBUSY);
 
 			tty_unlock(tp);
 			constty_set(tp);
@@ -1964,10 +1964,10 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 		return (0);
 	case TIOCSTI:
 		if ((fflag & FREAD) == 0 && priv_check(td, PRIV_TTY_STI))
-			return (EPERM);
+			return (VOS_EPERM);
 		if (!tty_is_ctty(tp, td->td_proc) &&
 		    priv_check(td, PRIV_TTY_STI))
-			return (EACCES);
+			return (VOS_EACCES);
 		ttydisc_rint(tp, *(char *)data, 0);
 		ttydisc_rint_done(tp);
 		return (0);
@@ -1976,7 +1976,7 @@ tty_generic_ioctl(struct tty *tp, u_long cmd, void *data, int fflag,
 #ifdef COMPAT_43TTY
 	return tty_ioctl_compat(tp, cmd, data, fflag, td);
 #else /* !COMPAT_43TTY */
-	return (ENOIOCTL);
+	return (VOS_ENOIOCTL);
 #endif /* COMPAT_43TTY */
 }
 
@@ -1988,10 +1988,10 @@ tty_ioctl(struct tty *tp, u_long cmd, void *data, int fflag, struct thread *td)
 	tty_assert_locked(tp);
 
 	if (tty_gone(tp))
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	error = ttydevsw_ioctl(tp, cmd, data, td);
-	if (error == ENOIOCTL)
+	if (error == VOS_ENOIOCTL)
 		error = tty_generic_ioctl(tp, cmd, data, fflag, td);
 
 	return (error);
@@ -2091,7 +2091,7 @@ ttyhook_register(struct tty **rtp, struct proc *p, int fd, struct ttyhook *th,
 	if (error != 0)
 		return (error);
 	if (fp->f_ops == &badfileops) {
-		error = EBADF;
+		error = VOS_EBADF;
 		goto done1;
 	}
 
@@ -2102,28 +2102,28 @@ ttyhook_register(struct tty **rtp, struct proc *p, int fd, struct ttyhook *th,
 	 * never has been opened over a character device.
 	 */
 	if (fp->f_type != DTYPE_VNODE || fp->f_vnode->v_type != VCHR) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto done1;
 	}
 
 	/* Make sure it is a TTY. */
 	cdp = devvn_refthread(fp->f_vnode, &dev, &ref);
 	if (cdp == NULL) {
-		error = ENXIO;
+		error = VOS_ENXIO;
 		goto done1;
 	}
 	if (dev != fp->f_data) {
-		error = ENXIO;
+		error = VOS_ENXIO;
 		goto done2;
 	}
 	if (cdp != &ttydev_cdevsw) {
-		error = ENOTTY;
+		error = VOS_ENOTTY;
 		goto done2;
 	}
 	tp = dev->si_drv1;
 
 	/* Try to attach the hook to the TTY. */
-	error = EBUSY;
+	error = VOS_EBUSY;
 	tty_lock(tp);
 	MPASS((tp->t_hook == NULL) == ((tp->t_flags & TF_HOOK) == 0));
 	if (tp->t_flags & TF_HOOK)
@@ -2177,7 +2177,7 @@ ttyconsdev_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 
 	/* System has no console device. */
 	if (dev_console_filename == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	/* Look up corresponding TTY by device name. */
 	sx_slock(&tty_list_sx);
@@ -2191,7 +2191,7 @@ ttyconsdev_open(struct cdev *dev, int oflags, int devtype, struct thread *td)
 
 	/* System console has no TTY associated. */
 	if (dev_console->si_drv1 == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	return (ttydev_open(dev, oflags, devtype, td));
 }
@@ -2419,7 +2419,7 @@ DB_SHOW_ALL_COMMAND(ttys, db_show_all_ttys)
 
 	/* Make the output look like `pstat -t'. */
 	db_printf("PTR        ");
-#if defined(__LP64__)
+#if defined(__LP64__) || defined(_WIN64)
 	db_printf("        ");
 #endif
 	db_printf("      LINE   INQ  CAN  LIN  LOW  OUTQ  USE  LOW   "

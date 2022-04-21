@@ -98,7 +98,7 @@ SYSCTL_INT(_vfs_devfs, OID_AUTO, dotimes, CTLFLAG_RW,
  * stat(2) could see partially updated times.
  */
 static void
-devfs_timestamp(struct timespec *tsp)
+devfs_timestamp(struct vos_timespec *tsp)
 {
 	time_t ts;
 
@@ -122,12 +122,12 @@ devfs_fp_check(struct file *fp, struct cdev **devp, struct cdevsw **dswp,
 	if (*devp != fp->f_data) {
 		if (*dswp != NULL)
 			dev_relthread(*devp, *ref);
-		return (ENXIO);
+		return (VOS_ENXIO);
 	}
 	KASSERT((*devp)->si_refcount > 0,
 	    ("devfs: un-referenced struct cdev *(%s)", devtoname(*devp)));
 	if (*dswp == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	curthread->td_fpop = fp;
 	return (0);
 }
@@ -422,19 +422,19 @@ devfs_pathconf(struct vop_pathconf_args *ap)
 			*ap->a_retval = MAX_CANON;
 			return (0);
 		}
-		return (EINVAL);
+		return (VOS_EINVAL);
 	case _PC_MAX_INPUT:
 		if (ap->a_vp->v_vflag & VV_ISTTY) {
 			*ap->a_retval = MAX_INPUT;
 			return (0);
 		}
-		return (EINVAL);
+		return (VOS_EINVAL);
 	case _PC_VDISABLE:
 		if (ap->a_vp->v_vflag & VV_ISTTY) {
 			*ap->a_retval = _POSIX_VDISABLE;
 			return (0);
 		}
-		return (EINVAL);
+		return (VOS_EINVAL);
 	case _PC_MAC_PRESENT:
 #ifdef MAC
 		/*
@@ -498,7 +498,7 @@ devfs_read_f(struct file *fp, struct uio *uio, struct ucred *cred,
 	struct file *fpop;
 
 	if (uio->uio_resid > DEVFS_IOSIZE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	fpop = td->td_fpop;
 	error = devfs_fp_check(fp, &dev, &dsw, &ref);
 	if (error != 0) {
@@ -606,7 +606,7 @@ devfs_rread(struct vop_read_args *ap)
 {
 
 	if (ap->a_vp->v_type != VDIR)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (VOP_READDIR(ap->a_vp, ap->a_uio, ap->a_cred, NULL, NULL, NULL));
 }
 
@@ -664,7 +664,7 @@ devfs_write_f(struct file *fp, struct uio *uio, struct ucred *cred,
 	struct file *fpop;
 
 	if (uio->uio_resid > DEVFS_IOSIZE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	fpop = td->td_fpop;
 	error = devfs_fp_check(fp, &dev, &dsw, &ref);
 	if (error != 0) {
@@ -715,13 +715,13 @@ devfs_mmap_f(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t size,
 	if (mp != NULL && (mp->mnt_flag & MNT_NOEXEC) != 0) {
 		maxprot = VM_PROT_NONE;
 		if ((prot & VM_PROT_EXECUTE) != 0)
-			return (EACCES);
+			return (VOS_EACCES);
 	} else
 		maxprot = VM_PROT_EXECUTE;
 	if ((fp->f_flag & FREAD) != 0)
 		maxprot |= VM_PROT_READ;
 	else if ((prot & VM_PROT_READ) != 0)
-		return (EACCES);
+		return (VOS_EACCES);
 
 	/*
 	 * If we are sharing potential changes via MAP_SHARED and we
@@ -740,7 +740,7 @@ devfs_mmap_f(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t size,
 		if ((fp->f_flag & FWRITE) != 0)
 			maxprot |= VM_PROT_WRITE;
 		else if ((prot & VM_PROT_WRITE) != 0)
-			return (EACCES);
+			return (VOS_EACCES);
 	}
 	maxprot &= cap_maxprot;
 

@@ -267,7 +267,7 @@ ktls_crypto_backend_register(struct ktls_crypto_backend *be)
 		printf("KTLS: API version mismatch (%d vs %d) for %s\n",
 		    be->api_version, KTLS_API_VERSION,
 		    be->name);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	rm_wlock(&ktls_backends_lock);
@@ -315,12 +315,12 @@ ktls_crypto_backend_deregister(struct ktls_crypto_backend *be)
 		printf(
 		    "KTLS: Deregistering crypto method %s is not supported\n",
 		    be->name);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 
 	if (be->use_count) {
 		rm_wunlock(&ktls_backends_lock);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 
 	LIST_REMOVE(be, next);
@@ -398,7 +398,7 @@ ktls_init(void *dummy __unused)
 	rm_init(&ktls_backends_lock, "ktls backends");
 	LIST_INIT(&ktls_backends);
 
-	ktls_wq = malloc(sizeof(*ktls_wq) * (mp_maxid + 1), M_KTLS,
+	ktls_wq = vos_malloc(sizeof(*ktls_wq) * (mp_maxid + 1), M_KTLS,
 	    M_WAITOK | M_ZERO);
 
 	ktls_session_zone = uma_zcreate("ktls_session",
@@ -471,25 +471,25 @@ ktls_create_session(struct socket *so, struct tls_enable *en,
 
 	/* Only TLS 1.0 - 1.3 are supported. */
 	if (en->tls_vmajor != TLS_MAJOR_VER_ONE)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (en->tls_vminor < TLS_MINOR_VER_ZERO ||
 	    en->tls_vminor > TLS_MINOR_VER_THREE)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (en->auth_key_len < 0 || en->auth_key_len > TLS_MAX_PARAM_SIZE)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (en->cipher_key_len < 0 || en->cipher_key_len > TLS_MAX_PARAM_SIZE)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (en->iv_len < 0 || en->iv_len > sizeof(tls->params.iv))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* All supported algorithms require a cipher key. */
 	if (en->cipher_key_len == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* No flags are currently supported. */
 	if (en->flags != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Common checks for supported algorithms. */
 	switch (en->cipher_algorithm) {
@@ -508,15 +508,15 @@ ktls_create_session(struct socket *so, struct tls_enable *en,
 #endif
 			break;
 		default:
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		if (en->auth_key_len != 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if ((en->tls_vminor == TLS_MINOR_VER_TWO &&
 			en->iv_len != TLS_AEAD_GCM_LEN) ||
 		    (en->tls_vminor == TLS_MINOR_VER_THREE &&
 			en->iv_len != TLS_1_3_GCM_IV_LEN))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		break;
 	case CRYPTO_AES_CBC:
 		switch (en->auth_algorithm) {
@@ -527,7 +527,7 @@ ktls_create_session(struct socket *so, struct tls_enable *en,
 			 */
 			if (en->tls_vminor == TLS_MINOR_VER_ZERO) {
 				if (en->iv_len != TLS_CBC_IMPLICIT_IV_LEN)
-					return (EINVAL);
+					return (VOS_EINVAL);
 				break;
 			}
 
@@ -538,13 +538,13 @@ ktls_create_session(struct socket *so, struct tls_enable *en,
 			en->iv_len = 0;
 			break;
 		default:
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		if (en->auth_key_len == 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	tls = uma_zalloc(ktls_session_zone, M_WAITOK | M_ZERO);
@@ -622,7 +622,7 @@ ktls_create_session(struct socket *so, struct tls_enable *en,
 
 	if (en->auth_key_len != 0) {
 		tls->params.auth_key_len = en->auth_key_len;
-		tls->params.auth_key = malloc(en->auth_key_len, M_KTLS,
+		tls->params.auth_key = vos_malloc(en->auth_key_len, M_KTLS,
 		    M_WAITOK);
 		error = copyin(en->auth_key, tls->params.auth_key,
 		    en->auth_key_len);
@@ -631,7 +631,7 @@ ktls_create_session(struct socket *so, struct tls_enable *en,
 	}
 
 	tls->params.cipher_key_len = en->cipher_key_len;
-	tls->params.cipher_key = malloc(en->cipher_key_len, M_KTLS, M_WAITOK);
+	tls->params.cipher_key = vos_malloc(en->cipher_key_len, M_KTLS, M_WAITOK);
 	error = copyin(en->cipher_key, tls->params.cipher_key,
 	    en->cipher_key_len);
 	if (error)
@@ -685,13 +685,13 @@ ktls_clone_session(struct ktls_session *tls)
 
 	/* Deep copy keys. */
 	if (tls_new->params.auth_key != NULL) {
-		tls_new->params.auth_key = malloc(tls->params.auth_key_len,
+		tls_new->params.auth_key = vos_malloc(tls->params.auth_key_len,
 		    M_KTLS, M_WAITOK);
 		memcpy(tls_new->params.auth_key, tls->params.auth_key,
 		    tls->params.auth_key_len);
 	}
 
-	tls_new->params.cipher_key = malloc(tls->params.cipher_key_len, M_KTLS,
+	tls_new->params.cipher_key = vos_malloc(tls->params.cipher_key_len, M_KTLS,
 	    M_WAITOK);
 	memcpy(tls_new->params.cipher_key, tls->params.cipher_key,
 	    tls->params.cipher_key_len);
@@ -770,20 +770,20 @@ ktls_try_toe(struct socket *so, struct ktls_session *tls, int direction)
 	INP_WLOCK(inp);
 	if (inp->inp_flags2 & INP_FREED) {
 		INP_WUNLOCK(inp);
-		return (ECONNRESET);
+		return (VOS_ECONNRESET);
 	}
 	if (inp->inp_flags & (INP_TIMEWAIT | INP_DROPPED)) {
 		INP_WUNLOCK(inp);
-		return (ECONNRESET);
+		return (VOS_ECONNRESET);
 	}
 	if (inp->inp_socket == NULL) {
 		INP_WUNLOCK(inp);
-		return (ECONNRESET);
+		return (VOS_ECONNRESET);
 	}
 	tp = intotcpcb(inp);
 	if (!(tp->t_flags & TF_TOE)) {
 		INP_WUNLOCK(inp);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	error = tcp_offload_alloc_tls_session(tp, tls, direction);
@@ -822,15 +822,15 @@ ktls_alloc_snd_tag(struct inpcb *inp, struct ktls_session *tls, bool force,
 	INP_RLOCK(inp);
 	if (inp->inp_flags2 & INP_FREED) {
 		INP_RUNLOCK(inp);
-		return (ECONNRESET);
+		return (VOS_ECONNRESET);
 	}
 	if (inp->inp_flags & (INP_TIMEWAIT | INP_DROPPED)) {
 		INP_RUNLOCK(inp);
-		return (ECONNRESET);
+		return (VOS_ECONNRESET);
 	}
 	if (inp->inp_socket == NULL) {
 		INP_RUNLOCK(inp);
-		return (ECONNRESET);
+		return (VOS_ECONNRESET);
 	}
 	tp = intotcpcb(inp);
 
@@ -843,7 +843,7 @@ ktls_alloc_snd_tag(struct inpcb *inp, struct ktls_session *tls, bool force,
 	 */
 	if (!force && ktls_ifnet_permitted == 0) {
 		INP_RUNLOCK(inp);
-		return (ENXIO);
+		return (VOS_ENXIO);
 	}
 
 	/*
@@ -856,7 +856,7 @@ ktls_alloc_snd_tag(struct inpcb *inp, struct ktls_session *tls, bool force,
 	nh = inp->inp_route.ro_nh;
 	if (nh == NULL) {
 		INP_RUNLOCK(inp);
-		return (ENXIO);
+		return (VOS_ENXIO);
 	}
 	ifp = nh->nh_ifp;
 	if_ref(ifp);
@@ -882,17 +882,17 @@ ktls_alloc_snd_tag(struct inpcb *inp, struct ktls_session *tls, bool force,
 	INP_RUNLOCK(inp);
 
 	if ((ifp->if_capenable & IFCAP_NOMAP) == 0) {	
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 		goto out;
 	}
 	if (inp->inp_vflag & INP_IPV6) {
 		if ((ifp->if_capenable & IFCAP_TXTLS6) == 0) {
-			error = EOPNOTSUPP;
+			error = VOS_EOPNOTSUPP;
 			goto out;
 		}
 	} else {
 		if ((ifp->if_capenable & IFCAP_TXTLS4) == 0) {
-			error = EOPNOTSUPP;
+			error = VOS_EOPNOTSUPP;
 			goto out;
 		}
 	}
@@ -953,7 +953,7 @@ ktls_try_sw(struct socket *so, struct ktls_session *tls, int direction)
 	if (ktls_allow_unload)
 		rm_runlock(&ktls_backends_lock, &prio);
 	if (be == NULL)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	tls->mode = TCP_TLS_MODE_SW;
 	switch (tls->params.cipher_algorithm) {
 	case CRYPTO_AES_CBC:
@@ -1028,9 +1028,9 @@ ktls_enable_rx(struct socket *so, struct tls_enable *en)
 	int error;
 
 	if (!ktls_offload_enable)
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 	if (SOLISTENING(so))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	counter_u64_add(ktls_offload_enable_calls, 1);
 
@@ -1039,22 +1039,22 @@ ktls_enable_rx(struct socket *so, struct tls_enable *en)
 	 * invokes this function.
 	 */
 	if (so->so_proto->pr_protocol != IPPROTO_TCP)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * XXX: Don't overwrite existing sessions.  We should permit
 	 * this to support rekeying in the future.
 	 */
 	if (so->so_rcv.sb_tls_info != NULL)
-		return (EALREADY);
+		return (VOS_EALREADY);
 
 	if (en->cipher_algorithm == CRYPTO_AES_CBC && !ktls_cbc_enable)
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 
 	/* TLS 1.3 is not yet supported. */
 	if (en->tls_vmajor == TLS_MAJOR_VER_ONE &&
 	    en->tls_vminor == TLS_MINOR_VER_THREE)
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 
 	error = ktls_create_session(so, en, &tls);
 	if (error)
@@ -1095,9 +1095,9 @@ ktls_enable_tx(struct socket *so, struct tls_enable *en)
 	int error;
 
 	if (!ktls_offload_enable)
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 	if (SOLISTENING(so))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	counter_u64_add(ktls_offload_enable_calls, 1);
 
@@ -1106,21 +1106,21 @@ ktls_enable_tx(struct socket *so, struct tls_enable *en)
 	 * invokes this function.
 	 */
 	if (so->so_proto->pr_protocol != IPPROTO_TCP)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * XXX: Don't overwrite existing sessions.  We should permit
 	 * this to support rekeying in the future.
 	 */
 	if (so->so_snd.sb_tls_info != NULL)
-		return (EALREADY);
+		return (VOS_EALREADY);
 
 	if (en->cipher_algorithm == CRYPTO_AES_CBC && !ktls_cbc_enable)
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 
 	/* TLS requires ext pgs */
 	if (mb_use_ext_pgs == 0)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	error = ktls_create_session(so, en, &tls);
 	if (error)
@@ -1175,7 +1175,7 @@ ktls_get_rx_mode(struct socket *so)
 	int mode;
 
 	if (SOLISTENING(so))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	inp = so->so_pcb;
 	INP_WLOCK_ASSERT(inp);
 	SOCKBUF_LOCK(&so->so_rcv);
@@ -1196,7 +1196,7 @@ ktls_get_tx_mode(struct socket *so)
 	int mode;
 
 	if (SOLISTENING(so))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	inp = so->so_pcb;
 	INP_WLOCK_ASSERT(inp);
 	SOCKBUF_LOCK(&so->so_snd);
@@ -1220,13 +1220,13 @@ ktls_set_tx_mode(struct socket *so, int mode)
 	int error;
 
 	if (SOLISTENING(so))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	switch (mode) {
 	case TCP_TLS_MODE_SW:
 	case TCP_TLS_MODE_IFNET:
 		break;
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	inp = so->so_pcb;
@@ -1280,7 +1280,7 @@ ktls_set_tx_mode(struct socket *so, int mode)
 		ktls_free(tls_new);
 		ktls_free(tls);
 		INP_WLOCK(inp);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 
 	SOCKBUF_LOCK(&so->so_snd);
@@ -1373,7 +1373,7 @@ ktls_reset_send_tag(void *context, int pending)
 			    !(inp->inp_flags & INP_DROPPED)) {
 				tp = intotcpcb(inp);
 				CURVNET_SET(tp->t_vnet);
-				tp = tcp_drop(tp, ECONNABORTED);
+				tp = tcp_drop(tp, VOS_ECONNABORTED);
 				CURVNET_RESTORE();
 				if (tp != NULL)
 					INP_WUNLOCK(inp);
@@ -1399,7 +1399,7 @@ ktls_output_eagain(struct inpcb *inp, struct ktls_session *tls)
 {
 
 	if (inp == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 
 	INP_LOCK_ASSERT(inp);
 
@@ -1416,7 +1416,7 @@ ktls_output_eagain(struct inpcb *inp, struct ktls_session *tls)
 		taskqueue_enqueue(taskqueue_thread, &tls->reset_tag_task);
 	}
 	mtx_pool_unlock(mtxpool_sleep, tls);
-	return (ENOBUFS);
+	return (VOS_ENOBUFS);
 }
 
 #ifdef RATELIMIT
@@ -1640,7 +1640,7 @@ ktls_check_rx(struct sockbuf *sb)
 	/* Is there enough queued for a TLS header? */
 	if (sb->sb_tlscc < sizeof(hdr)) {
 		if ((sb->sb_state & SBS_CANTRCVMORE) != 0 && sb->sb_tlscc != 0)
-			so->so_error = EMSGSIZE;
+			so->so_error = VOS_EMSGSIZE;
 		return;
 	}
 
@@ -1649,7 +1649,7 @@ ktls_check_rx(struct sockbuf *sb)
 	/* Is the entire record queued? */
 	if (sb->sb_tlscc < sizeof(hdr) + ntohs(hdr.tls_length)) {
 		if ((sb->sb_state & SBS_CANTRCVMORE) != 0)
-			so->so_error = EMSGSIZE;
+			so->so_error = VOS_EMSGSIZE;
 		return;
 	}
 
@@ -1794,11 +1794,11 @@ ktls_decrypt(struct socket *so)
 
 		if (hdr->tls_vmajor != tls->params.tls_vmajor ||
 		    hdr->tls_vminor != tls->params.tls_vminor)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else if (tls_len < tls->params.tls_hlen || tls_len >
 		    tls->params.tls_hlen + TLS_MAX_MSG_SIZE_V10_2 +
 		    tls->params.tls_tlen)
-			error = EMSGSIZE;
+			error = VOS_EMSGSIZE;
 		else
 			error = 0;
 		if (__predict_false(error != 0)) {
@@ -1857,7 +1857,7 @@ ktls_decrypt(struct socket *so)
 			sb->sb_tlsdcc = 0;
 
 			CURVNET_SET(so->so_vnet);
-			so->so_error = EBADMSG;
+			so->so_error = VOS_EBADMSG;
 			sorwakeup_locked(so);
 			CURVNET_RESTORE();
 
@@ -1932,7 +1932,7 @@ ktls_decrypt(struct socket *so)
 	sb->sb_flags &= ~SB_TLS_RX_RUNNING;
 
 	if ((sb->sb_state & SBS_CANTRCVMORE) != 0 && sb->sb_tlscc > 0)
-		so->so_error = EMSGSIZE;
+		so->so_error = VOS_EMSGSIZE;
 
 	sorwakeup_locked(so);
 
@@ -2132,7 +2132,7 @@ retry_page:
 		(void)(*so->so_proto->pr_usrreqs->pru_ready)(so, top, npages);
 	} else {
 		so->so_proto->pr_usrreqs->pru_abort(so);
-		so->so_error = EIO;
+		so->so_error = VOS_EIO;
 		mb_free_notready(top, total_pages);
 	}
 

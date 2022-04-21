@@ -203,7 +203,7 @@ sysctl_net_inet_tcp_mss_check(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &new, 0, req);
 	if (error == 0 && req->newptr) {
 		if (new < TCP_MINMSS)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			V_tcp_mssdflt = new;
 	}
@@ -225,7 +225,7 @@ sysctl_net_inet_tcp_mss_v6_check(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &new, 0, req);
 	if (error == 0 && req->newptr) {
 		if (new < TCP_MINMSS)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			V_tcp_v6mssdflt = new;
 	}
@@ -311,7 +311,7 @@ sysctl_net_inet_tcp_map_limit_check(SYSCTL_HANDLER_ARGS)
 	if (error == 0 && req->newptr) {
 		/* only allow "0" and value > minimum */
 		if (new > 0 && new < TCP_MIN_MAP_ENTRIES_LIMIT)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			V_tcp_map_entries_limit = new;
 	}
@@ -504,7 +504,7 @@ tcp_switch_back_to_default(struct tcpcb *tp)
 static int
 sysctl_net_inet_default_tcp_functions(SYSCTL_HANDLER_ARGS)
 {
-	int error=ENOENT;
+	int error=VOS_ENOENT;
 	struct tcp_function_set fs;
 	struct tcp_function_block *blk;
 
@@ -513,7 +513,7 @@ sysctl_net_inet_default_tcp_functions(SYSCTL_HANDLER_ARGS)
 	blk = find_tcp_fb_locked(tcp_func_set_ptr, NULL);
 	if (blk) {
 		/* Found him */
-		strcpy(fs.function_set_name, blk->tfb_tcp_block_name);
+		vos_strcpy(fs.function_set_name, blk->tfb_tcp_block_name);
 		fs.pcbcnt = blk->tfb_refcnt;
 	}
 	rw_runlock(&tcp_function_lock);
@@ -528,7 +528,7 @@ sysctl_net_inet_default_tcp_functions(SYSCTL_HANDLER_ARGS)
 	blk = find_tcp_functions_locked(&fs);
 	if ((blk == NULL) ||
 	    (blk->tfb_flags & TCP_FUNC_BEING_REMOVED)) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto done;
 	}
 	tcp_func_set_ptr = blk;
@@ -559,7 +559,7 @@ sysctl_net_inet_list_available(SYSCTL_HANDLER_ARGS)
 	rw_runlock(&tcp_function_lock);
 
 	bufsz = (cnt+2) * ((TCP_FUNCTION_NAME_LEN_MAX * 2) + 13) + 1;
-	buffer = malloc(bufsz, M_TEMP, M_WAITOK);
+	buffer = vos_malloc(bufsz, M_TEMP, M_WAITOK);
 
 	error = 0;
 	cp = buffer;
@@ -579,7 +579,7 @@ sysctl_net_inet_list_available(SYSCTL_HANDLER_ARGS)
 		    alias ? f->tf_name : "-",
 		    f->tf_fb->tfb_refcnt);
 		if (linesz >= bufsz) {
-			error = EOVERFLOW;
+			error = VOS_EOVERFLOW;
 			break;
 		}
 		cp += linesz;
@@ -589,7 +589,7 @@ sysctl_net_inet_list_available(SYSCTL_HANDLER_ARGS)
 	rw_runlock(&tcp_function_lock);
 	if (error == 0)
 		error = sysctl_handle_string(oidp, buffer, outsz + 1, req);
-	free(buffer, M_TEMP);
+	vos_free(buffer, M_TEMP);
 	return (error);
 }
 
@@ -612,7 +612,7 @@ sysctl_net_inet_list_func_info(SYSCTL_HANDLER_ARGS)
 	 * We don't allow writes.
 	 */
 	if (req->newptr != NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * Wire the old buffer so we can directly copy the functions to
@@ -646,9 +646,9 @@ sysctl_net_inet_list_func_info(SYSCTL_HANDLER_ARGS)
 			bzero(&tfi, sizeof(tfi));
 			tfi.tfi_refcnt = f->tf_fb->tfb_refcnt;
 			tfi.tfi_id = f->tf_fb->tfb_id;
-			(void)strlcpy(tfi.tfi_alias, f->tf_name,
+			(void)vos_strlcpy(tfi.tfi_alias, f->tf_name,
 			    sizeof(tfi.tfi_alias));
-			(void)strlcpy(tfi.tfi_name,
+			(void)vos_strlcpy(tfi.tfi_name,
 			    f->tf_fb->tfb_tcp_block_name, sizeof(tfi.tfi_name));
 			error = SYSCTL_OUT(req, &tfi, sizeof(tfi));
 			/*
@@ -881,13 +881,13 @@ register_tcp_functions_as_names(struct tcp_function_block *blk, int wait,
 	if ((blk->tfb_tcp_output == NULL) ||
 	    (blk->tfb_tcp_do_segment == NULL) ||
 	    (blk->tfb_tcp_ctloutput == NULL) ||
-	    (strlen(blk->tfb_tcp_block_name) == 0)) {
+	    (vos_strlen(blk->tfb_tcp_block_name) == 0)) {
 		/*
 		 * These functions are required and you
 		 * need a name.
 		 */
 		*num_names = 0;
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	if (blk->tfb_tcp_timer_stop_all ||
 	    blk->tfb_tcp_timer_activate ||
@@ -902,36 +902,36 @@ register_tcp_functions_as_names(struct tcp_function_block *blk, int wait,
 		    (blk->tfb_tcp_timer_active == NULL) ||
 		    (blk->tfb_tcp_timer_stop == NULL)) {
 			*num_names = 0;
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 	}
 
 	if (blk->tfb_flags & TCP_FUNC_BEING_REMOVED) {
 		*num_names = 0;
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	refcount_init(&blk->tfb_refcnt, 0);
 	blk->tfb_id = atomic_fetchadd_int(&next_tcp_stack_id, 1);
 	for (i = 0; i < *num_names; i++) {
-		n = malloc(sizeof(struct tcp_function), M_TCPFUNCTIONS, wait);
+		n = vos_malloc(sizeof(struct tcp_function), M_TCPFUNCTIONS, wait);
 		if (n == NULL) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			goto cleanup;
 		}
 		n->tf_fb = blk;
 
-		(void)strlcpy(fs.function_set_name, names[i],
+		(void)vos_strlcpy(fs.function_set_name, names[i],
 		    sizeof(fs.function_set_name));
 		rw_wlock(&tcp_function_lock);
 		if (find_tcp_functions_locked(&fs) != NULL) {
 			/* Duplicate name space not allowed */
 			rw_wunlock(&tcp_function_lock);
-			free(n, M_TCPFUNCTIONS);
-			error = EALREADY;
+			vos_free(n, M_TCPFUNCTIONS);
+			error = VOS_EALREADY;
 			goto cleanup;
 		}
-		(void)strlcpy(n->tf_name, names[i], sizeof(n->tf_name));
+		(void)vos_strlcpy(n->tf_name, names[i], sizeof(n->tf_name));
 		TAILQ_INSERT_TAIL(&t_functions, n, tf_next);
 		tcp_fb_cnt++;
 		rw_wunlock(&tcp_function_lock);
@@ -947,12 +947,12 @@ cleanup:
 	rw_wlock(&tcp_function_lock);
 	while (--i >= 0) {
 		TAILQ_FOREACH(n, &t_functions, tf_next) {
-			if (!strncmp(n->tf_name, names[i],
+			if (!vos_strncmp(n->tf_name, names[i],
 			    TCP_FUNCTION_NAME_LEN_MAX)) {
 				TAILQ_REMOVE(&t_functions, n, tf_next);
 				tcp_fb_cnt--;
 				n->tf_fb = NULL;
-				free(n, M_TCPFUNCTIONS);
+				vos_free(n, M_TCPFUNCTIONS);
 				break;
 			}
 		}
@@ -1008,7 +1008,7 @@ register_tcp_functions(struct tcp_function_block *blk, int wait)
  * removal.
  *
  * When called with a force argument, attempt to switch all TCBs to
- * use the default stack instead of returning EBUSY.
+ * use the default stack instead of returning VOS_EBUSY.
  *
  * Returns 0 on success (or if the removal would succeed, or an error
  * code on failure.
@@ -1021,13 +1021,13 @@ deregister_tcp_functions(struct tcp_function_block *blk, bool quiesce,
 
 	if (blk == &tcp_def_funcblk) {
 		/* You can't un-register the default */
-		return (EPERM);
+		return (VOS_EPERM);
 	}
 	rw_wlock(&tcp_function_lock);
 	if (blk == tcp_func_set_ptr) {
 		/* You can't free the current default */
 		rw_wunlock(&tcp_function_lock);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	/* Mark the block so no more stacks can use it. */
 	blk->tfb_flags |= TCP_FUNC_BEING_REMOVED;
@@ -1070,7 +1070,7 @@ deregister_tcp_functions(struct tcp_function_block *blk, bool quiesce,
 	if (blk->tfb_refcnt) {
 		/* TCBs still attached. */
 		rw_wunlock(&tcp_function_lock);
-		return (EBUSY);
+		return (VOS_EBUSY);
 	}
 	if (quiesce) {
 		/* Skip removal. */
@@ -1082,7 +1082,7 @@ deregister_tcp_functions(struct tcp_function_block *blk, bool quiesce,
 		TAILQ_REMOVE(&t_functions, f, tf_next);
 		tcp_fb_cnt--;
 		f->tf_fb = NULL;
-		free(f, M_TCPFUNCTIONS);
+		vos_free(f, M_TCPFUNCTIONS);
 	}
 	rw_wunlock(&tcp_function_lock);
 	return (0);
@@ -1371,7 +1371,7 @@ tcpip_maketemplate(struct inpcb *inp)
 {
 	struct tcptemp *t;
 
-	t = malloc(sizeof(*t), M_TEMP, M_NOWAIT);
+	t = vos_malloc(sizeof(*t), M_TEMP, M_NOWAIT);
 	if (t == NULL)
 		return (NULL);
 	tcpip_fillheaders(inp, (void *)&t->tt_ipgen, (void *)&t->tt_t);
@@ -1636,7 +1636,7 @@ tcp_respond(struct tcpcb *tp, void *ipgen, struct tcphdr *th, struct mbuf *m,
 	}
 #endif
 
-	m->m_pkthdr.csum_data = offsetof(struct tcphdr, th_sum);
+	m->m_pkthdr.csum_data = vos_offsetof(struct tcphdr, th_sum);
 #ifdef INET6
 	if (isipv6) {
 		m->m_pkthdr.csum_flags = CSUM_TCP_IPV6;
@@ -1905,7 +1905,7 @@ tcp_drop(struct tcpcb *tp, int errno)
 		TCPSTAT_INC(tcps_drops);
 	} else
 		TCPSTAT_INC(tcps_conndrops);
-	if (errno == ETIMEDOUT && tp->t_softerror)
+	if (errno == VOS_ETIMEDOUT && tp->t_softerror)
 		errno = tp->t_softerror;
 	so->so_error = errno;
 	return (tcp_close(tp));
@@ -2220,8 +2220,8 @@ tcp_notify(struct inpcb *inp, int error)
 	 * can never complete.
 	 */
 	if (tp->t_state == TCPS_ESTABLISHED &&
-	    (error == EHOSTUNREACH || error == ENETUNREACH ||
-	     error == EHOSTDOWN)) {
+	    (error == VOS_EHOSTUNREACH || error == VOS_ENETUNREACH ||
+	     error == VOS_EHOSTDOWN)) {
 		if (inp->inp_route.ro_nh) {
 			NH_FREE(inp->inp_route.ro_nh);
 			inp->inp_route.ro_nh = (struct nhop_object *)NULL;
@@ -2254,7 +2254,7 @@ tcp_pcblist(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != NULL)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	if (req->oldptr == NULL) {
 		int n;
@@ -2301,7 +2301,7 @@ tcp_pcblist(SYSCTL_HANDLER_ARGS)
 					crerr = cr_cansee(req->td->td_ucred,
 					    intotw(inp)->tw_cred);
 				else
-					crerr = EINVAL;	/* Skip this inp. */
+					crerr = VOS_EINVAL;	/* Skip this inp. */
 			} else
 				crerr = cr_canseeinpcb(req->td->td_ucred, inp);
 			if (crerr == 0) {
@@ -2365,14 +2365,14 @@ tcp_getcred(SYSCTL_HANDLER_ARGS)
 	NET_EPOCH_EXIT(et);
 	if (inp != NULL) {
 		if (inp->inp_socket == NULL)
-			error = ENOENT;
+			error = VOS_ENOENT;
 		if (error == 0)
 			error = cr_canseeinpcb(req->td->td_ucred, inp);
 		if (error == 0)
 			cru2x(inp->inp_cred, &xuc);
 		INP_RUNLOCK(inp);
 	} else
-		error = ENOENT;
+		error = VOS_ENOENT;
 	if (error == 0)
 		error = SYSCTL_OUT(req, &xuc, sizeof(struct xucred));
 	return (error);
@@ -2413,7 +2413,7 @@ tcp6_getcred(SYSCTL_HANDLER_ARGS)
 			mapped = 1;
 		else
 #endif
-			return (EINVAL);
+			return (VOS_EINVAL);
 	}
 
 	NET_EPOCH_ENTER(et);
@@ -2433,14 +2433,14 @@ tcp6_getcred(SYSCTL_HANDLER_ARGS)
 	NET_EPOCH_EXIT(et);
 	if (inp != NULL) {
 		if (inp->inp_socket == NULL)
-			error = ENOENT;
+			error = VOS_ENOENT;
 		if (error == 0)
 			error = cr_canseeinpcb(req->td->td_ucred, inp);
 		if (error == 0)
 			cru2x(inp->inp_cred, &xuc);
 		INP_RUNLOCK(inp);
 	} else
-		error = ENOENT;
+		error = VOS_ENOENT;
 	if (error == 0)
 		error = SYSCTL_OUT(req, &xuc, sizeof(struct xucred));
 	return (error);
@@ -2493,13 +2493,13 @@ tcp_ctlinput(int cmd, struct sockaddr *sa, void *vip)
 		return;
 	}
 
-	icp = (struct icmp *)((caddr_t)ip - offsetof(struct icmp, icmp_ip));
+	icp = (struct icmp *)((caddr_t)ip - vos_offsetof(struct icmp, icmp_ip));
 	th = (struct tcphdr *)((caddr_t)ip + (ip->ip_hl << 2));
 	inp = in_pcblookup(&V_tcbinfo, faddr, th->th_dport, ip->ip_src,
 	    th->th_sport, INPLOOKUP_WLOCKPCB, NULL);
 	if (inp != NULL && PRC_IS_REDIRECT(cmd)) {
-		/* signal EHOSTDOWN, as it flushes the cached route */
-		inp = (*notify)(inp, EHOSTDOWN);
+		/* signal VOS_EHOSTDOWN, as it flushes the cached route */
+		inp = (*notify)(inp, VOS_EHOSTDOWN);
 		goto out;
 	}
 	icmp_tcp_seq = th->th_seq;
@@ -2640,8 +2640,8 @@ tcp6_ctlinput(int cmd, struct sockaddr *sa, void *d)
 	inp = in6_pcblookup(&V_tcbinfo, &ip6->ip6_dst, t_ports.th_dport,
 	    &ip6->ip6_src, t_ports.th_sport, INPLOOKUP_WLOCKPCB, NULL);
 	if (inp != NULL && PRC_IS_REDIRECT(cmd)) {
-		/* signal EHOSTDOWN, as it flushes the cached route */
-		inp = (*notify)(inp, EHOSTDOWN);
+		/* signal VOS_EHOSTDOWN, as it flushes the cached route */
+		inp = (*notify)(inp, VOS_EHOSTDOWN);
 		goto out;
 	}
 	off += sizeof(struct tcp_ports);
@@ -3085,11 +3085,11 @@ sysctl_drop(SYSCTL_HANDLER_ARGS)
 	error = 0;
 
 	if (req->oldptr != NULL || req->oldlen != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (req->newptr == NULL)
-		return (EPERM);
+		return (VOS_EPERM);
 	if (req->newlen < sizeof(addrs))
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	error = SYSCTL_IN(req, &addrs, sizeof(addrs));
 	if (error)
 		return (error);
@@ -3101,10 +3101,10 @@ sysctl_drop(SYSCTL_HANDLER_ARGS)
 		lin6 = (struct sockaddr_in6 *)&addrs[1];
 		if (fin6->sin6_len != sizeof(struct sockaddr_in6) ||
 		    lin6->sin6_len != sizeof(struct sockaddr_in6))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (IN6_IS_ADDR_V4MAPPED(&fin6->sin6_addr)) {
 			if (!IN6_IS_ADDR_V4MAPPED(&lin6->sin6_addr))
-				return (EINVAL);
+				return (VOS_EINVAL);
 			in6_sin6_2_sin_in_sock((struct sockaddr *)&addrs[0]);
 			in6_sin6_2_sin_in_sock((struct sockaddr *)&addrs[1]);
 			fin = (struct sockaddr_in *)&addrs[0];
@@ -3125,11 +3125,11 @@ sysctl_drop(SYSCTL_HANDLER_ARGS)
 		lin = (struct sockaddr_in *)&addrs[1];
 		if (fin->sin_len != sizeof(struct sockaddr_in) ||
 		    lin->sin_len != sizeof(struct sockaddr_in))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		break;
 #endif
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	NET_EPOCH_ENTER(et);
 	switch (addrs[0].ss_family) {
@@ -3163,13 +3163,13 @@ sysctl_drop(SYSCTL_HANDLER_ARGS)
 		} else if (!(inp->inp_flags & INP_DROPPED) &&
 			   !(inp->inp_socket->so_options & SO_ACCEPTCONN)) {
 			tp = intotcpcb(inp);
-			tp = tcp_drop(tp, ECONNABORTED);
+			tp = tcp_drop(tp, VOS_ECONNABORTED);
 			if (tp != NULL)
 				INP_WUNLOCK(inp);
 		} else
 			INP_WUNLOCK(inp);
 	} else
-		error = ESRCH;
+		error = VOS_ESRCH;
 	NET_EPOCH_EXIT(et);
 	return (error);
 }
@@ -3201,11 +3201,11 @@ sysctl_switch_tls(SYSCTL_HANDLER_ARGS)
 	error = 0;
 
 	if (req->oldptr != NULL || req->oldlen != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (req->newptr == NULL)
-		return (EPERM);
+		return (VOS_EPERM);
 	if (req->newlen < sizeof(addrs))
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	error = SYSCTL_IN(req, &addrs, sizeof(addrs));
 	if (error)
 		return (error);
@@ -3217,10 +3217,10 @@ sysctl_switch_tls(SYSCTL_HANDLER_ARGS)
 		lin6 = (struct sockaddr_in6 *)&addrs[1];
 		if (fin6->sin6_len != sizeof(struct sockaddr_in6) ||
 		    lin6->sin6_len != sizeof(struct sockaddr_in6))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (IN6_IS_ADDR_V4MAPPED(&fin6->sin6_addr)) {
 			if (!IN6_IS_ADDR_V4MAPPED(&lin6->sin6_addr))
-				return (EINVAL);
+				return (VOS_EINVAL);
 			in6_sin6_2_sin_in_sock((struct sockaddr *)&addrs[0]);
 			in6_sin6_2_sin_in_sock((struct sockaddr *)&addrs[1]);
 			fin = (struct sockaddr_in *)&addrs[0];
@@ -3241,11 +3241,11 @@ sysctl_switch_tls(SYSCTL_HANDLER_ARGS)
 		lin = (struct sockaddr_in *)&addrs[1];
 		if (fin->sin_len != sizeof(struct sockaddr_in) ||
 		    lin->sin_len != sizeof(struct sockaddr_in))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		break;
 #endif
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	NET_EPOCH_ENTER(et);
 	switch (addrs[0].ss_family) {
@@ -3267,7 +3267,7 @@ sysctl_switch_tls(SYSCTL_HANDLER_ARGS)
 	if (inp != NULL) {
 		if ((inp->inp_flags & (INP_TIMEWAIT | INP_DROPPED)) != 0 ||
 		    inp->inp_socket == NULL) {
-			error = ECONNRESET;
+			error = VOS_ECONNRESET;
 			INP_WUNLOCK(inp);
 		} else {
 			struct socket *so;
@@ -3281,7 +3281,7 @@ sysctl_switch_tls(SYSCTL_HANDLER_ARGS)
 			sorele(so);
 		}
 	} else
-		error = ESRCH;
+		error = VOS_ESRCH;
 	return (error);
 }
 
@@ -3300,7 +3300,7 @@ SYSCTL_PROC(_net_inet_tcp, OID_AUTO, switch_to_ifnet_tls,
  * tcp subsystem.  Memory allocation is done with M_NOWAIT to
  * allow use in the interrupt context.
  *
- * NB: The caller MUST free(s, M_TCPLOG) the returned string.
+ * NB: The caller MUST vos_free(s, M_TCPLOG) the returned string.
  * NB: The function may return NULL if memory allocation failed.
  *
  * Due to header inclusion and ordering limitations the struct ip
@@ -3330,8 +3330,6 @@ tcp_log_addrs(struct in_conninfo *inc, struct tcphdr *th, void *ip4hdr,
 	return (tcp_log_addr(inc, th, ip4hdr, ip6hdr));
 }
 
-#pragma GCC diagnostic ignored "-Wformat"
-#pragma GCC diagnostic ignored "-Wformat-extra-args"
 static char *
 tcp_log_addr(struct in_conninfo *inc, struct tcphdr *th, void *ip4hdr,
     const void *ip6hdr)
@@ -3358,63 +3356,60 @@ tcp_log_addr(struct in_conninfo *inc, struct tcphdr *th, void *ip4hdr,
 	    2 * INET_ADDRSTRLEN;
 #endif /* INET6 */
 
-	s = malloc(size, M_TCPLOG, M_ZERO|M_NOWAIT);
+	s = vos_malloc(size, M_TCPLOG, M_ZERO|M_NOWAIT);
 	if (s == NULL)
 		return (NULL);
 
 	strcat(s, "TCP: [");
-	sp = s + strlen(s);
+	sp = s + vos_strlen(s);
 
 	if (inc && ((inc->inc_flags & INC_ISIPV6) == 0)) {
 		inet_ntoa_r(inc->inc_faddr, sp);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i to [", ntohs(inc->inc_fport));
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		inet_ntoa_r(inc->inc_laddr, sp);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i", ntohs(inc->inc_lport));
 #ifdef INET6
 	} else if (inc) {
 		ip6_sprintf(sp, &inc->inc6_faddr);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i to [", ntohs(inc->inc_fport));
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		ip6_sprintf(sp, &inc->inc6_laddr);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i", ntohs(inc->inc_lport));
 	} else if (ip6 && th) {
 		ip6_sprintf(sp, &ip6->ip6_src);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i to [", ntohs(th->th_sport));
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		ip6_sprintf(sp, &ip6->ip6_dst);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i", ntohs(th->th_dport));
 #endif /* INET6 */
 #ifdef INET
 	} else if (ip && th) {
 		inet_ntoa_r(ip->ip_src, sp);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i to [", ntohs(th->th_sport));
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		inet_ntoa_r(ip->ip_dst, sp);
-		sp = s + strlen(s);
+		sp = s + vos_strlen(s);
 		sprintf(sp, "]:%i", ntohs(th->th_dport));
 #endif /* INET */
 	} else {
-		free(s, M_TCPLOG);
+		vos_free(s, M_TCPLOG);
 		return (NULL);
 	}
-	sp = s + strlen(s);
+	sp = s + vos_strlen(s);
 	if (th)
 		sprintf(sp, " tcpflags 0x%b", th->th_flags, PRINT_TH_FLAGS);
 	if (*(s + size - 1) != '\0')
 		panic("%s: string too long", __func__);
 	return (s);
 }
-#pragma GCC diagnostic error "-Wformat"
-#pragma GCC diagnostic error "-Wformat-extra-args"
-
 /*
  * A subroutine which makes it easy to track TCP state changes with DTrace.
  * This function shouldn't be called for t_state initializations that don't

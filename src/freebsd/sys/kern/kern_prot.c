@@ -168,7 +168,7 @@ sys_getpgid(struct thread *td, struct getpgid_args *uap)
 	} else {
 		p = pfind(uap->pid);
 		if (p == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		error = p_cansee(td, p);
 		if (error) {
 			PROC_UNLOCK(p);
@@ -207,7 +207,7 @@ kern_getsid(struct thread *td, pid_t pid)
 	} else {
 		p = pfind(pid);
 		if (p == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		error = p_cansee(td, p);
 		if (error) {
 			PROC_UNLOCK(p);
@@ -307,7 +307,7 @@ sys_getgroups(struct thread *td, struct getgroups_args *uap)
 		goto out;
 	}
 	if (uap->gidsetsize < ngrp)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = copyout(cred->cr_groups, uap->gidset, ngrp * sizeof(gid_t));
 out:
@@ -334,14 +334,14 @@ sys_setsid(struct thread *td, struct setsid_args *uap)
 	pgrp = NULL;
 
 	newpgrp = uma_zalloc(pgrp_zone, M_WAITOK);
-	newsess = malloc(sizeof(struct session), M_SESSION, M_WAITOK | M_ZERO);
+	newsess = vos_malloc(sizeof(struct session), M_SESSION, M_WAITOK | M_ZERO);
 
 	sx_xlock(&proctree_lock);
 
 	if (p->p_pgid == p->p_pid || (pgrp = pgfind(p->p_pid)) != NULL) {
 		if (pgrp != NULL)
 			PGRP_UNLOCK(pgrp);
-		error = EPERM;
+		error = VOS_EPERM;
 	} else {
 		(void)enterpgrp(p, p->p_pid, newpgrp, newsess);
 		td->td_retval[0] = p->p_pid;
@@ -352,7 +352,7 @@ sys_setsid(struct thread *td, struct setsid_args *uap)
 	sx_xunlock(&proctree_lock);
 
 	uma_zfree(pgrp_zone, newpgrp);
-	free(newsess, M_SESSION);
+	vos_free(newsess, M_SESSION);
 
 	return (error);
 }
@@ -362,13 +362,13 @@ sys_setsid(struct thread *td, struct setsid_args *uap)
  *
  * caller does setpgid(targpid, targpgid)
  *
- * pid must be caller or child of caller (ESRCH)
+ * pid must be caller or child of caller (VOS_ESRCH)
  * if a child
- *	pid must be in same session (EPERM)
- *	pid can't have done an exec (EACCES)
+ *	pid must be in same session (VOS_EPERM)
+ *	pid can't have done an exec (VOS_EACCES)
  * if pgid != pid
- * 	there must exist some pid in same session having pgid (EPERM)
- * pid must not be session leader (EPERM)
+ * 	there must exist some pid in same session having pgid (VOS_EPERM)
+ * pid must not be session leader (VOS_EPERM)
  */
 #ifndef _SYS_SYSPROTO_H_
 struct setpgid_args {
@@ -387,7 +387,7 @@ sys_setpgid(struct thread *td, struct setpgid_args *uap)
 	struct pgrp *newpgrp;
 
 	if (uap->pgid < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = 0;
 
@@ -396,12 +396,12 @@ sys_setpgid(struct thread *td, struct setpgid_args *uap)
 	sx_xlock(&proctree_lock);
 	if (uap->pid != 0 && uap->pid != curp->p_pid) {
 		if ((targp = pfind(uap->pid)) == NULL) {
-			error = ESRCH;
+			error = VOS_ESRCH;
 			goto done;
 		}
 		if (!inferior(targp)) {
 			PROC_UNLOCK(targp);
-			error = ESRCH;
+			error = VOS_ESRCH;
 			goto done;
 		}
 		if ((error = p_cansee(td, targp))) {
@@ -411,19 +411,19 @@ sys_setpgid(struct thread *td, struct setpgid_args *uap)
 		if (targp->p_pgrp == NULL ||
 		    targp->p_session != curp->p_session) {
 			PROC_UNLOCK(targp);
-			error = EPERM;
+			error = VOS_EPERM;
 			goto done;
 		}
 		if (targp->p_flag & P_EXEC) {
 			PROC_UNLOCK(targp);
-			error = EACCES;
+			error = VOS_EACCES;
 			goto done;
 		}
 		PROC_UNLOCK(targp);
 	} else
 		targp = curp;
 	if (SESS_LEADER(targp)) {
-		error = EPERM;
+		error = VOS_EPERM;
 		goto done;
 	}
 	if (uap->pgid == 0)
@@ -435,7 +435,7 @@ sys_setpgid(struct thread *td, struct setpgid_args *uap)
 			if (error == 0)
 				newpgrp = NULL;
 		} else
-			error = EPERM;
+			error = VOS_EPERM;
 	} else {
 		if (pgrp == targp->p_pgrp) {
 			PGRP_UNLOCK(pgrp);
@@ -444,7 +444,7 @@ sys_setpgid(struct thread *td, struct setpgid_args *uap)
 		if (pgrp->pg_id != targp->p_pid &&
 		    pgrp->pg_session != curp->p_session) {
 			PGRP_UNLOCK(pgrp);
-			error = EPERM;
+			error = VOS_EPERM;
 			goto done;
 		}
 		PGRP_UNLOCK(pgrp);
@@ -511,7 +511,7 @@ sys_setuid(struct thread *td, struct setuid_args *uap)
 	 * three id's (assuming you have privs).
 	 *
 	 * Notes on the logic.  We do things in three steps.
-	 * 1: We determine if the euid is going to change, and do EPERM
+	 * 1: We determine if the euid is going to change, and do VOS_EPERM
 	 *    right away.  We unconditionally change the euid later if this
 	 *    test is satisfied, simplifying that part of the logic.
 	 * 2: We determine if the real and/or saved uids are going to
@@ -806,10 +806,10 @@ sys_setgroups(struct thread *td, struct setgroups_args *uap)
 
 	gidsetsize = uap->gidsetsize;
 	if (gidsetsize > ngroups_max + 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (gidsetsize > XU_NGROUPS)
-		groups = malloc(gidsetsize * sizeof(gid_t), M_TEMP, M_WAITOK);
+		groups = vos_malloc(gidsetsize * sizeof(gid_t), M_TEMP, M_WAITOK);
 	else
 		groups = smallgroups;
 
@@ -818,7 +818,7 @@ sys_setgroups(struct thread *td, struct setgroups_args *uap)
 		error = kern_setgroups(td, gidsetsize, groups);
 
 	if (gidsetsize > XU_NGROUPS)
-		free(groups, M_TEMP);
+		vos_free(groups, M_TEMP);
 	return (error);
 }
 
@@ -1258,11 +1258,11 @@ sys___setugid(struct thread *td, struct __setugid_args *uap)
 		PROC_UNLOCK(p);
 		return (0);
 	default:
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 #else /* !REGRESSION */
 
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 #endif /* REGRESSION */
 }
 
@@ -1303,7 +1303,7 @@ groupmember(gid_t gid, struct ucred *cred)
  * Test the active securelevel against a given level.  securelevel_gt()
  * implements (securelevel > level).  securelevel_ge() implements
  * (securelevel >= level).  Note that the logic is inverted -- these
- * functions return EPERM on "success" and 0 on "failure".
+ * functions return VOS_EPERM on "success" and 0 on "failure".
  *
  * Due to care taken when setting the securelevel, we know that no jail will
  * be less secure that its parent (or the physical system), so it is sufficient
@@ -1316,14 +1316,14 @@ int
 securelevel_gt(struct ucred *cr, int level)
 {
 
-	return (cr->cr_prison->pr_securelevel > level ? EPERM : 0);
+	return (cr->cr_prison->pr_securelevel > level ? VOS_EPERM : 0);
 }
 
 int
 securelevel_ge(struct ucred *cr, int level)
 {
 
-	return (cr->cr_prison->pr_securelevel >= level ? EPERM : 0);
+	return (cr->cr_prison->pr_securelevel >= level ? VOS_EPERM : 0);
 }
 
 /*
@@ -1340,7 +1340,7 @@ SYSCTL_INT(_security_bsd, OID_AUTO, see_other_uids, CTLFLAG_RW,
 /*-
  * Determine if u1 "can see" the subject specified by u2, according to the
  * 'see_other_uids' policy.
- * Returns: 0 for permitted, ESRCH otherwise
+ * Returns: 0 for permitted, VOS_ESRCH otherwise
  * Locks: none
  * References: *u1 and *u2 must not change during the call
  *             u1 may equal u2, in which case only one reference is required
@@ -1351,7 +1351,7 @@ cr_canseeotheruids(struct ucred *u1, struct ucred *u2)
 
 	if (!see_other_uids && u1->cr_ruid != u2->cr_ruid) {
 		if (priv_check_cred(u1, PRIV_SEEOTHERUIDS) != 0)
-			return (ESRCH);
+			return (VOS_ESRCH);
 	}
 	return (0);
 }
@@ -1370,7 +1370,7 @@ SYSCTL_INT(_security_bsd, OID_AUTO, see_other_gids, CTLFLAG_RW,
 /*
  * Determine if u1 can "see" the subject specified by u2, according to the
  * 'see_other_gids' policy.
- * Returns: 0 for permitted, ESRCH otherwise
+ * Returns: 0 for permitted, VOS_ESRCH otherwise
  * Locks: none
  * References: *u1 and *u2 must not change during the call
  *             u1 may equal u2, in which case only one reference is required
@@ -1390,7 +1390,7 @@ cr_canseeothergids(struct ucred *u1, struct ucred *u2)
 		}
 		if (!match) {
 			if (priv_check_cred(u1, PRIV_SEEOTHERGIDS) != 0)
-				return (ESRCH);
+				return (VOS_ESRCH);
 		}
 	}
 	return (0);
@@ -1412,7 +1412,7 @@ SYSCTL_INT(_security_bsd, OID_AUTO, see_jail_proc, CTLFLAG_RW,
 /*-
  * Determine if u1 "can see" the subject specified by u2, according to the
  * 'see_jail_proc' policy.
- * Returns: 0 for permitted, ESRCH otherwise
+ * Returns: 0 for permitted, VOS_ESRCH otherwise
  * Locks: none
  * References: *u1 and *u2 must not change during the call
  *             u1 may equal u2, in which case only one reference is required
@@ -1422,7 +1422,7 @@ cr_canseejailproc(struct ucred *u1, struct ucred *u2)
 {
 	if (u1->cr_uid == 0)
 		return (0);
-	return (!see_jail_proc && u1->cr_prison != u2->cr_prison ? ESRCH : 0);
+	return (!see_jail_proc && u1->cr_prison != u2->cr_prison ? VOS_ESRCH : 0);
 }
 
 /*-
@@ -1650,7 +1650,7 @@ sysctl_unprivileged_proc_debug(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (val != 0 && val != 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	prison_set_allow(req->td->td_ucred, PR_ALLOW_UNPRIV_DEBUG, val);
 	return (0);
 }
@@ -1758,7 +1758,7 @@ p_candebug(struct thread *td, struct proc *p)
 	 * should be moved to the caller's of p_candebug().
 	 */
 	if ((p->p_flag & P_INEXEC) != 0)
-		return (EBUSY);
+		return (VOS_EBUSY);
 
 	/* Denied explicitely */
 	if ((p->p_flag2 & P2_NOTRACE) != 0) {
@@ -1772,7 +1772,7 @@ p_candebug(struct thread *td, struct proc *p)
 
 /*-
  * Determine whether the subject represented by cred can "see" a socket.
- * Returns: 0 for permitted, ENOENT otherwise.
+ * Returns: 0 for permitted, VOS_ENOENT otherwise.
  */
 int
 cr_canseesocket(struct ucred *cred, struct socket *so)
@@ -1781,16 +1781,16 @@ cr_canseesocket(struct ucred *cred, struct socket *so)
 
 	error = prison_check(cred, so->so_cred);
 	if (error)
-		return (ENOENT);
+		return (VOS_ENOENT);
 #ifdef MAC
 	error = mac_socket_check_visible(cred, so);
 	if (error)
 		return (error);
 #endif
 	if (cr_canseeotheruids(cred, so->so_cred))
-		return (ENOENT);
+		return (VOS_ENOENT);
 	if (cr_canseeothergids(cred, so->so_cred))
-		return (ENOENT);
+		return (VOS_ENOENT);
 
 	return (0);
 }
@@ -1991,7 +1991,7 @@ crget(void)
 {
 	struct ucred *cr;
 
-	cr = malloc(sizeof(*cr), M_CRED, M_WAITOK | M_ZERO);
+	cr = vos_malloc(sizeof(*cr), M_CRED, M_WAITOK | M_ZERO);
 	mtx_init(&cr->cr_mtx, "cred", NULL, MTX_DEF);
 	cr->cr_ref = 1;
 #ifdef AUDIT
@@ -2088,8 +2088,8 @@ crfree_final(struct ucred *cr)
 #endif
 	mtx_destroy(&cr->cr_mtx);
 	if (cr->cr_groups != cr->cr_smallgroups)
-		free(cr->cr_groups, M_CRED);
-	free(cr, M_CRED);
+		vos_free(cr->cr_groups, M_CRED);
+	vos_free(cr, M_CRED);
 }
 
 /*
@@ -2270,9 +2270,9 @@ crextend(struct ucred *cr, int n)
 
 	/* Free the old array. */
 	if (cr->cr_groups != cr->cr_smallgroups)
-		free(cr->cr_groups, M_CRED);
+		vos_free(cr->cr_groups, M_CRED);
 
-	cr->cr_groups = malloc(cnt * sizeof(gid_t), M_CRED, M_WAITOK | M_ZERO);
+	cr->cr_groups = vos_malloc(cnt * sizeof(gid_t), M_CRED, M_WAITOK | M_ZERO);
 	cr->cr_agroups = cnt;
 }
 
@@ -2346,11 +2346,11 @@ sys_getlogin(struct thread *td, struct getlogin_args *uap)
 		uap->namelen = MAXLOGNAME;
 	PROC_LOCK(p);
 	SESS_LOCK(p->p_session);
-	len = strlcpy(login, p->p_session->s_login, uap->namelen) + 1;
+	len = vos_strlcpy(login, p->p_session->s_login, uap->namelen) + 1;
 	SESS_UNLOCK(p->p_session);
 	PROC_UNLOCK(p);
 	if (len > uap->namelen)
-		return (ERANGE);
+		return (VOS_ERANGE);
 	return (copyout(login, uap->namebuf, len));
 }
 
@@ -2377,14 +2377,14 @@ sys_setlogin(struct thread *td, struct setlogin_args *uap)
 		return (error);
 	error = copyinstr(uap->namebuf, logintmp, sizeof(logintmp), NULL);
 	if (error != 0) {
-		if (error == ENAMETOOLONG)
-			error = EINVAL;
+		if (error == VOS_ENAMETOOLONG)
+			error = VOS_EINVAL;
 		return (error);
 	}
 	AUDIT_ARG_LOGIN(logintmp);
 	PROC_LOCK(p);
 	SESS_LOCK(p->p_session);
-	strcpy(p->p_session->s_login, logintmp);
+	vos_strcpy(p->p_session->s_login, logintmp);
 	SESS_UNLOCK(p->p_session);
 	PROC_UNLOCK(p);
 	return (0);

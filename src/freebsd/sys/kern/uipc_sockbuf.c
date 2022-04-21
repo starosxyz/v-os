@@ -237,12 +237,12 @@ sbready(struct sockbuf* sb, struct mbuf* m0, int count)
 	 */
 	if (m0 == m) {
 		MPASS(m->m_flags & M_NOTREADY);
-		return (EINPROGRESS);
+		return (VOS_EINPROGRESS);
 	}
 
 	if (!blocker) {
 		sbready_compress(sb, m0, m);
-		return (EINPROGRESS);
+		return (VOS_EINPROGRESS);
 	}
 
 	/* This one was blocking all the queue. */
@@ -445,7 +445,7 @@ soroverflow_locked(struct socket* so)
 	SOCKBUF_LOCK_ASSERT(&so->so_rcv);
 
 	if (so->so_options & SO_RERROR) {
-		so->so_rerror = ENOBUFS;
+		so->so_rerror = VOS_ENOBUFS;
 		sorwakeup_locked(so);
 	}
 	else
@@ -588,7 +588,7 @@ bad2:
 bad:
 	SOCKBUF_UNLOCK(&so->so_rcv);
 	SOCKBUF_UNLOCK(&so->so_snd);
-	return (ENOBUFS);
+	return (VOS_ENOBUFS);
 }
 
 static int
@@ -601,7 +601,7 @@ sysctl_handle_sb_max(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (tmp_sb_max < MSIZE + MCLBYTES)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	sb_max = tmp_sb_max;
 	sb_max_adj = (u_quad_t)sb_max * MCLBYTES / (MSIZE + MCLBYTES);
 	return (0);
@@ -691,7 +691,7 @@ sbsetopt(struct socket* so, int cmd, u_long cc)
 	case SO_RCVBUF:
 		if (SOLISTENING(so)) {
 			if (cc > sb_max_adj) {
-				error = ENOBUFS;
+				error = VOS_ENOBUFS;
 				break;
 			}
 			*hiwat = cc;
@@ -700,7 +700,7 @@ sbsetopt(struct socket* so, int cmd, u_long cc)
 		}
 		else {
 			if (!sbreserve_locked(sb, cc, so, curthread))
-				error = ENOBUFS;
+				error = VOS_ENOBUFS;
 		}
 		if (error == 0)
 			*flags &= ~SB_AUTOSIZE;

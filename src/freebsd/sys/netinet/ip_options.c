@@ -695,7 +695,7 @@ ip_pcbopts(struct inpcb *inp, int optname, struct mbuf *m)
 
 bad:
 	(void)m_free(m);
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 /*

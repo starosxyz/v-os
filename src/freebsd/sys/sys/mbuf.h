@@ -95,8 +95,8 @@ SDT_PROBE_DECLARE(sdt, , , m__freem);
  * they are sensible.
  */
 struct mbuf;
-#define	MHSIZE		offsetof(struct mbuf, m_dat)
-#define	MPKTHSIZE	offsetof(struct mbuf, m_pktdat)
+#define	MHSIZE		vos_offsetof(struct mbuf, m_dat)
+#define	MPKTHSIZE	vos_offsetof(struct mbuf, m_pktdat)
 #define	MLEN		((int)(MSIZE - MHSIZE))
 #define	MHLEN		((int)(MSIZE - MPKTHSIZE))
 #define	MINCLSIZE	(MHLEN + 1)
@@ -284,7 +284,7 @@ struct m_ext {
 			 *   into all mbufs that use same external storage.
 			 */
 			char* ext_buf;	/* start of buffer */
-#define	m_ext_copylen	offsetof(struct m_ext, ext_arg2)
+#define	m_ext_copylen	vos_offsetof(struct m_ext, ext_arg2)
 			void* ext_arg2;
 		};
 		struct {
@@ -302,7 +302,7 @@ struct m_ext {
 #define	m_epg_pa	m_ext.extpg_pa
 #define	m_epg_trail	m_ext.extpg_trail
 #define	m_epg_hdr	m_ext.extpg_hdr
-#define	m_epg_ext_copylen	offsetof(struct m_ext, ext_free)
+#define	m_epg_ext_copylen	vos_offsetof(struct m_ext, ext_free)
 		};
 	};
 	/*
@@ -1589,7 +1589,7 @@ mbufq_enqueue(struct mbufq* mq, struct mbuf* m)
 {
 
 	if (mbufq_full(mq))
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	STAILQ_INSERT_TAIL(&mq->mq_head, m, m_stailqpkt);
 	mq->mq_len++;
 	return (0);
@@ -1631,7 +1631,7 @@ mbufq_concat(struct mbufq* mq_dst, struct mbufq* mq_src)
 
 #ifdef _SYS_TIMESPEC_H_
 static inline void
-mbuf_tstmp2timespec(struct mbuf* m, struct timespec* ts)
+mbuf_tstmp2timespec(struct mbuf* m, struct vos_timespec* ts)
 {
 
 	KASSERT((m->m_flags & M_PKTHDR) != 0, ("mbuf %p no M_PKTHDR", m));

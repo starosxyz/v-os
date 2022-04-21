@@ -230,7 +230,7 @@ static int pipe_create(struct pipe *pipe, bool backing);
 static int pipe_paircreate(struct thread *td, struct pipepair **p_pp);
 static __inline int pipelock(struct pipe *cpipe, int catch);
 static __inline void pipeunlock(struct pipe *cpipe);
-static void pipe_timestamp(struct timespec *tsp);
+static void pipe_timestamp(struct vos_timespec *tsp);
 #ifndef PIPE_NODIRECT
 static int pipe_build_write_buffer(struct pipe *wpipe, struct uio *uio);
 static void pipe_destroy_write_buffer(struct pipe *wpipe);
@@ -432,7 +432,7 @@ pipe_dtor(struct pipe *dpipe)
  * vms running on amd64 when using the rdtscp instruction).
  */
 static void
-pipe_timestamp(struct timespec *tsp)
+pipe_timestamp(struct vos_timespec *tsp)
 {
 
 	getnanotime(tsp);
@@ -518,7 +518,7 @@ sys_pipe2(struct thread *td, struct pipe2_args *uap)
 	int error, fildes[2];
 
 	if (uap->flags & ~(O_CLOEXEC | O_NONBLOCK))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	error = kern_pipe(td, fildes, uap->flags, NULL, NULL);
 	if (error)
 		return (error);
@@ -534,7 +534,7 @@ sys_pipe2(struct thread *td, struct pipe2_args *uap)
  * Allocate kva for pipe circular buffer, the space is pageable
  * This routine will 'realloc' the size of a pipe safely, if it fails
  * it will retain the old buffer.
- * If it fails it will return ENOMEM.
+ * If it fails it will return VOS_ENOMEM.
  */
 static int
 pipespace_new(struct pipe *cpipe, int size)
@@ -571,7 +571,7 @@ retry:
 		} else {
 			piperesizefail++;
 		}
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 
 	/* copy data, then free old resources if we're resizing */
@@ -811,7 +811,7 @@ pipe_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
 			 * wait for more data.
 			 */
 			if (fp->f_flag & FNONBLOCK) {
-				error = EAGAIN;
+				error = VOS_EAGAIN;
 			} else {
 				rpipe->pipe_state |= PIPE_WANTR;
 				if ((error = msleep(rpipe, PIPE_MTX(rpipe),
@@ -894,7 +894,7 @@ pipe_build_write_buffer(struct pipe *wpipe, struct uio *uio)
 	PIPE_LOCK(wpipe);
 	if (i < 0) {
 		wpipe->pipe_state &= ~PIPE_DIRECTW;
-		return (EFAULT);
+		return (VOS_EFAULT);
 	}
 
 	wpipe->pipe_pages.npages = i;
@@ -984,7 +984,7 @@ pipe_direct_write(struct pipe *wpipe, struct uio *uio)
 retry:
 	PIPE_LOCK_ASSERT(wpipe, MA_OWNED);
 	if ((wpipe->pipe_state & PIPE_EOF) != 0) {
-		error = EPIPE;
+		error = VOS_EPIPE;
 		goto error1;
 	}
 	if (wpipe->pipe_state & PIPE_DIRECTW) {
@@ -1043,8 +1043,8 @@ retry:
 		wpipe->pipe_pages.cnt = 0;
 		pipe_destroy_write_buffer(wpipe);
 		pipeselwakeup(wpipe);
-		error = EPIPE;
-	} else if (error == EINTR || error == ERESTART) {
+		error = VOS_EPIPE;
+	} else if (error == VOS_EINTR || error == VOS_ERESTART) {
 		pipe_clone_write_buffer(wpipe);
 	} else {
 		pipe_destroy_write_buffer(wpipe);
@@ -1082,7 +1082,7 @@ pipe_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	    (wpipe->pipe_state & PIPE_EOF)) {
 		pipeunlock(wpipe);
 		PIPE_UNLOCK(rpipe);
-		return (EPIPE);
+		return (VOS_EPIPE);
 	}
 #ifdef MAC
 	error = mac_pipe_check_write(active_cred, wpipe->pipe_pair);
@@ -1128,7 +1128,7 @@ pipe_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 		int space;
 
 		if (wpipe->pipe_state & PIPE_EOF) {
-			error = EPIPE;
+			error = VOS_EPIPE;
 			break;
 		}
 #ifndef PIPE_NODIRECT
@@ -1260,7 +1260,7 @@ pipe_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 			 * don't block on non-blocking I/O
 			 */
 			if (fp->f_flag & FNONBLOCK) {
-				error = EAGAIN;
+				error = VOS_EAGAIN;
 				break;
 			}
 
@@ -1298,12 +1298,12 @@ pipe_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	}
 
 	/*
-	 * Don't return EPIPE if any byte was written.
-	 * EINTR and other interrupts are handled by generic I/O layer.
+	 * Don't return VOS_EPIPE if any byte was written.
+	 * VOS_EINTR and other interrupts are handled by generic I/O layer.
 	 * Do not pretend that I/O succeeded for obvious user error
-	 * like EFAULT.
+	 * like VOS_EFAULT.
 	 */
-	if (uio->uio_resid != orig_resid && error == EPIPE)
+	if (uio->uio_resid != orig_resid && error == VOS_EPIPE)
 		error = 0;
 
 	if (error == 0)
@@ -1405,7 +1405,7 @@ pipe_ioctl(struct file *fp, u_long cmd, void *data, struct ucred *active_cred,
 		break;
 
 	default:
-		error = ENOTTY;
+		error = VOS_ENOTTY;
 		break;
 	}
 	PIPE_UNLOCK(mpipe);
@@ -1723,13 +1723,13 @@ pipe_kqfilter(struct file *fp, struct knote *kn)
 		if (cpipe->pipe_peer->pipe_present != PIPE_ACTIVE) {
 			/* other end of pipe has been closed */
 			PIPE_UNLOCK(cpipe);
-			return (EPIPE);
+			return (VOS_EPIPE);
 		}
 		cpipe = PIPE_PEER(cpipe);
 		break;
 	default:
 		PIPE_UNLOCK(cpipe);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	kn->kn_hook = cpipe; 

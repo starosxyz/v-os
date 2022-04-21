@@ -131,7 +131,7 @@ sysctl_fibs(SYSCTL_HANDLER_ARGS)
 		new_fibs = normalize_num_rtables(new_fibs);
 
 		if (new_fibs < V_rt_numfibs)
-			error = ENOTCAPABLE;
+			error = VOS_ENOTCAPABLE;
 		if (new_fibs > V_rt_numfibs)
 			grow_rtables(new_fibs);
 	}
@@ -156,7 +156,7 @@ sys_setfib(struct thread *td, struct setfib_args *uap)
 	if (uap->fibnum >= 0 && uap->fibnum < V_rt_numfibs)
 		td->td_proc->p_fibnum = uap->fibnum;
 	else
-		error = EINVAL;
+		error = VOS_EINVAL;
 	CURVNET_RESTORE();
 
 	return (error);
@@ -242,7 +242,7 @@ grow_rtables(uint32_t num_tables)
 	V_rt_numfibs = num_tables;
 
 	if (old_rt_tables != NULL)
-		free(old_rt_tables, M_RTABLE);
+		vos_free(old_rt_tables, M_RTABLE);
 }
 
 static void
@@ -302,7 +302,7 @@ rtables_destroy(const void *unused __unused)
 	 */
 	epoch_drain_callbacks(net_epoch_preempt);
 
-	free(V_rt_tables, M_RTABLE);
+	vos_free(V_rt_tables, M_RTABLE);
 	vnet_rtzone_destroy();
 #ifdef FIB_ALGO
 	vnet_fib_destroy();

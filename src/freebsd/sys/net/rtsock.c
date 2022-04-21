@@ -212,7 +212,7 @@ sysctl_route_netisr_maxqlen(SYSCTL_HANDLER_ARGS)
         if (error || !req->newptr)
                 return (error);
 	if (qlimit < 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (netisr_setqlimit(&rtsock_nh, qlimit));
 }
 SYSCTL_PROC(_net_route, OID_AUTO, netisr_maxqlen,
@@ -311,7 +311,7 @@ rts_close(struct socket *so)
 	raw_usrreqs.pru_close(so);
 }
 
-/* pru_accept is EOPNOTSUPP */
+/* pru_accept is VOS_EOPNOTSUPP */
 
 static int
 rts_attach(struct socket *so, int proto, struct thread *td)
@@ -322,7 +322,7 @@ rts_attach(struct socket *so, int proto, struct thread *td)
 	KASSERT(so->so_pcb == NULL, ("rts_attach: so_pcb != NULL"));
 
 	/* XXX */
-	rp = malloc(sizeof *rp, M_PCB, M_WAITOK | M_ZERO);
+	rp = vos_malloc(sizeof *rp, M_PCB, M_WAITOK | M_ZERO);
 
 	so->so_pcb = (caddr_t)rp;
 	so->so_fibnum = td->td_proc->p_fibnum;
@@ -330,7 +330,7 @@ rts_attach(struct socket *so, int proto, struct thread *td)
 	rp = sotorawcb(so);
 	if (error) {
 		so->so_pcb = NULL;
-		free(rp, M_PCB);
+		vos_free(rp, M_PCB);
 		return error;
 	}
 	RTSOCK_LOCK();
@@ -353,18 +353,18 @@ static int
 rts_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 {
 
-	return (raw_usrreqs.pru_bind(so, nam, td)); /* xxx just EINVAL */
+	return (raw_usrreqs.pru_bind(so, nam, td)); /* xxx just VOS_EINVAL */
 }
 
 static int
 rts_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 {
 
-	return (raw_usrreqs.pru_connect(so, nam, td)); /* XXX just EINVAL */
+	return (raw_usrreqs.pru_connect(so, nam, td)); /* XXX just VOS_EINVAL */
 }
 
-/* pru_connect2 is EOPNOTSUPP */
-/* pru_control is EOPNOTSUPP */
+/* pru_connect2 is VOS_EOPNOTSUPP */
+/* pru_control is VOS_EOPNOTSUPP */
 
 static void
 rts_detach(struct socket *so)
@@ -394,7 +394,7 @@ rts_disconnect(struct socket *so)
 	return (raw_usrreqs.pru_disconnect(so));
 }
 
-/* pru_listen is EOPNOTSUPP */
+/* pru_listen is VOS_EOPNOTSUPP */
 
 static int
 rts_peeraddr(struct socket *so, struct sockaddr **nam)
@@ -403,8 +403,8 @@ rts_peeraddr(struct socket *so, struct sockaddr **nam)
 	return (raw_usrreqs.pru_peeraddr(so, nam));
 }
 
-/* pru_rcvd is EOPNOTSUPP */
-/* pru_rcvoob is EOPNOTSUPP */
+/* pru_rcvd is VOS_EOPNOTSUPP */
+/* pru_rcvoob is VOS_EOPNOTSUPP */
 
 static int
 rts_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
@@ -503,7 +503,7 @@ rtm_get_jailed(struct rt_addrinfo *info, struct ifnet *ifp,
 			ia = ((struct sockaddr_in *)nh->nh_ifa->ifa_addr)->
 			    sin_addr;
 			if (prison_get_ip4(cred, &ia) != 0)
-				return (ESRCH);
+				return (VOS_ESRCH);
 		}
 		bzero(&saun->sin, sizeof(struct sockaddr_in));
 		saun->sin.sin_len = sizeof(struct sockaddr_in);
@@ -546,20 +546,20 @@ rtm_get_jailed(struct rt_addrinfo *info, struct ifnet *ifp,
 			ia6 = ((struct sockaddr_in6 *)nh->nh_ifa->ifa_addr)->
 			    sin6_addr;
 			if (prison_get_ip6(cred, &ia6) != 0)
-				return (ESRCH);
+				return (VOS_ESRCH);
 		}
 		bzero(&saun->sin6, sizeof(struct sockaddr_in6));
 		saun->sin6.sin6_len = sizeof(struct sockaddr_in6);
 		saun->sin6.sin6_family = AF_INET6;
 		bcopy(&ia6, &saun->sin6.sin6_addr, sizeof(struct in6_addr));
 		if (sa6_recoverscope(&saun->sin6) != 0)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		info->rti_info[RTAX_IFA] = (struct sockaddr *)&saun->sin6;
 		break;
 	}
 #endif
 	default:
-		return (ESRCH);
+		return (VOS_ESRCH);
 	}
 	return (0);
 }
@@ -572,7 +572,7 @@ fill_blackholeinfo(struct rt_addrinfo *info, union sockaddr_union *saun)
 
 	if (V_loif == NULL) {
 		printf("Unable to add blackhole/reject nhop without loopback");
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 	}
 	info->rti_ifp = V_loif;
 
@@ -585,7 +585,7 @@ fill_blackholeinfo(struct rt_addrinfo *info, union sockaddr_union *saun)
 		}
 	}
 	if (info->rti_ifa == NULL)
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 
 	bzero(saun, sizeof(union sockaddr_union));
 	switch (saf) {
@@ -604,7 +604,7 @@ fill_blackholeinfo(struct rt_addrinfo *info, union sockaddr_union *saun)
 		break;
 #endif
 	default:
-		return (ENOTSUP);
+		return (VOS_ENOTSUP);
 	}
 	info->rti_info[RTAX_GATEWAY] = &saun->sa;
 	info->rti_flags |= RTF_GATEWAY;
@@ -635,10 +635,10 @@ fill_addrinfo(struct rt_msghdr *rtm, int len, u_int fibnum, struct rt_addrinfo *
 	 * embedded scope id.
 	 */
 	if (rt_xaddrs((caddr_t)(rtm + 1), len + (caddr_t)rtm, info))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (rtm->rtm_flags & RTF_RNH_LOCKED)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	info->rti_flags = rtm->rtm_flags;
 	error = cleanup_xaddrs(info);
 	if (error != 0)
@@ -737,7 +737,7 @@ handle_rtm_get(struct rt_addrinfo *info, u_int fibnum,
 
 	rnh = rt_tables_get_rnh(fibnum, saf);
 	if (rnh == NULL)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	RIB_RLOCK(rnh);
 
@@ -763,13 +763,13 @@ handle_rtm_get(struct rt_addrinfo *info, u_int fibnum,
 
 	if (rc->rc_rt == NULL) {
 		RIB_RUNLOCK(rnh);
-		return (ESRCH);
+		return (VOS_ESRCH);
 	}
 
 	nh = select_nhop(rt_get_raw_nhop(rc->rc_rt), info->rti_info[RTAX_GATEWAY]);
 	if (nh == NULL) {
 		RIB_RUNLOCK(rnh);
-		return (ESRCH);
+		return (VOS_ESRCH);
 	}
 	/*
 	 * If performing proxied L2 entry insertion, and
@@ -802,12 +802,12 @@ handle_rtm_get(struct rt_addrinfo *info, u_int fibnum,
 		    &rnh->head);
 		if (rc->rc_rt == NULL) {
 			RIB_RUNLOCK(rnh);
-			return (ESRCH);
+			return (VOS_ESRCH);
 		}
 		nh = select_nhop(rt_get_raw_nhop(rc->rc_rt), info->rti_info[RTAX_GATEWAY]);
 		if (nh == NULL) {
 			RIB_RUNLOCK(rnh);
-			return (ESRCH);
+			return (VOS_ESRCH);
 		}
 	}
 	rc->rc_nh_new = nh;
@@ -931,9 +931,9 @@ update_rtm_from_rc(struct rt_addrinfo *info, struct rt_msghdr **prtm,
 	if (len > alloc_len) {
 		struct rt_msghdr *tmp_rtm;
 
-		tmp_rtm = malloc(len, M_TEMP, M_NOWAIT);
+		tmp_rtm = vos_malloc(len, M_TEMP, M_NOWAIT);
 		if (tmp_rtm == NULL)
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 		bcopy(rtm, tmp_rtm, rtm->rtm_msglen);
 		orig_rtm = rtm;
 		rtm = tmp_rtm;
@@ -958,7 +958,7 @@ update_rtm_from_rc(struct rt_addrinfo *info, struct rt_msghdr **prtm,
 	rtm->rtm_addrs = info->rti_addrs;
 
 	if (orig_rtm != NULL)
-		free(orig_rtm, M_TEMP);
+		vos_free(orig_rtm, M_TEMP);
 	*prtm = rtm;
 
 	return (0);
@@ -1006,14 +1006,14 @@ route_output(struct mbuf *m, struct socket *so, ...)
 #define senderr(e) { error = e; goto flush;}
 	if (m == NULL || ((m->m_len < sizeof(long long)) &&
 		       (m = m_pullup(m, sizeof(long long))) == NULL))
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	if ((m->m_flags & M_PKTHDR) == 0)
 		panic("route_output");
 	NET_EPOCH_ENTER(et);
 	len = m->m_pkthdr.len;
 	if (len < sizeof(*rtm) ||
 	    len != mtod(m, struct rt_msghdr *)->rtm_msglen)
-		senderr(EINVAL);
+		senderr(VOS_EINVAL);
 
 	/*
 	 * Most of current messages are in range 200-240 bytes,
@@ -1021,8 +1021,8 @@ route_output(struct mbuf *m, struct socket *so, ...)
 	 * buffer aligned on 1k boundaty.
 	 */
 	alloc_len = roundup2(len, 1024);
-	if ((rtm = malloc(alloc_len, M_TEMP, M_NOWAIT)) == NULL)
-		senderr(ENOBUFS);
+	if ((rtm = vos_malloc(alloc_len, M_TEMP, M_NOWAIT)) == NULL)
+		senderr(VOS_ENOBUFS);
 
 	m_copydata(m, 0, len, (caddr_t)rtm);
 	bzero(&info, sizeof(info));
@@ -1030,9 +1030,9 @@ route_output(struct mbuf *m, struct socket *so, ...)
 
 	if (rtm->rtm_version != RTM_VERSION) {
 		/* Do not touch message since format is unknown */
-		free(rtm, M_TEMP);
+		vos_free(rtm, M_TEMP);
 		rtm = NULL;
-		senderr(EPROTONOSUPPORT);
+		senderr(VOS_EPROTONOSUPPORT);
 	}
 
 	/*
@@ -1063,7 +1063,7 @@ route_output(struct mbuf *m, struct socket *so, ...)
 		if (blackhole_flags != (RTF_BLACKHOLE | RTF_REJECT))
 			error = fill_blackholeinfo(&info, &gw_saun);
 		else
-			error = EINVAL;
+			error = VOS_EINVAL;
 		if (error != 0)
 			senderr(error);
 		/* TODO: rebuild rtm from scratch */
@@ -1074,7 +1074,7 @@ route_output(struct mbuf *m, struct socket *so, ...)
 	case RTM_CHANGE:
 		if (rtm->rtm_type == RTM_ADD) {
 			if (info.rti_info[RTAX_GATEWAY] == NULL)
-				senderr(EINVAL);
+				senderr(VOS_EINVAL);
 		}
 		error = rib_action(fibnum, rtm->rtm_type, &info, &rc);
 		if (error == 0) {
@@ -1127,7 +1127,7 @@ report:
 		if (!can_export_rte(curthread->td_ucred,
 		    info.rti_info[RTAX_NETMASK] == NULL,
 		    info.rti_info[RTAX_DST])) {
-			senderr(ESRCH);
+			senderr(VOS_ESRCH);
 		}
 
 		error = update_rtm_from_rc(&info, &rtm, alloc_len, &rc, nh);
@@ -1151,7 +1151,7 @@ report:
 		break;
 
 	default:
-		senderr(EOPNOTSUPP);
+		senderr(VOS_EOPNOTSUPP);
 	}
 
 flush:
@@ -1198,7 +1198,7 @@ send_rtm_reply(struct socket *so, struct rt_msghdr *rtm, struct mbuf *m,
 	if ((so->so_options & SO_USELOOPBACK) == 0) {
 		if (V_route_cb.any_count <= 1) {
 			if (rtm != NULL)
-				free(rtm, M_TEMP);
+				vos_free(rtm, M_TEMP);
 			m_freem(m);
 			return;
 		}
@@ -1219,7 +1219,7 @@ send_rtm_reply(struct socket *so, struct rt_msghdr *rtm, struct mbuf *m,
 		} else if (m->m_pkthdr.len > rtm->rtm_msglen)
 			m_adj(m, rtm->rtm_msglen - m->m_pkthdr.len);
 
-		free(rtm, M_TEMP);
+		vos_free(rtm, M_TEMP);
 	}
 	if (m != NULL) {
 		M_SETFIB(m, fibnum);
@@ -1271,7 +1271,7 @@ rt_xaddrs(caddr_t cp, caddr_t cplim, struct rt_addrinfo *rtinfo)
 		 * It won't fit.
 		 */
 		if (cp + sa->sa_len > cplim)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		/*
 		 * there are no more.. quit now
 		 * If there are more bits, they are in error.
@@ -1281,7 +1281,7 @@ rt_xaddrs(caddr_t cp, caddr_t cplim, struct rt_addrinfo *rtinfo)
 		 */
 		if (sa->sa_len == 0) {
 			rtinfo->rti_info[i] = &sa_zero;
-			return (0); /* should be EINVAL but for compat */
+			return (0); /* should be VOS_EINVAL but for compat */
 		}
 		/* accept it */
 #ifdef INET6
@@ -1337,13 +1337,13 @@ cleanup_xaddrs_lladdr(struct rt_addrinfo *info)
 	struct sockaddr_dl *sdl = (struct sockaddr_dl *)info->rti_info[RTAX_GATEWAY];
 
 	if (sdl->sdl_family != AF_LINK)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (sdl->sdl_index == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
-	if (offsetof(struct sockaddr_dl, sdl_data) + sdl->sdl_nlen + sdl->sdl_alen > sdl->sdl_len)
-		return (EINVAL);
+	if (vos_offsetof(struct sockaddr_dl, sdl_data) + sdl->sdl_nlen + sdl->sdl_alen > sdl->sdl_len)
+		return (VOS_EINVAL);
 
 	return (0);
 }
@@ -1363,7 +1363,7 @@ cleanup_xaddrs_gateway(struct rt_addrinfo *info)
 			struct sockaddr_in *gw_sin = (struct sockaddr_in *)gw;
 			if (gw_sin->sin_len < sizeof(struct sockaddr_in)) {
 				printf("gw sin_len too small\n");
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 			fill_sockaddr_inet(gw_sin, gw_sin->sin_addr);
 		}
@@ -1375,7 +1375,7 @@ cleanup_xaddrs_gateway(struct rt_addrinfo *info)
 			struct sockaddr_in6 *gw_sin6 = (struct sockaddr_in6 *)gw;
 			if (gw_sin6->sin6_len < sizeof(struct sockaddr_in6)) {
 				printf("gw sin6_len too small\n");
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 			fill_sockaddr_inet6(gw_sin6, &gw_sin6->sin6_addr, 0);
 			break;
@@ -1388,7 +1388,7 @@ cleanup_xaddrs_gateway(struct rt_addrinfo *info)
 			gw_sdl = (struct sockaddr_dl_short *)gw;
 			if (gw_sdl->sdl_len < sizeof(struct sockaddr_dl_short)) {
 				printf("gw sdl_len too small\n");
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 
 			const struct sockaddr_dl_short sdl = {
@@ -1431,11 +1431,11 @@ cleanup_xaddrs_inet(struct rt_addrinfo *info)
 
 	if (dst_sa->sin_len < sizeof(struct sockaddr_in)) {
 		printf("dst sin_len too small\n");
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	if (mask_sa && mask_sa->sin_len < sizeof(struct sockaddr_in)) {
 		printf("mask sin_len too small\n");
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	fill_sockaddr_inet(dst_sa, dst);
 
@@ -1468,11 +1468,11 @@ cleanup_xaddrs_inet6(struct rt_addrinfo *info)
 
 	if (dst_sa->sin6_len < sizeof(struct sockaddr_in6)) {
 		printf("dst sin6_len too small\n");
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	if (mask_sa && mask_sa->sin6_len < sizeof(struct sockaddr_in6)) {
 		printf("mask sin6_len too small\n");
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	fill_sockaddr_inet6(dst_sa, &dst_sa->sin6_addr, 0);
 
@@ -1492,10 +1492,10 @@ cleanup_xaddrs_inet6(struct rt_addrinfo *info)
 static int
 cleanup_xaddrs(struct rt_addrinfo *info)
 {
-	int error = EAFNOSUPPORT;
+	int error = VOS_EAFNOSUPPORT;
 
 	if (info->rti_info[RTAX_DST] == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (info->rti_flags & RTF_LLDATA) {
 		/*
@@ -1757,7 +1757,7 @@ rtsock_msg_buffer(int type, struct rt_addrinfo *rtinfo, struct walkarg *w, int *
 	*plen = len;
 
 	if (w != NULL && cp == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 
 	return (0);
 }
@@ -1857,7 +1857,7 @@ rtsock_addrmsg(int cmd, struct ifaddr *ifa, int fibnum)
 	    info.rti_info[RTAX_IFA], ifa->ifa_netmask, &ss);
 	info.rti_info[RTAX_BRD] = ifa->ifa_dstaddr;
 	if ((m = rtsock_msg_mbuf(ncmd, &info)) == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	ifam = mtod(m, struct ifa_msghdr *);
 	ifam->ifam_index = ifp->if_index;
 	ifam->ifam_metric = ifa->ifa_ifp->if_metric;
@@ -1921,7 +1921,7 @@ rtsock_routemsg_info(int cmd, struct rt_addrinfo *info, int fibnum)
 
 	m = rtsock_msg_mbuf(cmd, info);
 	if (m == NULL)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 
 	if (fibnum != RT_ALL_FIBS) {
 		KASSERT(fibnum >= 0 && fibnum < rt_numfibs, ("%s: fibnum out "
@@ -1999,7 +1999,7 @@ rt_makeifannouncemsg(struct ifnet *ifp, int type, int what,
 	if (m != NULL) {
 		ifan = mtod(m, struct if_announcemsghdr *);
 		ifan->ifan_index = ifp->if_index;
-		strlcpy(ifan->ifan_name, ifp->if_xname,
+		vos_strlcpy(ifan->ifan_name, ifp->if_xname,
 			sizeof(ifan->ifan_name));
 		ifan->ifan_what = what;
 	}
@@ -2173,7 +2173,7 @@ sysctl_dumpnhop(struct rtentry *rt, struct nhop_object *nh, uint32_t weight,
 		struct rt_msghdr *rtm = (struct rt_msghdr *)w->w_tmem;
 
 		bzero(&rtm->rtm_index,
-		    sizeof(*rtm) - offsetof(struct rt_msghdr, rtm_index));
+		    sizeof(*rtm) - vos_offsetof(struct rt_msghdr, rtm_index));
 
 		/*
 		 * rte flags may consist of RTF_HOST (duplicated in nhop rtflags)
@@ -2213,7 +2213,7 @@ sysctl_iflist_ifml(struct ifnet *ifp, const struct if_data *src_ifd,
 		ifm32->ifm_index = ifp->if_index;
 		ifm32->_ifm_spare1 = 0;
 		ifm32->ifm_len = sizeof(*ifm32);
-		ifm32->ifm_data_off = offsetof(struct if_msghdrl32, ifm_data);
+		ifm32->ifm_data_off = vos_offsetof(struct if_msghdrl32, ifm_data);
 		ifm32->_ifm_spare2 = 0;
 		ifd = &ifm32->ifm_data;
 	} else
@@ -2224,7 +2224,7 @@ sysctl_iflist_ifml(struct ifnet *ifp, const struct if_data *src_ifd,
 		ifm->ifm_index = ifp->if_index;
 		ifm->_ifm_spare1 = 0;
 		ifm->ifm_len = sizeof(*ifm);
-		ifm->ifm_data_off = offsetof(struct if_msghdrl, ifm_data);
+		ifm->ifm_data_off = vos_offsetof(struct if_msghdrl, ifm_data);
 		ifm->_ifm_spare2 = 0;
 		ifd = &ifm->ifm_data;
 	}
@@ -2288,7 +2288,7 @@ sysctl_iflist_ifaml(struct ifaddr *ifa, struct rt_addrinfo *info,
 		ifam32->_ifam_spare1 = 0;
 		ifam32->ifam_len = sizeof(*ifam32);
 		ifam32->ifam_data_off =
-		    offsetof(struct ifa_msghdrl32, ifam_data);
+			vos_offsetof(struct ifa_msghdrl32, ifam_data);
 		ifam32->ifam_metric = ifa->ifa_ifp->if_metric;
 		ifd = &ifam32->ifam_data;
 	} else
@@ -2299,7 +2299,7 @@ sysctl_iflist_ifaml(struct ifaddr *ifa, struct rt_addrinfo *info,
 		ifam->ifam_index = ifa->ifa_ifp->if_index;
 		ifam->_ifam_spare1 = 0;
 		ifam->ifam_len = sizeof(*ifam);
-		ifam->ifam_data_off = offsetof(struct ifa_msghdrl, ifam_data);
+		ifam->ifam_data_off = vos_offsetof(struct ifa_msghdrl, ifam_data);
 		ifam->ifam_metric = ifa->ifa_ifp->if_metric;
 		ifd = &ifam->ifam_data;
 	}
@@ -2470,7 +2470,7 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 	int	*name = (int *)arg1;
 	u_int	namelen = arg2;
 	struct rib_head *rnh = NULL; /* silence compiler. */
-	int	i, lim, error = EINVAL;
+	int	i, lim, error = VOS_EINVAL;
 	int	fib = 0;
 	u_char	af;
 	struct	walkarg w;
@@ -2478,7 +2478,7 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 	name ++;
 	namelen--;
 	if (req->newptr)
-		return (EPERM);
+		return (VOS_EPERM);
 	if (name[1] == NET_RT_DUMP || name[1] == NET_RT_NHOP || name[1] == NET_RT_NHGRP) {
 		if (namelen == 3)
 			fib = req->td->td_proc->p_fibnum;
@@ -2486,14 +2486,14 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 			fib = (name[3] == RT_ALL_FIBS) ?
 			    req->td->td_proc->p_fibnum : name[3];
 		else
-			return ((namelen < 3) ? EISDIR : ENOTDIR);
+			return ((namelen < 3) ? VOS_EISDIR : VOS_ENOTDIR);
 		if (fib < 0 || fib >= rt_numfibs)
-			return (EINVAL);
+			return (VOS_EINVAL);
 	} else if (namelen != 3)
-		return ((namelen < 3) ? EISDIR : ENOTDIR);
+		return ((namelen < 3) ? VOS_EISDIR : VOS_ENOTDIR);
 	af = name[0];
 	if (af > AF_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	bzero(&w, sizeof(w));
 	w.w_op = name[1];
 	w.w_arg = name[2];
@@ -2508,7 +2508,7 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 	 * All rtsock messages has maximum length of u_short.
 	 */
 	w.w_tmemsize = 65536;
-	w.w_tmem = malloc(w.w_tmemsize, M_TEMP, M_WAITOK);
+	w.w_tmem = vos_malloc(w.w_tmemsize, M_TEMP, M_WAITOK);
 
 	NET_EPOCH_ENTER(et);
 	switch (w.w_op) {
@@ -2529,7 +2529,7 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 			if (af != 0)
 				error = lltable_sysctl_dumparp(af, w.w_req);
 			else
-				error = EINVAL;
+				error = VOS_EINVAL;
 			break;
 		}
 		/*
@@ -2540,24 +2540,24 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 			if (rnh != NULL) {
 				rtable_sysctl_dump(fib, i, &w);
 			} else if (af != 0)
-				error = EAFNOSUPPORT;
+				error = VOS_EAFNOSUPPORT;
 		}
 		break;
 	case NET_RT_NHOP:
 	case NET_RT_NHGRP:
 		/* Allow dumping one specific af/fib at a time */
 		if (namelen < 4) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		fib = name[3];
 		if (fib < 0 || fib > rt_numfibs) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		rnh = rt_tables_get_rnh(fib, af);
 		if (rnh == NULL) {
-			error = EAFNOSUPPORT;
+			error = VOS_EAFNOSUPPORT;
 			break;
 		}
 		if (w.w_op == NET_RT_NHOP)
@@ -2566,7 +2566,7 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 #ifdef ROUTE_MPATH
 			error = nhgrp_dump_sysctl(rnh, w.w_req);
 #else
-			error = ENOTSUP;
+			error = VOS_ENOTSUP;
 #endif
 		break;
 	case NET_RT_IFLIST:
@@ -2580,7 +2580,7 @@ sysctl_rtsock(SYSCTL_HANDLER_ARGS)
 	}
 	NET_EPOCH_EXIT(et);
 
-	free(w.w_tmem, M_TEMP);
+	vos_free(w.w_tmem, M_TEMP);
 	return (error);
 }
 

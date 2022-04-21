@@ -123,7 +123,7 @@ defrouter_rele(struct nd_defrouter *dr)
 {
 
 	if (refcount_release(&dr->refcnt))
-		free(dr, M_IP6NDP);
+		vos_free(dr, M_IP6NDP);
 }
 
 /*
@@ -636,7 +636,7 @@ pfxrtr_add(struct nd_prefix *pr, struct nd_defrouter *dr)
 	}
 	ND6_RUNLOCK();
 
-	new = malloc(sizeof(*new), M_IP6NDP, M_NOWAIT | M_ZERO);
+	new = vos_malloc(sizeof(*new), M_IP6NDP, M_NOWAIT | M_ZERO);
 	if (new == NULL)
 		return;
 	defrouter_ref(dr);
@@ -649,7 +649,7 @@ pfxrtr_add(struct nd_prefix *pr, struct nd_defrouter *dr)
 	} else {
 		/* We lost a race to add the reference. */
 		defrouter_rele(dr);
-		free(new, M_IP6NDP);
+		vos_free(new, M_IP6NDP);
 		update = false;
 	}
 	ND6_WUNLOCK();
@@ -666,7 +666,7 @@ pfxrtr_del(struct nd_pfxrouter *pfr)
 
 	LIST_REMOVE(pfr, pfr_entry);
 	defrouter_rele(pfr->router);
-	free(pfr, M_IP6NDP);
+	vos_free(pfr, M_IP6NDP);
 }
 
 /* Default router list processing sub routines. */
@@ -842,7 +842,7 @@ defrouter_reset(void)
 		count++;
 	ND6_RUNLOCK();
 
-	dra = malloc(count * sizeof(*dra), M_TEMP, M_WAITOK | M_ZERO);
+	dra = vos_malloc(count * sizeof(*dra), M_TEMP, M_WAITOK | M_ZERO);
 
 	ND6_RLOCK();
 	TAILQ_FOREACH(dr, &V_nd6_defrouter, dr_entry) {
@@ -857,7 +857,7 @@ defrouter_reset(void)
 		defrouter_delreq(dra[i]);
 		defrouter_rele(dra[i]);
 	}
-	free(dra, M_TEMP);
+	vos_free(dra, M_TEMP);
 
 	/*
 	 * XXX should we also nuke any default routers in the kernel, by
@@ -1119,7 +1119,7 @@ restart:
 		TAILQ_REMOVE(&V_nd6_defrouter, dr, dr_entry);
 		n = dr;
 	} else {
-		n = malloc(sizeof(*n), M_IP6NDP, M_NOWAIT | M_ZERO);
+		n = vos_malloc(sizeof(*n), M_IP6NDP, M_NOWAIT | M_ZERO);
 		if (n == NULL) {
 			ND6_WUNLOCK();
 			return (NULL);
@@ -1347,7 +1347,7 @@ nd6_prefix_rele(struct nd_prefix *pr)
 	if (refcount_release(&pr->ndpr_refcnt)) {
 		KASSERT(LIST_EMPTY(&pr->ndpr_advrtrs),
 		    ("prefix %p has advertising routers", pr));
-		free(pr, M_IP6NDP);
+		vos_free(pr, M_IP6NDP);
 	}
 }
 
@@ -1359,9 +1359,9 @@ nd6_prelist_add(struct nd_prefixctl *pr, struct nd_defrouter *dr,
 	char ip6buf[INET6_ADDRSTRLEN];
 	int error;
 
-	new = malloc(sizeof(*new), M_IP6NDP, M_NOWAIT | M_ZERO);
+	new = vos_malloc(sizeof(*new), M_IP6NDP, M_NOWAIT | M_ZERO);
 	if (new == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	refcount_init(&new->ndpr_refcnt, newp != NULL ? 2 : 1);
 	new->ndpr_ifp = pr->ndpr_ifp;
 	new->ndpr_prefix = pr->ndpr_prefix;
@@ -1370,7 +1370,7 @@ nd6_prelist_add(struct nd_prefixctl *pr, struct nd_defrouter *dr,
 	new->ndpr_pltime = pr->ndpr_pltime;
 	new->ndpr_flags = pr->ndpr_flags;
 	if ((error = in6_init_prefix_ltimes(new)) != 0) {
-		free(new, M_IP6NDP);
+		vos_free(new, M_IP6NDP);
 		return (error);
 	}
 	new->ndpr_lastupdate = time_uptime;
@@ -1583,7 +1583,7 @@ prelist_update(struct nd_prefixctl *new, struct nd_defrouter *dr,
 
 	/* 5.5.3 (c). Consistency check on lifetimes: pltime <= vltime. */
 	if (new->ndpr_pltime > new->ndpr_vltime) {
-		error = EINVAL;	/* XXX: won't be used */
+		error = VOS_EINVAL;	/* XXX: won't be used */
 		goto end;
 	}
 
@@ -1787,7 +1787,7 @@ prelist_update(struct nd_prefixctl *new, struct nd_defrouter *dr,
 			pfxlist_onlink_check();
 		} else {
 			/* just set an error. do not bark here. */
-			error = EADDRNOTAVAIL; /* XXX: might be unused. */
+			error = VOS_EADDRNOTAVAIL; /* XXX: might be unused. */
 		}
 	}
 
@@ -2090,7 +2090,7 @@ nd6_prefix_onlink(struct nd_prefix *pr)
 	ND6_UNLOCK_ASSERT();
 
 	if ((pr->ndpr_stateflags & NDPRF_ONLINK) != 0)
-		return (EEXIST);
+		return (VOS_EEXIST);
 
 	/*
 	 * Add the interface route associated with the prefix.  Before
@@ -2174,7 +2174,7 @@ nd6_prefix_offlink(struct nd_prefix *pr)
 	ND6_UNLOCK_ASSERT();
 
 	if ((pr->ndpr_stateflags & NDPRF_ONLINK) == 0)
-		return (EEXIST);
+		return (VOS_EEXIST);
 
 	struct sockaddr_in6 mask6 = {
 		.sin6_family = AF_INET6,
@@ -2274,7 +2274,7 @@ in6_tmpifadd(const struct in6_ifaddr *ia0, int forcegen, int delay)
 	    (const u_int8_t *)&ia0->ia_addr.sin6_addr.s6_addr[8], forcegen)) {
 		nd6log((LOG_NOTICE, "%s: failed to find a good random IFID\n",
 		    __func__));
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	ifra.ifra_addr.sin6_addr.s6_addr32[2] |=
 	    (randid[0] & ~(ifra.ifra_prefixmask.sin6_addr.s6_addr32[2]));
@@ -2297,7 +2297,7 @@ in6_tmpifadd(const struct in6_ifaddr *ia0, int forcegen, int delay)
 		/* Give up.  Something strange should have happened.  */
 		nd6log((LOG_NOTICE, "%s: failed to find a unique random IFID\n",
 		    __func__));
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
 
 	/*
@@ -2351,7 +2351,7 @@ in6_tmpifadd(const struct in6_ifaddr *ia0, int forcegen, int delay)
 		nd6log((LOG_ERR,
 		    "%s: ifa update succeeded, but we got no ifaddr\n",
 		    __func__));
-		return (EINVAL); /* XXX */
+		return (VOS_EINVAL); /* XXX */
 	}
 	newia->ia6_ndpr = ia0->ia6_ndpr;
 	newia->ia6_ndpr->ndpr_addrcnt++;
@@ -2427,9 +2427,9 @@ nd6_setdefaultiface(int ifindex)
 	int error = 0;
 
 	if (ifindex < 0 || V_if_index < ifindex)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (ifindex != 0 && !ifnet_byindex(ifindex))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (V_nd6_defifindex != ifindex) {
 		V_nd6_defifindex = ifindex;
@@ -2545,7 +2545,7 @@ nd6_sysctl_drlist(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != NULL)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	error = sysctl_wire_old_buffer(req, 0);
 	if (error != 0)

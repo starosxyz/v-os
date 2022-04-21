@@ -120,7 +120,7 @@ _bit_make_mask(int _start, int _stop)
 static inline bitstr_t*
 bit_alloc(int _nbits, struct malloc_type* type, int flags)
 {
-	return ((bitstr_t*)malloc(bitstr_size(_nbits), type, flags | M_ZERO));
+	return ((bitstr_t*)vos_malloc(bitstr_size(_nbits), type, flags | M_ZERO));
 }
 #else
 static inline bitstr_t*

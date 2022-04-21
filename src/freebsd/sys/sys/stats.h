@@ -862,7 +862,7 @@ stats_voistat_fetch_s64(struct statsblob *sb, int32_t voi_id,
 	    NULL)))
 		return (error);
 	else if (VSD_DTYPE_INT_S64 != vs_dtype)
-		return (EFTYPE);
+		return (VOS_EFTYPE);
 
 	*ret = vsd->int64.s64;
 	return (0);
@@ -880,7 +880,7 @@ stats_voistat_fetch_u64(struct statsblob *sb, int32_t voi_id,
 	    NULL)))
 		return (error);
 	else if (VSD_DTYPE_INT_U64 != vs_dtype)
-		return (EFTYPE);
+		return (VOS_EFTYPE);
 
 	*ret = vsd->int64.u64;
 	return (0);
@@ -898,7 +898,7 @@ stats_voistat_fetch_s32(struct statsblob *sb, int32_t voi_id,
 	    NULL)))
 		return (error);
 	else if (VSD_DTYPE_INT_S32 != vs_dtype)
-		return (EFTYPE);
+		return (VOS_EFTYPE);
 
 	*ret = vsd->int32.s32;
 	return (0);
@@ -916,7 +916,7 @@ stats_voistat_fetch_u32(struct statsblob *sb, int32_t voi_id,
 	    NULL)))
 		return (error);
 	else if (VSD_DTYPE_INT_U32 != vs_dtype)
-		return (EFTYPE);
+		return (VOS_EFTYPE);
 
 	*ret = vsd->int32.u32;
 	return (0);
@@ -934,7 +934,7 @@ stats_voistat_fetch_slong(struct statsblob *sb, int32_t voi_id,
 	    NULL)))
 		return (error);
 	else if (VSD_DTYPE_INT_SLONG != vs_dtype)
-		return (EFTYPE);
+		return (VOS_EFTYPE);
 
 	*ret = vsd->intlong.slong;
 	return (0);
@@ -952,7 +952,7 @@ stats_voistat_fetch_ulong(struct statsblob *sb, int32_t voi_id,
 	    NULL)))
 		return (error);
 	else if (VSD_DTYPE_INT_ULONG != vs_dtype)
-		return (EFTYPE);
+		return (VOS_EFTYPE);
 
 	*ret = vsd->intlong.ulong;
 	return (0);

@@ -93,7 +93,7 @@ struct i386_get_xfpustate {
 #else
 struct i386_ldt_args {
 	unsigned int start;
-	struct user_segment_descriptor *descs __packed;
+	__begin_packed struct user_segment_descriptor *descs __packed;
 	unsigned int num;
 };
 
@@ -117,7 +117,7 @@ struct amd64_get_xfpustate {
 
 struct amd64_set_pkru {
 	void *addr;
-	unsigned long len;
+	unsigned long long len;
 	unsigned int keyidx;
 	int flags;
 };
@@ -144,9 +144,9 @@ int amd64_set_fsbase(void *);
 int amd64_set_gsbase(void *);
 int x86_pkru_get_perm(unsigned int keyidx, int *access, int *modify);
 int x86_pkru_set_perm(unsigned int keyidx, int access, int modify);
-int x86_pkru_protect_range(void *addr, unsigned long len, unsigned int keyidx,
+int x86_pkru_protect_range(void *addr, unsigned long long len, unsigned int keyidx,
     int flag);
-int x86_pkru_unprotect_range(void *addr, unsigned long len);
+int x86_pkru_unprotect_range(void *addr, unsigned long long len);
 int sysarch(int, void *);
 __END_DECLS
 #else

@@ -443,8 +443,8 @@ match_nhop_gw(const struct nhop_object *nh, const struct sockaddr *gw)
  * Checks if data in @info matches nexhop @nh.
  *
  * Returns 0 on success,
- * ESRCH if not matched,
- * ENOENT if filter function returned false
+ * VOS_ESRCH if not matched,
+ * VOS_ENOENT if filter function returned false
  */
 int
 check_info_match_nhop(const struct rt_addrinfo *info, const struct rtentry *rt,
@@ -454,12 +454,12 @@ check_info_match_nhop(const struct rt_addrinfo *info, const struct rtentry *rt,
 
 	if (info->rti_filter != NULL) {
 	    if (info->rti_filter(rt, nh, info->rti_filterdata) == 0)
-		    return (ENOENT);
+		    return (VOS_ENOENT);
 	    else
 		    return (0);
 	}
 	if ((gw != NULL) && !match_nhop_gw(nh, gw))
-		return (ESRCH);
+		return (VOS_ESRCH);
 
 	return (0);
 }
@@ -546,7 +546,7 @@ rib_add_route(uint32_t fibnum, struct rt_addrinfo *info,
 
 	rnh = get_rnh(fibnum, info);
 	if (rnh == NULL)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	/*
 	 * Check consistency between RTF_HOST flag and netmask
@@ -555,7 +555,7 @@ rib_add_route(uint32_t fibnum, struct rt_addrinfo *info,
 	if (info->rti_flags & RTF_HOST)
 		info->rti_info[RTAX_NETMASK] = NULL;
 	else if (info->rti_info[RTAX_NETMASK] == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	bzero(rc, sizeof(struct rib_cmd_info));
 	rc->rc_cmd = RTM_ADD;
@@ -588,13 +588,13 @@ create_rtentry(struct rib_head *rnh, struct rt_addrinfo *info,
 	flags = info->rti_flags;
 
 	if ((flags & RTF_GATEWAY) && !gateway)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (dst && gateway && (dst->sa_family != gateway->sa_family) && 
 	    (gateway->sa_family != AF_UNSPEC) && (gateway->sa_family != AF_LINK))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (dst->sa_len > sizeof(((struct rtentry *)NULL)->rt_dstb))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (info->rti_ifa == NULL) {
 		error = rt_getifa_fib(info, rnh->rib_fibnum);
@@ -612,7 +612,7 @@ create_rtentry(struct rib_head *rnh, struct rt_addrinfo *info,
 	rt = uma_zalloc(V_rtzone, M_NOWAIT | M_ZERO);
 	if (rt == NULL) {
 		nhop_free(nh);
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	}
 	rt->rte_flags = (RTF_UP | flags) & RTE_RT_FLAG_MASK;
 	rt->rt_nhop = nh;
@@ -679,7 +679,7 @@ add_route(struct rib_head *rnh, struct rt_addrinfo *info,
 		RIB_WUNLOCK(rnh);
 		nhop_free(nh);
 		uma_zfree(V_rtzone, rt);
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 
 	/* We have existing route in the RIB. */
@@ -703,7 +703,7 @@ add_route(struct rib_head *rnh, struct rt_addrinfo *info,
 	else
 #endif
 	/* Unable to add - another route with the same preference exists */
-	error = EEXIST;
+	error = VOS_EEXIST;
 
 	/*
 	 * ROUTE_MPATH disabled: failed to add route, free both nhop and rt.
@@ -738,7 +738,7 @@ rib_del_route(uint32_t fibnum, struct rt_addrinfo *info, struct rib_cmd_info *rc
 
 	rnh = get_rnh(fibnum, info);
 	if (rnh == NULL)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	bzero(rc, sizeof(struct rib_cmd_info));
 	rc->rc_cmd = RTM_DELETE;
@@ -749,7 +749,7 @@ rib_del_route(uint32_t fibnum, struct rt_addrinfo *info, struct rib_cmd_info *rc
 	if (netmask != NULL) {
 		/* Ensure @dst is always properly masked */
 		if (dst_orig->sa_len > sizeof(mdst))
-			return (EINVAL);
+			return (VOS_EINVAL);
 		rt_maskedcopy(dst_orig, (struct sockaddr *)&mdst, netmask);
 		info->rti_info[RTAX_DST] = (struct sockaddr *)&mdst;
 	}
@@ -763,9 +763,9 @@ rib_del_route(uint32_t fibnum, struct rt_addrinfo *info, struct rib_cmd_info *rc
  * Conditionally unlinks rtentry matching data inside @info from @rnh.
  * Returns 0 on success with operation result stored in @rc.
  * On error, returns:
- * ESRCH - if prefix was not found,
- * EADDRINUSE - if trying to delete higher priority route.
- * ENOENT - if supplied filter function returned 0 (not matched).
+ * VOS_ESRCH - if prefix was not found,
+ * VOS_EADDRINUSE - if trying to delete higher priority route.
+ * VOS_ENOENT - if supplied filter function returned 0 (not matched).
  */
 static int
 rt_unlinkrte(struct rib_head *rnh, struct rt_addrinfo *info, struct rib_cmd_info *rc)
@@ -778,7 +778,7 @@ rt_unlinkrte(struct rib_head *rnh, struct rt_addrinfo *info, struct rib_cmd_info
 
 	rt = lookup_prefix(rnh, info, &rnd);
 	if (rt == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 
 	nh = rt->rt_nhop;
 #ifdef ROUTE_MPATH
@@ -793,7 +793,7 @@ rt_unlinkrte(struct rib_head *rnh, struct rt_addrinfo *info, struct rib_cmd_info
 		return (error);
 
 	if (can_override_nhop(info, nh) < 0)
-		return (EADDRINUSE);
+		return (VOS_EADDRINUSE);
 
 	/*
 	 * Remove the item from the tree and return it.
@@ -802,7 +802,7 @@ rt_unlinkrte(struct rib_head *rnh, struct rt_addrinfo *info, struct rib_cmd_info
 	rn = rnh->rnh_deladdr(info->rti_info[RTAX_DST],
 	    info->rti_info[RTAX_NETMASK], &rnh->head);
 	if (rn == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 
 	if (rn->rn_flags & (RNF_ACTIVE | RNF_ROOT))
 		panic ("rtrequest delete");
@@ -871,7 +871,7 @@ rib_change_route(uint32_t fibnum, struct rt_addrinfo *info,
 
 	rnh = get_rnh(fibnum, info);
 	if (rnh == NULL)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	bzero(rc, sizeof(struct rib_cmd_info));
 	rc->rc_cmd = RTM_CHANGE;
@@ -902,7 +902,7 @@ rib_change_route(uint32_t fibnum, struct rt_addrinfo *info,
 
 	if (rt == NULL) {
 		RIB_RUNLOCK(rnh);
-		return (ESRCH);
+		return (VOS_ESRCH);
 	}
 
 	rnd_orig.rnd_nhop = rt->rt_nhop;
@@ -912,7 +912,7 @@ rib_change_route(uint32_t fibnum, struct rt_addrinfo *info,
 
 	for (int i = 0; i < RIB_MAX_RETRIES; i++) {
 		error = change_route(rnh, info, &rnd_orig, rc);
-		if (error != EAGAIN)
+		if (error != VOS_EAGAIN)
 			break;
 	}
 
@@ -984,7 +984,7 @@ change_mpath_route(struct rib_head *rnh, struct rt_addrinfo *info,
 	}
 
 	if (nh_orig == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 
 	error = change_nhop(rnh, info, nh_orig, &nh_new);
 	if (error != 0)
@@ -994,7 +994,7 @@ change_mpath_route(struct rib_head *rnh, struct rt_addrinfo *info,
 	    M_TEMP, M_NOWAIT | M_ZERO);
 	if (wn_new == NULL) {
 		nhop_free(nh_new);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 
 	memcpy(wn_new, wn, num_nhops * sizeof(struct weightened_nhop));
@@ -1008,7 +1008,7 @@ change_mpath_route(struct rib_head *rnh, struct rt_addrinfo *info,
 
 	error = nhgrp_get_group(rnh, wn_new, num_nhops, &rnd_new);
 	nhop_free(nh_new);
-	free(wn_new, M_TEMP);
+	vos_free(wn_new, M_TEMP);
 
 	if (error != 0)
 		return (error);
@@ -1030,7 +1030,7 @@ change_route(struct rib_head *rnh, struct rt_addrinfo *info,
 	nh = NULL;
 	nh_orig = rnd_orig->rnd_nhop;
 	if (nh_orig == NULL)
-		return (ESRCH);
+		return (VOS_ESRCH);
 
 #ifdef ROUTE_MPATH
 	if (NH_IS_NHGRP(nh_orig))
@@ -1085,7 +1085,7 @@ add_route_nhop(struct rib_head *rnh, struct rtentry *rt,
 		rib_notify(rnh, RIB_NOTIFY_IMMEDIATE, rc);
 	} else {
 		/* Existing route or memory allocation failure */
-		error = EEXIST;
+		error = VOS_EEXIST;
 	}
 
 	return (error);
@@ -1123,7 +1123,7 @@ change_route_nhop(struct rib_head *rnh, struct rtentry *rt,
 		netmask = info->rti_info[RTAX_NETMASK];
 		rn = rnh->rnh_deladdr(ndst, netmask, &rnh->head);
 		if (rn == NULL)
-			return (ESRCH);
+			return (VOS_ESRCH);
 		rt = RNTORT(rn);
 		rt->rte_flags &= ~RTF_UP;
 	}
@@ -1172,7 +1172,7 @@ change_route_conditional(struct rib_head *rnh, struct rtentry *rt,
 			 */
 			rnd_orig->rnd_nhop = NULL;
 			rnd_orig->rnd_weight = 0;
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 		}
 	} else {
 		/* Prefix exists, try to update */
@@ -1186,7 +1186,7 @@ change_route_conditional(struct rib_head *rnh, struct rtentry *rt,
 			/* Update and retry */
 			rnd_orig->rnd_nhop = rt_new->rt_nhop;
 			rnd_orig->rnd_weight = rt_new->rt_weight;
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 		}
 	}
 
@@ -1230,7 +1230,7 @@ rib_action(uint32_t fibnum, int action, struct rt_addrinfo *info,
 		error = rib_change_route(fibnum, info, rc);
 		break;
 	default:
-		error = ENOTSUP;
+		error = VOS_ENOTSUP;
 	}
 
 	return (error);
@@ -1415,7 +1415,7 @@ allocate_subscription(rib_subscription_cb_t *f, void *arg,
 	struct rib_subscription *rs;
 	int flags = M_ZERO | (waitok ? M_WAITOK : M_NOWAIT);
 
-	rs = malloc(sizeof(struct rib_subscription), M_RTABLE, flags);
+	rs = vos_malloc(sizeof(struct rib_subscription), M_RTABLE, flags);
 	if (rs == NULL)
 		return (NULL);
 
@@ -1528,7 +1528,7 @@ destroy_subscription_epoch(epoch_context_t ctx)
 
 	rs = __containerof(ctx, struct rib_subscription, epoch_ctx);
 
-	free(rs, M_RTABLE);
+	vos_free(rs, M_RTABLE);
 }
 
 void

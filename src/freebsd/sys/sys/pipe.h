@@ -109,9 +109,9 @@ struct pipe {
 	struct	pipebuf pipe_buffer;	/* data storage */
 	struct	pipemapping pipe_pages;	/* wired pages for direct I/O */
 	struct	selinfo pipe_sel;	/* for compat with select */
-	struct	timespec pipe_atime;	/* time of last access */
-	struct	timespec pipe_mtime;	/* time of last modify */
-	struct	timespec pipe_ctime;	/* time of status change */
+	struct	vos_timespec pipe_atime;	/* time of last access */
+	struct	vos_timespec pipe_mtime;	/* time of last modify */
+	struct	vos_timespec pipe_ctime;	/* time of status change */
 	struct	sigio *pipe_sigio;	/* information for async I/O */
 	struct	pipe *pipe_peer;	/* link with other direction */
 	struct	pipepair *pipe_pair;	/* container structure pointer */

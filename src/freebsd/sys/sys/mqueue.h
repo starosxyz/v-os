@@ -36,7 +36,7 @@ struct mq_attr {
 	long long	mq_maxmsg;	/* Maximum number of messages. */
 	long long	mq_msgsize;	/* Maximum message size. */
 	long long	mq_curmsgs;	/* Number of messages currently queued. */
-	long long    __reserved[4];  /* Ignored for input, zeroed for output */
+	long long   reserved[4];  /* Ignored for input, zeroed for output */
 };
 
 #ifdef _KERNEL

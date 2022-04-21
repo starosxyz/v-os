@@ -135,7 +135,7 @@ vos_epoll_wait(int epfd, struct vos_epoll_event *events, int maxevents, int time
     }
     else
     {
-        struct timespec short_wait;
+        struct vos_timespec short_wait;
         short_wait.tv_sec = timeout / 1000;
         short_wait.tv_nsec = (timeout % 1000) * 1000 * 1000;
         return ff_kevent_do_each(epfd, NULL, 0, events, maxevents, &short_wait, vos_event_to_epoll);

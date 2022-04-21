@@ -52,7 +52,7 @@
 extern internal_hooks global_hooks;
 
 
-static struct timespec current_ts;
+static struct vos_timespec current_ts;
 extern void* ff_mem_get_page();
 extern int ff_mem_free_addr(void* p);
 void*

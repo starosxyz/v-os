@@ -56,8 +56,8 @@ __FBSDID("$FreeBSD$");
 
 #ifdef _KERNEL
 static MALLOC_DEFINE(M_SBUF, "sbuf", "string buffers");
-#define	SBMALLOC(size, flags)	malloc(size, M_SBUF, (flags) | M_ZERO)
-#define	SBFREE(buf)		free(buf, M_SBUF)
+#define	SBMALLOC(size, flags)	vos_malloc(size, M_SBUF, (flags) | M_ZERO)
+#define	SBFREE(buf)		vos_free(buf, M_SBUF)
 #else /* _KERNEL */
 #define	KASSERT(e, m)
 #define	SBMALLOC(size, flags)	calloc(1, size)
@@ -268,7 +268,7 @@ sbuf_uionew(struct sbuf *s, struct uio *uio, int *error)
 
 	s = sbuf_new(s, NULL, uio->uio_resid + 1, 0);
 	if (s == NULL) {
-		*error = ENOMEM;
+		*error = VOS_ENOMEM;
 		return (NULL);
 	}
 	*error = uiomove(s->s_buf, uio->uio_resid, uio);
@@ -392,11 +392,11 @@ sbuf_drain(struct sbuf *s)
 	KASSERT(s->s_error == 0, ("Called %s with error on %p", __func__, s));
 
 	if (SBUF_DODRAINTOEOR(s) && s->s_rec_off == 0)
-		return (s->s_error = EDEADLK);
+		return (s->s_error = VOS_EDEADLK);
 	len = s->s_drain_func(s->s_drain_arg, s->s_buf,
 	    SBUF_DODRAINTOEOR(s) ? s->s_rec_off : s->s_len);
 	if (len <= 0) {
-		s->s_error = len ? -len : EDEADLK;
+		s->s_error = len ? -len : VOS_EDEADLK;
 		return (s->s_error);
 	}
 	KASSERT(len > 0 && len <= s->s_len,
@@ -452,7 +452,7 @@ sbuf_put_bytes(struct sbuf *s, const char *buf, size_t len)
 				(void)sbuf_drain(s);
 			else if (sbuf_extend(s, len > INT_MAX ? INT_MAX : len)
 			    < 0)
-				s->s_error = ENOMEM;
+				s->s_error = VOS_ENOMEM;
 			if (s->s_error != 0)
 				return;
 		}
@@ -540,7 +540,7 @@ sbuf_cat(struct sbuf *s, const char *str)
 {
 	size_t n;
 
-	n = strlen(str);
+	n = vos_strlen(str);
 	sbuf_put_bytes(s, str, n);
 	if (s->s_error != 0)
 		return (-1);
@@ -572,8 +572,8 @@ sbuf_copyin(struct sbuf *s, const void *uaddr, size_t len)
 			len = SBUF_FREESPACE(s);
 	}
 	switch (copyinstr(uaddr, s->s_buf + s->s_len, len + 1, &done)) {
-	case ENAMETOOLONG:
-		s->s_error = ENOMEM;
+	case VOS_ENAMETOOLONG:
+		s->s_error = VOS_ENOMEM;
 		/* fall through */
 	case 0:
 		s->s_len += done - 1;
@@ -678,7 +678,7 @@ sbuf_vprintf(struct sbuf *s, const char *fmt, va_list ap)
 		if (s->s_drain_func != NULL && s->s_len > 0)
 			error = sbuf_drain(s); /* sbuf_drain() sets s_error. */
 		else if (sbuf_extend(s, len - SBUF_FREESPACE(s)) != 0)
-			s->s_error = error = ENOMEM;
+			s->s_error = error = VOS_ENOMEM;
 	} while (error == 0);
 
 	/*
@@ -780,7 +780,7 @@ sbuf_trim(struct sbuf *s)
 	if (s->s_error != 0)
 		return (-1);
 
-	while (s->s_len > 0 && isspace(s->s_buf[s->s_len-1])) {
+	while (s->s_len > 0 && vos_isspace(s->s_buf[s->s_len-1])) {
 		--s->s_len;
 		if (SBUF_ISSECTION(s))
 			s->s_sect_len--;

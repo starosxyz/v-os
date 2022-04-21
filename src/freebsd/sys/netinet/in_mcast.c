@@ -346,7 +346,7 @@ ip_mfilter_alloc(const int mflags, const int st0, const int st1)
 {
 	struct in_mfilter *imf;
 
-	imf = malloc(sizeof(*imf), M_INMFILTER, mflags);
+	imf = vos_malloc(sizeof(*imf), M_INMFILTER, mflags);
 	if (imf != NULL)
 		imf_init(imf, st0, st1);
 
@@ -358,7 +358,7 @@ ip_mfilter_free(struct in_mfilter *imf)
 {
 
 	imf_purge(imf);
-	free(imf, M_INMFILTER);
+	vos_free(imf, M_INMFILTER);
 }
 
 /*
@@ -588,12 +588,12 @@ in_getmulti(struct ifnet *ifp, const struct in_addr *group,
 	 *
 	 * The initial source filter state is INCLUDE, {} as per the RFC.
 	 */
-	inm = malloc(sizeof(*inm), M_IPMADDR, M_NOWAIT | M_ZERO);
+	inm = vos_malloc(sizeof(*inm), M_IPMADDR, M_NOWAIT | M_ZERO);
 	if (inm == NULL) {
 		IF_ADDR_WUNLOCK(ifp);
 		IN_MULTI_LIST_UNLOCK();
 		if_delmulti_ifma(ifma);
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 	inm->inm_addr = *group;
 	inm->inm_ifp = ifp;
@@ -639,13 +639,13 @@ inm_release(struct in_multi *inm)
 	if (ifp != NULL) {
 		CURVNET_SET(ifp->if_vnet);
 		inm_purge(inm);
-		free(inm, M_IPMADDR);
+		vos_free(inm, M_IPMADDR);
 		if_delmulti_ifma_flags(ifma, 1);
 		CURVNET_RESTORE();
 		if_rele(ifp);
 	} else {
 		inm_purge(inm);
-		free(inm, M_IPMADDR);
+		vos_free(inm, M_IPMADDR);
 		if_delmulti_ifma_flags(ifma, 1);
 	}
 }
@@ -708,11 +708,11 @@ inm_record_source(struct in_multi *inm, const in_addr_t naddr)
 		return (0);
 	if (ims == NULL) {
 		if (inm->inm_nsrc == in_mcast_maxgrpsrc)
-			return (-ENOSPC);
-		nims = malloc(sizeof(struct ip_msource), M_IPMSOURCE,
+			return (-VOS_ENOSPC);
+		nims = vos_malloc(sizeof(struct ip_msource), M_IPMSOURCE,
 		    M_NOWAIT | M_ZERO);
 		if (nims == NULL)
-			return (-ENOMEM);
+			return (-VOS_ENOMEM);
 		nims->ims_haddr = find.ims_haddr;
 		RB_INSERT(ip_msource_tree, &inm->inm_srcs, nims);
 		++inm->inm_nsrc;
@@ -759,11 +759,11 @@ imf_get_source(struct in_mfilter *imf, const struct sockaddr_in *psin,
 	lims = (struct in_msource *)ims;
 	if (lims == NULL) {
 		if (imf->imf_nsrc == in_mcast_maxsocksrc)
-			return (ENOSPC);
-		nims = malloc(sizeof(struct in_msource), M_INMFILTER,
+			return (VOS_ENOSPC);
+		nims = vos_malloc(sizeof(struct in_msource), M_INMFILTER,
 		    M_NOWAIT | M_ZERO);
 		if (nims == NULL)
-			return (ENOMEM);
+			return (VOS_ENOMEM);
 		lims = (struct in_msource *)nims;
 		lims->ims_haddr = find.ims_haddr;
 		lims->imsl_st[0] = MCAST_UNDEFINED;
@@ -791,7 +791,7 @@ imf_graft(struct in_mfilter *imf, const uint8_t st1,
 	struct ip_msource	*nims;
 	struct in_msource	*lims;
 
-	nims = malloc(sizeof(struct in_msource), M_INMFILTER,
+	nims = vos_malloc(sizeof(struct in_msource), M_INMFILTER,
 	    M_NOWAIT | M_ZERO);
 	if (nims == NULL)
 		return (NULL);
@@ -824,7 +824,7 @@ imf_prune(struct in_mfilter *imf, const struct sockaddr_in *psin)
 	find.ims_haddr = ntohl(psin->sin_addr.s_addr);
 	ims = RB_FIND(ip_msource_tree, &imf->imf_sources, &find);
 	if (ims == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 	lims = (struct in_msource *)ims;
 	lims->imsl_st[1] = MCAST_UNDEFINED;
 	return (0);
@@ -851,7 +851,7 @@ imf_rollback(struct in_mfilter *imf)
 			/* revert source added t1 */
 			CTR2(KTR_IGMPV3, "%s: free ims %p", __func__, ims);
 			RB_REMOVE(ip_msource_tree, &imf->imf_sources, ims);
-			free(ims, M_INMFILTER);
+			vos_free(ims, M_INMFILTER);
 			imf->imf_nsrc--;
 		}
 	}
@@ -905,7 +905,7 @@ imf_reap(struct in_mfilter *imf)
 		    (lims->imsl_st[1] == MCAST_UNDEFINED)) {
 			CTR2(KTR_IGMPV3, "%s: free lims %p", __func__, ims);
 			RB_REMOVE(ip_msource_tree, &imf->imf_sources, ims);
-			free(ims, M_INMFILTER);
+			vos_free(ims, M_INMFILTER);
 			imf->imf_nsrc--;
 		}
 	}
@@ -922,7 +922,7 @@ imf_purge(struct in_mfilter *imf)
 	RB_FOREACH_SAFE(ims, ip_msource_tree, &imf->imf_sources, tims) {
 		CTR2(KTR_IGMPV3, "%s: free ims %p", __func__, ims);
 		RB_REMOVE(ip_msource_tree, &imf->imf_sources, ims);
-		free(ims, M_INMFILTER);
+		vos_free(ims, M_INMFILTER);
 		imf->imf_nsrc--;
 	}
 	imf->imf_st[0] = imf->imf_st[1] = MCAST_UNDEFINED;
@@ -952,11 +952,11 @@ inm_get_source(struct in_multi *inm, const in_addr_t haddr,
 	ims = RB_FIND(ip_msource_tree, &inm->inm_srcs, &find);
 	if (ims == NULL && !noalloc) {
 		if (inm->inm_nsrc == in_mcast_maxgrpsrc)
-			return (ENOSPC);
-		nims = malloc(sizeof(struct ip_msource), M_IPMSOURCE,
+			return (VOS_ENOSPC);
+		nims = vos_malloc(sizeof(struct ip_msource), M_IPMSOURCE,
 		    M_NOWAIT | M_ZERO);
 		if (nims == NULL)
-			return (ENOMEM);
+			return (VOS_ENOMEM);
 		nims->ims_haddr = haddr;
 		RB_INSERT(ip_msource_tree, &inm->inm_srcs, nims);
 		++inm->inm_nsrc;
@@ -1175,7 +1175,7 @@ inm_reap(struct in_multi *inm)
 			continue;
 		CTR2(KTR_IGMPV3, "%s: free ims %p", __func__, ims);
 		RB_REMOVE(ip_msource_tree, &inm->inm_srcs, ims);
-		free(ims, M_IPMSOURCE);
+		vos_free(ims, M_IPMSOURCE);
 		inm->inm_nsrc--;
 	}
 }
@@ -1191,7 +1191,7 @@ inm_purge(struct in_multi *inm)
 	RB_FOREACH_SAFE(ims, ip_msource_tree, &inm->inm_srcs, tims) {
 		CTR2(KTR_IGMPV3, "%s: free ims %p", __func__, ims);
 		RB_REMOVE(ip_msource_tree, &inm->inm_srcs, ims);
-		free(ims, M_IPMSOURCE);
+		vos_free(ims, M_IPMSOURCE);
 		inm->inm_nsrc--;
 	}
 }
@@ -1467,14 +1467,14 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 
 		if (gsa->sin.sin_family != AF_INET ||
 		    gsa->sin.sin_len != sizeof(struct sockaddr_in))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		if (ssa->sin.sin_family != AF_INET ||
 		    ssa->sin.sin_len != sizeof(struct sockaddr_in))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		if (gsr.gsr_interface == 0 || V_if_index < gsr.gsr_interface)
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 
 		ifp = ifnet_byindex(gsr.gsr_interface);
 
@@ -1485,12 +1485,12 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 	default:
 		CTR2(KTR_IGMPV3, "%s: unknown sopt_name %d",
 		    __func__, sopt->sopt_name);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 		break;
 	}
 
 	if (!IN_MULTICAST(ntohl(gsa->sin.sin_addr.s_addr)))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	IN_MULTI_LOCK();
 
@@ -1500,7 +1500,7 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 	imo = inp_findmoptions(inp);
 	imf = imo_match_group(imo, ifp, &gsa->sa);
 	if (imf == NULL) {
-		error = EADDRNOTAVAIL;
+		error = VOS_EADDRNOTAVAIL;
 		goto out_inp_locked;
 	}
 	inm = imf->imf_inm;
@@ -1511,7 +1511,7 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 	 */
 	fmode = imf->imf_st[0];
 	if (fmode != MCAST_EXCLUDE) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out_inp_locked;
 	}
 
@@ -1525,7 +1525,7 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 	if ((ims != NULL && doblock) || (ims == NULL && !doblock)) {
 		CTR3(KTR_IGMPV3, "%s: source 0x%08x %spresent", __func__,
 		    ntohl(ssa->sin.sin_addr.s_addr), doblock ? "" : "not ");
-		error = EADDRNOTAVAIL;
+		error = VOS_EADDRNOTAVAIL;
 		goto out_inp_locked;
 	}
 
@@ -1538,7 +1538,7 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 		CTR2(KTR_IGMPV3, "%s: %s source", __func__, "block");
 		ims = imf_graft(imf, fmode, &ssa->sin);
 		if (ims == NULL)
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 	} else {
 		CTR2(KTR_IGMPV3, "%s: %s source", __func__, "allow");
 		error = imf_prune(imf, &ssa->sin);
@@ -1599,7 +1599,7 @@ inp_findmoptions(struct inpcb *inp)
 
 	INP_WUNLOCK(inp);
 
-	imo = malloc(sizeof(*imo), M_IPMOPTS, M_WAITOK);
+	imo = vos_malloc(sizeof(*imo), M_IPMOPTS, M_WAITOK);
 
 	imo->imo_multicast_ifp = NULL;
 	imo->imo_multicast_addr.s_addr = INADDR_ANY;
@@ -1610,7 +1610,7 @@ inp_findmoptions(struct inpcb *inp)
 
 	INP_WLOCK(inp);
 	if (inp->inp_moptions != NULL) {
-		free(imo, M_IPMOPTS);
+		vos_free(imo, M_IPMOPTS);
 		return (inp->inp_moptions);
 	}
 	inp->inp_moptions = imo;
@@ -1639,7 +1639,7 @@ inp_gcmoptions(struct ip_moptions *imo)
 		}
 		ip_mfilter_free(imf);
 	}
-	free(imo, M_IPMOPTS);
+	vos_free(imo, M_IPMOPTS);
 }
 
 /*
@@ -1689,11 +1689,11 @@ inp_get_source_filters(struct inpcb *inp, struct sockopt *sopt)
 		return (error);
 
 	if (msfr.msfr_ifindex == 0 || V_if_index < msfr.msfr_ifindex)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ifp = ifnet_byindex(msfr.msfr_ifindex);
 	if (ifp == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	INP_WLOCK(inp);
 
@@ -1704,7 +1704,7 @@ inp_get_source_filters(struct inpcb *inp, struct sockopt *sopt)
 	imf = imo_match_group(imo, ifp, &gsa->sa);
 	if (imf == NULL) {
 		INP_WUNLOCK(inp);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 
 	/*
@@ -1712,7 +1712,7 @@ inp_get_source_filters(struct inpcb *inp, struct sockopt *sopt)
 	 */
 	if (imf->imf_st[1] == MCAST_UNDEFINED) {
 		INP_WUNLOCK(inp);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 	msfr.msfr_fmode = imf->imf_st[1];
 
@@ -1727,11 +1727,11 @@ inp_get_source_filters(struct inpcb *inp, struct sockopt *sopt)
 		msfr.msfr_nsrcs = in_mcast_maxsocksrc;
 	tss = NULL;
 	if (msfr.msfr_srcs != NULL && msfr.msfr_nsrcs > 0) {
-		tss = malloc(sizeof(struct sockaddr_storage) * msfr.msfr_nsrcs,
+		tss = vos_malloc(sizeof(struct sockaddr_storage) * msfr.msfr_nsrcs,
 		    M_TEMP, M_NOWAIT | M_ZERO);
 		if (tss == NULL) {
 			INP_WUNLOCK(inp);
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 		}
 	}
 
@@ -1764,7 +1764,7 @@ inp_get_source_filters(struct inpcb *inp, struct sockopt *sopt)
 	if (tss != NULL) {
 		error = copyout(tss, msfr.msfr_srcs,
 		    sizeof(struct sockaddr_storage) * msfr.msfr_nsrcs);
-		free(tss, M_TEMP);
+		vos_free(tss, M_TEMP);
 		if (error)
 			return (error);
 	}
@@ -1799,7 +1799,7 @@ inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
 	    (inp->inp_socket->so_proto->pr_type != SOCK_RAW &&
 	    inp->inp_socket->so_proto->pr_type != SOCK_DGRAM)) {
 		INP_WUNLOCK(inp);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	error = 0;
@@ -1867,7 +1867,7 @@ inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
 
 	case IP_MSFILTER:
 		if (imo == NULL) {
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			INP_WUNLOCK(inp);
 		} else {
 			error = inp_get_source_filters(inp, sopt);
@@ -1876,7 +1876,7 @@ inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
 
 	default:
 		INP_WUNLOCK(inp);
-		error = ENOPROTOOPT;
+		error = VOS_ENOPROTOOPT;
 		break;
 	}
 
@@ -2000,7 +2000,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		gsa->sin.sin_len = sizeof(struct sockaddr_in);
 		gsa->sin.sin_addr = mreqn.imr_multiaddr;
 		if (!IN_MULTICAST(ntohl(gsa->sin.sin_addr.s_addr)))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		NET_EPOCH_ENTER(et);
 		if (sopt->sopt_valsize == sizeof(struct ip_mreqn) &&
@@ -2026,7 +2026,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 
 		gsa->sin.sin_addr = mreqs.imr_multiaddr;
 		if (!IN_MULTICAST(ntohl(gsa->sin.sin_addr.s_addr)))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		ssa->sin.sin_addr = mreqs.imr_sourceaddr;
 
@@ -2055,7 +2055,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 
 		if (gsa->sin.sin_family != AF_INET ||
 		    gsa->sin.sin_len != sizeof(struct sockaddr_in))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		/*
 		 * Overwrite the port field if present, as the sockaddr
@@ -2065,15 +2065,15 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		if (sopt->sopt_name == MCAST_JOIN_SOURCE_GROUP) {
 			if (ssa->sin.sin_family != AF_INET ||
 			    ssa->sin.sin_len != sizeof(struct sockaddr_in))
-				return (EINVAL);
+				return (VOS_EINVAL);
 			ssa->sin.sin_port = 0;
 		}
 
 		if (!IN_MULTICAST(ntohl(gsa->sin.sin_addr.s_addr)))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		if (gsr.gsr_interface == 0 || V_if_index < gsr.gsr_interface)
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 		NET_EPOCH_ENTER(et);
 		ifp = ifnet_byindex_ref(gsr.gsr_interface);
 		NET_EPOCH_EXIT(et);
@@ -2082,14 +2082,14 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	default:
 		CTR2(KTR_IGMPV3, "%s: unknown sopt_name %d",
 		    __func__, sopt->sopt_name);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 		break;
 	}
 
 	if (ifp == NULL || (ifp->if_flags & IFF_MULTICAST) == 0) {
 		if (ifp != NULL)
 			if_rele(ifp);
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	}
 
 	IN_MULTI_LOCK();
@@ -2104,7 +2104,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		inm = NULL;
 
 		if (ip_mfilter_count(&imo->imo_head) >= IP_MAX_MEMBERSHIPS) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			goto out_inp_locked;
 		}
 	} else {
@@ -2118,7 +2118,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			 * it just adds the source to the filter list.
 			 */
 			if (imf->imf_st[1] != MCAST_INCLUDE) {
-				error = EINVAL;
+				error = VOS_EINVAL;
 				goto out_inp_locked;
 			}
 			/*
@@ -2140,13 +2140,13 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			lims = imo_match_source(imf, &ssa->sa);
 			if (lims != NULL /*&&
 			    lims->imsl_st[1] == MCAST_INCLUDE*/) {
-				error = EADDRNOTAVAIL;
+				error = VOS_EADDRNOTAVAIL;
 				goto out_inp_locked;
 			}
 		} else {
 			/*
 			 * MCAST_JOIN_GROUP on an existing exclusive
-			 * membership is an error; return EADDRINUSE
+			 * membership is an error; return VOS_EADDRINUSE
 			 * to preserve 4.4BSD API idempotence, and
 			 * avoid tedious detour to code below.
 			 * NOTE: This is bending RFC 3678 a bit.
@@ -2158,9 +2158,9 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			 * state at t1, because allocation of a filter
 			 * is atomic with allocation of a membership.
 			 */
-			error = EINVAL;
+			error = VOS_EINVAL;
 			if (imf->imf_st[1] == MCAST_EXCLUDE)
-				error = EADDRINUSE;
+				error = VOS_EADDRINUSE;
 			goto out_inp_locked;
 		}
 	}
@@ -2187,7 +2187,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			CTR1(KTR_IGMPV3, "%s: new join w/source", __func__);
 			imf = ip_mfilter_alloc(M_NOWAIT, MCAST_UNDEFINED, MCAST_INCLUDE);
 			if (imf == NULL) {
-				error = ENOMEM;
+				error = VOS_ENOMEM;
 				goto out_inp_locked;
 			}
 		} else {
@@ -2197,7 +2197,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 		if (lims == NULL) {
 			CTR1(KTR_IGMPV3, "%s: merge imf state failed",
 			    __func__);
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			goto out_inp_locked;
 		}
 	} else {
@@ -2206,7 +2206,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 			CTR1(KTR_IGMPV3, "%s: new join w/o source", __func__);
 			imf = ip_mfilter_alloc(M_NOWAIT, MCAST_UNDEFINED, MCAST_EXCLUDE);
 			if (imf == NULL) {
-				error = ENOMEM;
+				error = VOS_ENOMEM;
 				goto out_inp_locked;
 			}
 		}
@@ -2224,7 +2224,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 
 		INP_WLOCK(inp);
 		if (in_pcbrele_wlocked(inp)) {
-			error = ENXIO;
+			error = VOS_ENXIO;
 			goto out_inp_unlocked;
 		}
 		if (error) {
@@ -2376,32 +2376,32 @@ inp_leave_group(struct inpcb *inp, struct sockopt *sopt)
 
 		if (gsa->sin.sin_family != AF_INET ||
 		    gsa->sin.sin_len != sizeof(struct sockaddr_in))
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		if (sopt->sopt_name == MCAST_LEAVE_SOURCE_GROUP) {
 			if (ssa->sin.sin_family != AF_INET ||
 			    ssa->sin.sin_len != sizeof(struct sockaddr_in))
-				return (EINVAL);
+				return (VOS_EINVAL);
 		}
 
 		if (gsr.gsr_interface == 0 || V_if_index < gsr.gsr_interface)
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 
 		ifp = ifnet_byindex(gsr.gsr_interface);
 
 		if (ifp == NULL)
-			return (EADDRNOTAVAIL);
+			return (VOS_EADDRNOTAVAIL);
 		break;
 
 	default:
 		CTR2(KTR_IGMPV3, "%s: unknown sopt_name %d",
 		    __func__, sopt->sopt_name);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 		break;
 	}
 
 	if (!IN_MULTICAST(ntohl(gsa->sin.sin_addr.s_addr)))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	IN_MULTI_LOCK();
 
@@ -2411,7 +2411,7 @@ inp_leave_group(struct inpcb *inp, struct sockopt *sopt)
 	imo = inp_findmoptions(inp);
 	imf = imo_match_group(imo, ifp, &gsa->sa);
 	if (imf == NULL) {
-		error = EADDRNOTAVAIL;
+		error = VOS_EADDRNOTAVAIL;
 		goto out_inp_locked;
 	}
 	inm = imf->imf_inm;
@@ -2439,14 +2439,14 @@ inp_leave_group(struct inpcb *inp, struct sockopt *sopt)
 		(void) in_leavegroup_locked(imf->imf_inm, imf);
 	} else {
 		if (imf->imf_st[0] == MCAST_EXCLUDE) {
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			goto out_inp_locked;
 		}
 		ims = imo_match_source(imf, &ssa->sa);
 		if (ims == NULL) {
 			CTR3(KTR_IGMPV3, "%s: source 0x%08x %spresent",
 			    __func__, ntohl(ssa->sin.sin_addr.s_addr), "not ");
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			goto out_inp_locked;
 		}
 		CTR2(KTR_IGMPV3, "%s: %s source", __func__, "block");
@@ -2527,14 +2527,14 @@ inp_set_multicast_if(struct inpcb *inp, struct sockopt *sopt)
 			return (error);
 
 		if (mreqn.imr_ifindex < 0 || V_if_index < mreqn.imr_ifindex)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		if (mreqn.imr_ifindex == 0) {
 			ifp = NULL;
 		} else {
 			ifp = ifnet_byindex(mreqn.imr_ifindex);
 			if (ifp == NULL)
-				return (EADDRNOTAVAIL);
+				return (VOS_EADDRNOTAVAIL);
 		}
 	} else {
 		/*
@@ -2552,7 +2552,7 @@ inp_set_multicast_if(struct inpcb *inp, struct sockopt *sopt)
 			INADDR_TO_IFP(addr, ifp);
 			IN_IFADDR_RUNLOCK(&in_ifa_tracker);
 			if (ifp == NULL)
-				return (EADDRNOTAVAIL);
+				return (VOS_EADDRNOTAVAIL);
 		}
 		CTR3(KTR_IGMPV3, "%s: ifp = %p, addr = 0x%08x", __func__, ifp,
 		    ntohl(addr.s_addr));
@@ -2560,7 +2560,7 @@ inp_set_multicast_if(struct inpcb *inp, struct sockopt *sopt)
 
 	/* Reject interfaces which do not support multicast. */
 	if (ifp != NULL && (ifp->if_flags & IFF_MULTICAST) == 0)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	imo = inp_findmoptions(inp);
 	imo->imo_multicast_ifp = ifp;
@@ -2592,28 +2592,28 @@ inp_set_source_filters(struct inpcb *inp, struct sockopt *sopt)
 		return (error);
 
 	if (msfr.msfr_nsrcs > in_mcast_maxsocksrc)
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 
 	if ((msfr.msfr_fmode != MCAST_EXCLUDE &&
 	     msfr.msfr_fmode != MCAST_INCLUDE))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (msfr.msfr_group.ss_family != AF_INET ||
 	    msfr.msfr_group.ss_len != sizeof(struct sockaddr_in))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	gsa = (sockunion_t *)&msfr.msfr_group;
 	if (!IN_MULTICAST(ntohl(gsa->sin.sin_addr.s_addr)))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	gsa->sin.sin_port = 0;	/* ignore port */
 
 	if (msfr.msfr_ifindex == 0 || V_if_index < msfr.msfr_ifindex)
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 
 	ifp = ifnet_byindex(msfr.msfr_ifindex);
 	if (ifp == NULL)
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 
 	IN_MULTI_LOCK();
 
@@ -2624,7 +2624,7 @@ inp_set_source_filters(struct inpcb *inp, struct sockopt *sopt)
 	imo = inp_findmoptions(inp);
 	imf = imo_match_group(imo, ifp, &gsa->sa);
 	if (imf == NULL) {
-		error = EADDRNOTAVAIL;
+		error = VOS_EADDRNOTAVAIL;
 		goto out_inp_locked;
 	}
 	inm = imf->imf_inm;
@@ -2652,12 +2652,12 @@ inp_set_source_filters(struct inpcb *inp, struct sockopt *sopt)
 
 		CTR2(KTR_IGMPV3, "%s: loading %lu source list entries",
 		    __func__, (unsigned long long)msfr.msfr_nsrcs);
-		kss = malloc(sizeof(struct sockaddr_storage) * msfr.msfr_nsrcs,
+		kss = vos_malloc(sizeof(struct sockaddr_storage) * msfr.msfr_nsrcs,
 		    M_TEMP, M_WAITOK);
 		error = copyin(msfr.msfr_srcs, kss,
 		    sizeof(struct sockaddr_storage) * msfr.msfr_nsrcs);
 		if (error) {
-			free(kss, M_TEMP);
+			vos_free(kss, M_TEMP);
 			return (error);
 		}
 
@@ -2685,11 +2685,11 @@ inp_set_source_filters(struct inpcb *inp, struct sockopt *sopt)
 		for (i = 0, pkss = kss; i < msfr.msfr_nsrcs; i++, pkss++) {
 			psin = (struct sockaddr_in *)pkss;
 			if (psin->sin_family != AF_INET) {
-				error = EAFNOSUPPORT;
+				error = VOS_EAFNOSUPPORT;
 				break;
 			}
 			if (psin->sin_len != sizeof(struct sockaddr_in)) {
-				error = EINVAL;
+				error = VOS_EINVAL;
 				break;
 			}
 			error = imf_get_source(imf, psin, &lims);
@@ -2697,7 +2697,7 @@ inp_set_source_filters(struct inpcb *inp, struct sockopt *sopt)
 				break;
 			lims->imsl_st[1] = imf->imf_st[1];
 		}
-		free(kss, M_TEMP);
+		vos_free(kss, M_TEMP);
 	}
 
 	if (error)
@@ -2765,7 +2765,7 @@ inp_setmoptions(struct inpcb *inp, struct sockopt *sopt)
 	if (inp->inp_socket->so_proto->pr_protocol == IPPROTO_DIVERT ||
 	    (inp->inp_socket->so_proto->pr_type != SOCK_RAW &&
 	     inp->inp_socket->so_proto->pr_type != SOCK_DGRAM))
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	switch (sopt->sopt_name) {
 	case IP_MULTICAST_VIF: {
@@ -2775,14 +2775,14 @@ inp_setmoptions(struct inpcb *inp, struct sockopt *sopt)
 		 * Only useful if multicast forwarding is active.
 		 */
 		if (legal_vif_num == NULL) {
-			error = EOPNOTSUPP;
+			error = VOS_EOPNOTSUPP;
 			break;
 		}
 		error = sooptcopyin(sopt, &vifi, sizeof(int), sizeof(int));
 		if (error)
 			break;
 		if (!legal_vif_num(vifi) && (vifi != -1)) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			break;
 		}
 		imo = inp_findmoptions(inp);
@@ -2817,7 +2817,7 @@ inp_setmoptions(struct inpcb *inp, struct sockopt *sopt)
 			if (error)
 				break;
 			if (ittl > 255) {
-				error = EINVAL;
+				error = VOS_EINVAL;
 				break;
 			}
 			ttl = (u_char)ittl;
@@ -2883,7 +2883,7 @@ inp_setmoptions(struct inpcb *inp, struct sockopt *sopt)
 		break;
 
 	default:
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 		break;
 	}
 
@@ -2918,23 +2918,23 @@ sysctl_ip_mcast_filters(SYSCTL_HANDLER_ARGS)
 	namelen = arg2;
 
 	if (req->newptr != NULL)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	if (namelen != 2)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ifindex = name[0];
 	if (ifindex <= 0 || ifindex > V_if_index) {
 		CTR2(KTR_IGMPV3, "%s: ifindex %u out of range",
 		    __func__, ifindex);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	group.s_addr = name[1];
 	if (!IN_MULTICAST(ntohl(group.s_addr))) {
 		CTR2(KTR_IGMPV3, "%s: group 0x%08x is not multicast",
 		    __func__, ntohl(group.s_addr));
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	NET_EPOCH_ENTER(et);
@@ -2943,7 +2943,7 @@ sysctl_ip_mcast_filters(SYSCTL_HANDLER_ARGS)
 		NET_EPOCH_EXIT(et);
 		CTR2(KTR_IGMPV3, "%s: no ifp for ifindex %u",
 		    __func__, ifindex);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 
 	retval = sysctl_wire_old_buffer(req,

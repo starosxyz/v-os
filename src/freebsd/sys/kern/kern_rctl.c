@@ -232,7 +232,7 @@ static int rctl_throttle_min_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (val < 1 || val > rctl_throttle_max)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	RACCT_LOCK();
 	rctl_throttle_min = val;
@@ -249,7 +249,7 @@ static int rctl_throttle_max_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (val < rctl_throttle_min)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	RACCT_LOCK();
 	rctl_throttle_max = val;
@@ -266,7 +266,7 @@ static int rctl_throttle_pct_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (val < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	RACCT_LOCK();
 	rctl_throttle_pct = val;
@@ -283,7 +283,7 @@ static int rctl_throttle_pct2_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (val < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	RACCT_LOCK();
 	rctl_throttle_pct2 = val;
@@ -389,7 +389,7 @@ rctl_throttle_decay(struct racct *racct, int resource)
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
 
-	minavailable = INT64_MAX;
+	minavailable = VOS_INT64_MAX;
 
 	LIST_FOREACH(link, &racct->r_rule_links, rrl_next) {
 		rule = link->rrl_rule;
@@ -432,7 +432,7 @@ rctl_pcpu_available(const struct proc *p) {
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
 
-	minavailable = INT64_MAX;
+	minavailable = VOS_INT64_MAX;
 	limit = 0;
 
 	LIST_FOREACH(link, &p->p_racct->r_rule_links, rrl_next) {
@@ -474,7 +474,7 @@ xadd(uint64_t a, uint64_t b)
 	 * Detect overflow.
 	 */
 	if (c < a || c < b)
-		return (UINT64_MAX);
+		return (VOS_UINT64_MAX);
 
 	return (c);
 }
@@ -483,8 +483,8 @@ static uint64_t
 xmul(uint64_t a, uint64_t b)
 {
 
-	if (b != 0 && a > UINT64_MAX / b)
-		return (UINT64_MAX);
+	if (b != 0 && a > VOS_UINT64_MAX / b)
+		return (VOS_UINT64_MAX);
 
 	return (a * b);
 }
@@ -551,7 +551,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			    rctl_log_rate_limit))
 				continue;
 
-			buf = malloc(RCTL_LOG_BUFSIZE, M_RCTL, M_NOWAIT);
+			buf = vos_malloc(RCTL_LOG_BUFSIZE, M_RCTL, M_NOWAIT);
 			if (buf == NULL) {
 				printf("rctl_enforce: out of memory\n");
 				continue;
@@ -564,7 +564,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			    p->p_pid, p->p_comm, p->p_ucred->cr_uid,
 			    p->p_ucred->cr_prison->pr_prison_racct->prr_name);
 			sbuf_delete(&sb);
-			free(buf, M_RCTL);
+			vos_free(buf, M_RCTL);
 			link->rrl_exceeded = 1;
 			continue;
 		case RCTL_ACTION_DEVCTL:
@@ -578,7 +578,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			    rctl_devctl_rate_limit))
 				continue;
 
-			buf = malloc(RCTL_LOG_BUFSIZE, M_RCTL, M_NOWAIT);
+			buf = vos_malloc(RCTL_LOG_BUFSIZE, M_RCTL, M_NOWAIT);
 			if (buf == NULL) {
 				printf("rctl_enforce: out of memory\n");
 				continue;
@@ -593,7 +593,7 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 			devctl_notify("RCTL", "rule", "matched",
 			    sbuf_data(&sb));
 			sbuf_delete(&sb);
-			free(buf, M_RCTL);
+			vos_free(buf, M_RCTL);
 			link->rrl_exceeded = 1;
 			continue;
 		case RCTL_ACTION_THROTTLE:
@@ -690,9 +690,9 @@ rctl_enforce(struct proc *p, int resource, uint64_t amount)
 	if (should_deny) {
 		/*
 		 * Return fake error code; the caller should change it
-		 * into one proper for the situation - EFSIZ, ENOMEM etc.
+		 * into one proper for the situation - EFSIZ, VOS_ENOMEM etc.
 		 */
-		return (EDOOFUS);
+		return (VOS_EDOOFUS);
 	}
 
 	return (0);
@@ -703,7 +703,7 @@ rctl_get_limit(struct proc *p, int resource)
 {
 	struct rctl_rule *rule;
 	struct rctl_rule_link *link;
-	uint64_t amount = UINT64_MAX;
+	uint64_t amount = VOS_UINT64_MAX;
 
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
@@ -732,7 +732,7 @@ rctl_get_available(struct proc *p, int resource)
 	struct rctl_rule_link *link;
 	int64_t available, minavailable, allocated;
 
-	minavailable = INT64_MAX;
+	minavailable = VOS_INT64_MAX;
 
 	ASSERT_RACCT_ENABLED();
 	RACCT_LOCK_ASSERT();
@@ -756,7 +756,7 @@ rctl_get_available(struct proc *p, int resource)
 	 * XXX: Think about this _hard_.
 	 */
 	allocated = p->p_racct->r_resources[resource];
-	if (minavailable < INT64_MAX - allocated)
+	if (minavailable < VOS_INT64_MAX - allocated)
 		minavailable += allocated;
 	if (minavailable < 0)
 		minavailable = 0;
@@ -834,7 +834,7 @@ str2value(const char *str, int *value, struct dict *table)
 	int i;
 
 	if (value == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	for (i = 0; table[i].d_name != NULL; i++) {
 		if (strcasecmp(table[i].d_name, str) == 0) {
@@ -843,7 +843,7 @@ str2value(const char *str, int *value, struct dict *table)
 		}
 	}
 
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 static int
@@ -852,11 +852,11 @@ str2id(const char *str, id_t *value)
 	char *end;
 
 	if (str == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	*value = strtoul(str, &end, 10);
-	if ((size_t)(end - str) != strlen(str))
-		return (EINVAL);
+	if ((size_t)(end - str) != vos_strlen(str))
+		return (VOS_EINVAL);
 
 	return (0);
 }
@@ -867,14 +867,14 @@ str2int64(const char *str, int64_t *value)
 	char *end;
 
 	if (str == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	*value = strtoul(str, &end, 10);
-	if ((size_t)(end - str) != strlen(str))
-		return (EINVAL);
+	if ((size_t)(end - str) != vos_strlen(str))
+		return (VOS_EINVAL);
 
 	if (*value < 0)
-		return (ERANGE);
+		return (VOS_ERANGE);
 
 	return (0);
 }
@@ -911,7 +911,7 @@ rctl_racct_add_rule_locked(struct racct *racct, struct rctl_rule *rule)
 
 	link = uma_zalloc(rctl_rule_link_zone, M_NOWAIT);
 	if (link == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	rctl_rule_acquire(rule);
 	link->rrl_rule = rule;
 	link->rrl_exceeded = 0;
@@ -1155,11 +1155,11 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 
 	rule = rctl_rule_alloc(M_WAITOK);
 
-	subjectstr = strsep(&rulestr, ":");
-	subject_idstr = strsep(&rulestr, ":");
-	resourcestr = strsep(&rulestr, ":");
-	actionstr = strsep(&rulestr, "=/");
-	amountstr = strsep(&rulestr, "/");
+	subjectstr = vos_strsep(&rulestr, ":");
+	subject_idstr = vos_strsep(&rulestr, ":");
+	resourcestr = vos_strsep(&rulestr, ":");
+	actionstr = vos_strsep(&rulestr, "=/");
+	amountstr = vos_strsep(&rulestr, "/");
 	perstr = rulestr;
 
 	if (subjectstr == NULL || subjectstr[0] == '\0')
@@ -1178,7 +1178,7 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 	} else {
 		switch (rule->rr_subject_type) {
 		case RCTL_SUBJECT_TYPE_UNDEFINED:
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		case RCTL_SUBJECT_TYPE_PROCESS:
 			error = str2id(subject_idstr, &id);
@@ -1187,7 +1187,7 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 			sx_assert(&allproc_lock, SA_LOCKED);
 			rule->rr_subject.rs_proc = pfind(id);
 			if (rule->rr_subject.rs_proc == NULL) {
-				error = ESRCH;
+				error = VOS_ESRCH;
 				goto out;
 			}
 			PROC_UNLOCK(rule->rr_subject.rs_proc);
@@ -1202,7 +1202,7 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 			rule->rr_subject.rs_loginclass =
 			    loginclass_find(subject_idstr);
 			if (rule->rr_subject.rs_loginclass == NULL) {
-				error = ENAMETOOLONG;
+				error = VOS_ENAMETOOLONG;
 				goto out;
 			}
 			break;
@@ -1210,7 +1210,7 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 			rule->rr_subject.rs_prison_racct =
 			    prison_racct_find(subject_idstr);
 			if (rule->rr_subject.rs_prison_racct == NULL) {
-				error = ENAMETOOLONG;
+				error = VOS_ENAMETOOLONG;
 				goto out;
 			}
 			break;
@@ -1244,8 +1244,8 @@ rctl_string_to_rule(char *rulestr, struct rctl_rule **rulep)
 		if (error != 0)
 			goto out;
 		if (RACCT_IS_IN_MILLIONS(rule->rr_resource)) {
-			if (rule->rr_amount > INT64_MAX / 1000000) {
-				error = ERANGE;
+			if (rule->rr_amount > VOS_INT64_MAX / 1000000) {
+				error = VOS_ERANGE;
 				goto out;
 			}
 			rule->rr_amount *= 1000000;
@@ -1297,22 +1297,22 @@ rctl_rule_add(struct rctl_rule *rule)
 	    !RACCT_IS_DENIABLE(rule->rr_resource) &&
 	    rule->rr_resource != RACCT_RSS &&
 	    rule->rr_resource != RACCT_PCTCPU) {
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	if (rule->rr_action == RCTL_ACTION_THROTTLE &&
 	    !RACCT_IS_DECAYING(rule->rr_resource)) {
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	if (rule->rr_action == RCTL_ACTION_THROTTLE &&
 	    rule->rr_resource == RACCT_PCTCPU) {
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	if (rule->rr_per == RCTL_SUBJECT_TYPE_PROCESS &&
 	    RACCT_IS_SLOPPY(rule->rr_resource)) {
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	/*
@@ -1448,7 +1448,7 @@ rctl_rule_remove(struct rctl_rule *filter)
 		RACCT_UNLOCK();
 		if (found)
 			return (0);
-		return (ESRCH);
+		return (VOS_ESRCH);
 	}
 
 	loginclass_racct_foreach(rctl_rule_remove_callback,
@@ -1470,7 +1470,7 @@ rctl_rule_remove(struct rctl_rule *filter)
 
 	if (found)
 		return (0);
-	return (ESRCH);
+	return (VOS_ESRCH);
 }
 
 /*
@@ -1545,14 +1545,14 @@ rctl_read_inbuf(char **inputstr, const char *inbufp, size_t inbuflen)
 	ASSERT_RACCT_ENABLED();
 
 	if (inbuflen <= 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (inbuflen > RCTL_MAX_INBUFSIZE)
-		return (E2BIG);
+		return (VOS_E2BIG);
 
-	str = malloc(inbuflen + 1, M_RCTL, M_WAITOK);
+	str = vos_malloc(inbuflen + 1, M_RCTL, M_WAITOK);
 	error = copyinstr(inbufp, str, inbuflen, NULL);
 	if (error != 0) {
-		free(str, M_RCTL);
+		vos_free(str, M_RCTL);
 		return (error);
 	}
 
@@ -1577,7 +1577,7 @@ rctl_write_outbuf(struct sbuf *outputsbuf, char *outbufp, size_t outbuflen)
 	sbuf_finish(outputsbuf);
 	if (outbuflen < sbuf_len(outputsbuf) + 1) {
 		sbuf_delete(outputsbuf);
-		return (ERANGE);
+		return (VOS_ERANGE);
 	}
 	error = copyout(sbuf_data(outputsbuf), outbufp,
 	    sbuf_len(outputsbuf) + 1);
@@ -1622,7 +1622,7 @@ sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 	int error;
 
 	if (!racct_enable)
-		return (ENOSYS);
+		return (VOS_ENOSYS);
 
 	error = priv_check(td, PRIV_RCTL_GET_RACCT);
 	if (error != 0)
@@ -1634,7 +1634,7 @@ sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 
 	sx_slock(&allproc_lock);
 	error = rctl_string_to_rule(inputstr, &filter);
-	free(inputstr, M_RCTL);
+	vos_free(inputstr, M_RCTL);
 	if (error != 0) {
 		sx_sunlock(&allproc_lock);
 		return (error);
@@ -1644,7 +1644,7 @@ sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 	case RCTL_SUBJECT_TYPE_PROCESS:
 		p = filter->rr_subject.rs_proc;
 		if (p == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		outputsbuf = rctl_racct_to_sbuf(p->p_racct, 0);
@@ -1652,7 +1652,7 @@ sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 	case RCTL_SUBJECT_TYPE_USER:
 		uip = filter->rr_subject.rs_uip;
 		if (uip == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		outputsbuf = rctl_racct_to_sbuf(uip->ui_racct, 1);
@@ -1660,7 +1660,7 @@ sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 	case RCTL_SUBJECT_TYPE_LOGINCLASS:
 		lc = filter->rr_subject.rs_loginclass;
 		if (lc == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		outputsbuf = rctl_racct_to_sbuf(lc->lc_racct, 1);
@@ -1668,13 +1668,13 @@ sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 	case RCTL_SUBJECT_TYPE_JAIL:
 		prr = filter->rr_subject.rs_prison_racct;
 		if (prr == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		outputsbuf = rctl_racct_to_sbuf(prr->prr_racct, 1);
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 out:
 	rctl_rule_release(filter);
@@ -1717,7 +1717,7 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 	int error;
 
 	if (!racct_enable)
-		return (ENOSYS);
+		return (VOS_ENOSYS);
 
 	error = priv_check(td, PRIV_RCTL_GET_RULES);
 	if (error != 0)
@@ -1729,7 +1729,7 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 
 	sx_slock(&allproc_lock);
 	error = rctl_string_to_rule(inputstr, &filter);
-	free(inputstr, M_RCTL);
+	vos_free(inputstr, M_RCTL);
 	if (error != 0) {
 		sx_sunlock(&allproc_lock);
 		return (error);
@@ -1738,10 +1738,10 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 	bufsize = uap->outbuflen;
 	if (bufsize > rctl_maxbufsize) {
 		sx_sunlock(&allproc_lock);
-		return (E2BIG);
+		return (VOS_E2BIG);
 	}
 
-	buf = malloc(bufsize, M_RCTL, M_WAITOK);
+	buf = vos_malloc(bufsize, M_RCTL, M_WAITOK);
 	sb = sbuf_new(NULL, buf, bufsize, SBUF_FIXEDLEN);
 	KASSERT(sb != NULL, ("sbuf_new failed"));
 
@@ -1772,8 +1772,8 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 	prison_racct_foreach(rctl_get_rules_callback,
 	    rctl_rule_pre_callback, rctl_rule_post_callback,
 	    filter, sb);
-	if (sbuf_error(sb) == ENOMEM) {
-		error = ERANGE;
+	if (sbuf_error(sb) == VOS_ENOMEM) {
+		error = VOS_ERANGE;
 		goto out;
 	}
 
@@ -1787,7 +1787,7 @@ sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 out:
 	rctl_rule_release(filter);
 	sx_sunlock(&allproc_lock);
-	free(buf, M_RCTL);
+	vos_free(buf, M_RCTL);
 	return (error);
 }
 
@@ -1802,7 +1802,7 @@ sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 	int error;
 
 	if (!racct_enable)
-		return (ENOSYS);
+		return (VOS_ENOSYS);
 
 	error = priv_check(td, PRIV_RCTL_GET_LIMITS);
 	if (error != 0)
@@ -1814,7 +1814,7 @@ sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 
 	sx_slock(&allproc_lock);
 	error = rctl_string_to_rule(inputstr, &filter);
-	free(inputstr, M_RCTL);
+	vos_free(inputstr, M_RCTL);
 	if (error != 0) {
 		sx_sunlock(&allproc_lock);
 		return (error);
@@ -1823,27 +1823,27 @@ sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 	if (filter->rr_subject_type == RCTL_SUBJECT_TYPE_UNDEFINED) {
 		rctl_rule_release(filter);
 		sx_sunlock(&allproc_lock);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	if (filter->rr_subject_type != RCTL_SUBJECT_TYPE_PROCESS) {
 		rctl_rule_release(filter);
 		sx_sunlock(&allproc_lock);
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 	if (filter->rr_subject.rs_proc == NULL) {
 		rctl_rule_release(filter);
 		sx_sunlock(&allproc_lock);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	bufsize = uap->outbuflen;
 	if (bufsize > rctl_maxbufsize) {
 		rctl_rule_release(filter);
 		sx_sunlock(&allproc_lock);
-		return (E2BIG);
+		return (VOS_E2BIG);
 	}
 
-	buf = malloc(bufsize, M_RCTL, M_WAITOK);
+	buf = vos_malloc(bufsize, M_RCTL, M_WAITOK);
 	sb = sbuf_new(NULL, buf, bufsize, SBUF_FIXEDLEN);
 	KASSERT(sb != NULL, ("sbuf_new failed"));
 
@@ -1854,8 +1854,8 @@ sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 		sbuf_printf(sb, ",");
 	}
 	RACCT_UNLOCK();
-	if (sbuf_error(sb) == ENOMEM) {
-		error = ERANGE;
+	if (sbuf_error(sb) == VOS_ENOMEM) {
+		error = VOS_ERANGE;
 		sbuf_delete(sb);
 		goto out;
 	}
@@ -1870,7 +1870,7 @@ sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 out:
 	rctl_rule_release(filter);
 	sx_sunlock(&allproc_lock);
-	free(buf, M_RCTL);
+	vos_free(buf, M_RCTL);
 	return (error);
 }
 
@@ -1882,7 +1882,7 @@ sys_rctl_add_rule(struct thread *td, struct rctl_add_rule_args *uap)
 	int error;
 
 	if (!racct_enable)
-		return (ENOSYS);
+		return (VOS_ENOSYS);
 
 	error = priv_check(td, PRIV_RCTL_ADD_RULE);
 	if (error != 0)
@@ -1894,7 +1894,7 @@ sys_rctl_add_rule(struct thread *td, struct rctl_add_rule_args *uap)
 
 	sx_slock(&allproc_lock);
 	error = rctl_string_to_rule(inputstr, &rule);
-	free(inputstr, M_RCTL);
+	vos_free(inputstr, M_RCTL);
 	if (error != 0) {
 		sx_sunlock(&allproc_lock);
 		return (error);
@@ -1907,7 +1907,7 @@ sys_rctl_add_rule(struct thread *td, struct rctl_add_rule_args *uap)
 		rule->rr_per = rule->rr_subject_type;
 
 	if (!rctl_rule_fully_specified(rule)) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -1927,7 +1927,7 @@ sys_rctl_remove_rule(struct thread *td, struct rctl_remove_rule_args *uap)
 	int error;
 
 	if (!racct_enable)
-		return (ENOSYS);
+		return (VOS_ENOSYS);
 
 	error = priv_check(td, PRIV_RCTL_REMOVE_RULE);
 	if (error != 0)
@@ -1939,7 +1939,7 @@ sys_rctl_remove_rule(struct thread *td, struct rctl_remove_rule_args *uap)
 
 	sx_slock(&allproc_lock);
 	error = rctl_string_to_rule(inputstr, &filter);
-	free(inputstr, M_RCTL);
+	vos_free(inputstr, M_RCTL);
 	if (error != 0) {
 		sx_sunlock(&allproc_lock);
 		return (error);
@@ -2156,7 +2156,7 @@ fail:
 		uma_zfree(rctl_rule_link_zone, link);
 	}
 
-	return (EAGAIN);
+	return (VOS_EAGAIN);
 }
 
 /*
@@ -2213,35 +2213,35 @@ int
 sys_rctl_get_racct(struct thread *td, struct rctl_get_racct_args *uap)
 {
 
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 }
 
 int
 sys_rctl_get_rules(struct thread *td, struct rctl_get_rules_args *uap)
 {
 
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 }
 
 int
 sys_rctl_get_limits(struct thread *td, struct rctl_get_limits_args *uap)
 {
 
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 }
 
 int
 sys_rctl_add_rule(struct thread *td, struct rctl_add_rule_args *uap)
 {
 
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 }
 
 int
 sys_rctl_remove_rule(struct thread *td, struct rctl_remove_rule_args *uap)
 {
 
-	return (ENOSYS);
+	return (VOS_ENOSYS);
 }
 
 #endif /* !RCTL */

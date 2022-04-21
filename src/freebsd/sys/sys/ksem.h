@@ -53,10 +53,10 @@ struct ksem {
 	 *
 	 * XXX: dubious
 	 */
-	struct timespec	ks_atime;
-	struct timespec	ks_mtime;
-	struct timespec	ks_ctime;
-	struct timespec	ks_birthtime;
+	struct vos_timespec	ks_atime;
+	struct vos_timespec	ks_mtime;
+	struct vos_timespec	ks_ctime;
+	struct vos_timespec	ks_birthtime;
 
 	struct label	*ks_label;	/* MAC label */
 	const char	*ks_path;

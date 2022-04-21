@@ -137,11 +137,11 @@ _taskqueue_create(const char *name, int mflags,
 	struct taskqueue *queue;
 	char *tq_name;
 
-	tq_name = malloc(TASKQUEUE_NAMELEN, M_TASKQUEUE, mflags | M_ZERO);
+	tq_name = vos_malloc(TASKQUEUE_NAMELEN, M_TASKQUEUE, mflags | M_ZERO);
 	if (tq_name == NULL)
 		return (NULL);
 
-	queue = malloc(sizeof(struct taskqueue), M_TASKQUEUE, mflags | M_ZERO);
+	queue = vos_malloc(sizeof(struct taskqueue), M_TASKQUEUE, mflags | M_ZERO);
 	if (queue == NULL) {
 		free(tq_name, M_TASKQUEUE);
 		return (NULL);
@@ -215,9 +215,9 @@ taskqueue_free(struct taskqueue *queue)
 	KASSERT(LIST_EMPTY(&queue->tq_active), ("Tasks still running?"));
 	KASSERT(queue->tq_callouts == 0, ("Armed timeout tasks"));
 	mtx_destroy(&queue->tq_mutex);
-	free(queue->tq_threads, M_TASKQUEUE);
-	free(queue->tq_name, M_TASKQUEUE);
-	free(queue, M_TASKQUEUE);
+	vos_free(queue->tq_threads, M_TASKQUEUE);
+	vos_free(queue->tq_name, M_TASKQUEUE);
+	vos_free(queue, M_TASKQUEUE);
 }
 
 static int
@@ -539,7 +539,7 @@ taskqueue_cancel_locked(struct taskqueue *queue, struct task *task,
 	if (pendp != NULL)
 		*pendp = task->ta_pending;
 	task->ta_pending = 0;
-	return (task_is_running(queue, task) ? EBUSY : 0);
+	return (task_is_running(queue, task) ? VOS_EBUSY : 0);
 }
 
 int
@@ -675,16 +675,16 @@ _taskqueue_start_threads(struct taskqueue **tqp, int count, int pri,
 	int i, error;
 
 	if (count <= 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	vsnprintf(ktname, sizeof(ktname), name, ap);
 	tq = *tqp;
 
-	tq->tq_threads = malloc(sizeof(struct thread *) * count, M_TASKQUEUE,
+	tq->tq_threads = vos_malloc(sizeof(struct thread *) * count, M_TASKQUEUE,
 	    M_NOWAIT | M_ZERO);
 	if (tq->tq_threads == NULL) {
 		printf("%s: no memory for %s threads\n", __func__, ktname);
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 
 	for (i = 0; i < count; i++) {
@@ -704,9 +704,9 @@ _taskqueue_start_threads(struct taskqueue **tqp, int count, int pri,
 			tq->tq_tcount++;
 	}
 	if (tq->tq_tcount == 0) {
-		free(tq->tq_threads, M_TASKQUEUE);
+		vos_free(tq->tq_threads, M_TASKQUEUE);
 		tq->tq_threads = NULL;
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	}
 	for (i = 0; i < count; i++) {
 		if (tq->tq_threads[i] == NULL)

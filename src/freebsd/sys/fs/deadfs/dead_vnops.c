@@ -102,7 +102,7 @@ dead_lookup(struct vop_lookup_args *ap)
 {
 
 	*ap->a_vpp = NULL;
-	return (ENOTDIR);
+	return (VOS_ENOTDIR);
 }
 
 /*
@@ -125,10 +125,10 @@ dead_read(struct vop_read_args *ap)
 {
 
 	/*
-	 * Return EOF for tty devices, EIO for others
+	 * Return EOF for tty devices, VOS_EIO for others
 	 */
 	if ((ap->a_vp->v_vflag & VV_ISTTY) == 0)
-		return (EIO);
+		return (VOS_EIO);
 	return (0);
 }
 
@@ -136,7 +136,7 @@ int
 dead_write(struct vop_write_args *ap)
 {
 
-	return (EIO);
+	return (VOS_EIO);
 }
 
 int
@@ -158,7 +158,7 @@ dead_rename(struct vop_rename_args *ap)
 {
 
 	vop_rename_fail(ap);
-	return (EXDEV);
+	return (VOS_EXDEV);
 }
 
 static int

@@ -189,7 +189,7 @@ msgbuf_addstr(struct msgbuf *mbp, int pri, const char *str, int filter_cr)
 	char buf[32];
 	int i, j, needtime;
 
-	len = strlen(str);
+	len = vos_strlen(str);
 	prefix_len = 0;
 
 	/* If we have a zero-length string, no need to do anything. */

@@ -56,7 +56,7 @@ stack_create(int flags)
 {
 	struct stack *st;
 
-	st = malloc(sizeof(*st), M_STACK, flags | M_ZERO);
+	st = vos_malloc(sizeof(*st), M_STACK, flags | M_ZERO);
 	return (st);
 }
 
@@ -64,7 +64,7 @@ void
 stack_destroy(struct stack *st)
 {
 
-	free(st, M_STACK);
+	vos_free(st, M_STACK);
 }
 
 int
@@ -167,7 +167,7 @@ stack_print_short_ddb(const struct stack *st)
 /*
  * Format stack into sbuf from live kernel.
  *
- * flags - M_WAITOK or M_NOWAIT (EWOULDBLOCK).
+ * flags - M_WAITOK or M_NOWAIT (VOS_EWOULDBLOCK).
  */
 int
 stack_sbuf_print_flags(struct sbuf *sb, const struct stack *st, int flags,
@@ -181,7 +181,7 @@ stack_sbuf_print_flags(struct sbuf *sb, const struct stack *st, int flags,
 	for (i = 0; i < st->depth; i++) {
 		error = stack_symbol(st->pcs[i], namebuf, sizeof(namebuf),
 		    &offset, flags);
-		if (error == EWOULDBLOCK)
+		if (error == VOS_EWOULDBLOCK)
 			return (error);
 		switch (format) {
 		case STACK_SBUF_FMT_LONG:
@@ -259,12 +259,12 @@ stack_symbol(vm_offset_t pc, char *namebuf, u_int buflen, long long *offset,
 
 	error = linker_search_symbol_name_flags((caddr_t)pc, namebuf, buflen,
 	    offset, flags);
-	if (error == 0 || error == EWOULDBLOCK)
+	if (error == 0 || error == VOS_EWOULDBLOCK)
 		return (error);
 
 	*offset = 0;
-	strlcpy(namebuf, "??", buflen);
-	return (ENOENT);
+	vos_strlcpy(namebuf, "??", buflen);
+	return (VOS_ENOENT);
 }
 
 static int
@@ -284,5 +284,5 @@ stack_symbol_ddb(vm_offset_t pc, const char **name, long long *offset)
  out:
 	*offset = 0;
 	*name = "??";
-	return (ENOENT);
+	return (VOS_ENOENT);
 }

@@ -46,7 +46,7 @@ __FBSDID("$FreeBSD$");
  * If retval >= siz, truncation occurred.
  */
 size_t
-strlcat(char *dst, const char *src, size_t siz)
+vos_strlcat(char *dst, const char *src, size_t siz)
 {
 	char *d = dst;
 	const char *s = src;
@@ -60,7 +60,7 @@ strlcat(char *dst, const char *src, size_t siz)
 	n = siz - dlen;
 
 	if (n == 0)
-		return(dlen + strlen(s));
+		return(dlen + vos_strlen(s));
 	while (*s != '\0') {
 		if (n != 1) {
 			*d++ = *s;

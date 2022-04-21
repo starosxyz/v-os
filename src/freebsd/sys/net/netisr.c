@@ -338,7 +338,7 @@ netisr_dispatch_policy_from_str(const char *str, u_int *dispatch_policyp)
 			return (0);
 		}
 	}
-	return (EINVAL);
+	return (VOS_EINVAL);
 }
 
 static int
@@ -359,7 +359,7 @@ sysctl_netisr_dispatch_policy(SYSCTL_HANDLER_ARGS)
 	if (req->newptr != NULL) {
 		len = req->newlen - req->newidx;
 		if (len >= NETISR_DISPATCH_POLICY_MAXSTR)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		error = SYSCTL_IN(req, tmp, len);
 		if (error == 0) {
 			tmp[len] = '\0';
@@ -367,7 +367,7 @@ sysctl_netisr_dispatch_policy(SYSCTL_HANDLER_ARGS)
 			    &dispatch_policy);
 			if (error == 0 &&
 			    dispatch_policy == NETISR_DISPATCH_DEFAULT)
-				error = EINVAL;
+				error = VOS_EINVAL;
 			if (error == 0)
 				netisr_dispatch_policy = dispatch_policy;
 		}
@@ -582,7 +582,7 @@ netisr_setqlimit(const struct netisr_handler *nhp, u_int qlimit)
 	u_int i, proto;
 
 	if (qlimit > netisr_maxqlimit)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	proto = nhp->nh_proto;
 #ifdef INVARIANTS
@@ -1018,7 +1018,7 @@ netisr_queue_workstream(struct netisr_workstream *nwsp, u_int proto,
 	} else {
 		m_freem(m);
 		npwp->nw_qdrops++;
-		return (ENOBUFS);
+		return (VOS_ENOBUFS);
 	}
 }
 
@@ -1069,7 +1069,7 @@ netisr_queue_src(u_int proto, uintptr_t source, struct mbuf *m)
 #ifdef VIMAGE
 	if (V_netisr_enable[proto] == 0) {
 		m_freem(m);
-		return (ENOPROTOOPT);
+		return (VOS_ENOPROTOOPT);
 	}
 #endif
 
@@ -1082,7 +1082,7 @@ netisr_queue_src(u_int proto, uintptr_t source, struct mbuf *m)
 		    ("%s:%d rcvif == NULL: m=%p", __func__, __LINE__, m));
 		error = netisr_queue_internal(proto, m, cpuid);
 	} else
-		error = ENOBUFS;
+		error = VOS_ENOBUFS;
 #ifdef NETISR_LOCKING
 	NETISR_RUNLOCK(&tracker);
 #endif
@@ -1125,7 +1125,7 @@ netisr_dispatch_src(u_int proto, uintptr_t source, struct mbuf *m)
 #ifdef VIMAGE
 	if (V_netisr_enable[proto] == 0) {
 		m_freem(m);
-		return (ENOPROTOOPT);
+		return (VOS_ENOPROTOOPT);
 	}
 #endif
 
@@ -1162,7 +1162,7 @@ netisr_dispatch_src(u_int proto, uintptr_t source, struct mbuf *m)
 	m = netisr_select_cpuid(&netisr_proto[proto], NETISR_DISPATCH_HYBRID,
 	    source, m, &cpuid);
 	if (m == NULL) {
-		error = ENOBUFS;
+		error = VOS_ENOBUFS;
 		goto out_unpin;
 	}
 	KASSERT(!CPU_ABSENT(cpuid), ("%s: CPU %u absent", __func__, cpuid));
@@ -1377,8 +1377,8 @@ sysctl_netisr_proto(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != NULL)
-		return (EINVAL);
-	snp_array = malloc(sizeof(*snp_array) * NETISR_MAXPROT, M_TEMP,
+		return (VOS_EINVAL);
+	snp_array = vos_malloc(sizeof(*snp_array) * NETISR_MAXPROT, M_TEMP,
 	    M_ZERO | M_WAITOK);
 	counter = 0;
 	NETISR_RLOCK(&tracker);
@@ -1388,7 +1388,7 @@ sysctl_netisr_proto(SYSCTL_HANDLER_ARGS)
 			continue;
 		snpp = &snp_array[counter];
 		snpp->snp_version = sizeof(*snpp);
-		strlcpy(snpp->snp_name, npp->np_name, NETISR_NAMEMAXLEN);
+		vos_strlcpy(snpp->snp_name, npp->np_name, NETISR_NAMEMAXLEN);
 		snpp->snp_proto = proto;
 		snpp->snp_qlimit = npp->np_qlimit;
 		snpp->snp_policy = npp->np_policy;
@@ -1405,7 +1405,7 @@ sysctl_netisr_proto(SYSCTL_HANDLER_ARGS)
 	KASSERT(counter <= NETISR_MAXPROT,
 	    ("sysctl_netisr_proto: counter too big (%d)", counter));
 	error = SYSCTL_OUT(req, snp_array, sizeof(*snp_array) * counter);
-	free(snp_array, M_TEMP);
+	vos_free(snp_array, M_TEMP);
 	return (error);
 }
 
@@ -1427,8 +1427,8 @@ sysctl_netisr_workstream(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != NULL)
-		return (EINVAL);
-	snws_array = malloc(sizeof(*snws_array) * MAXCPU, M_TEMP,
+		return (VOS_EINVAL);
+	snws_array = vos_malloc(sizeof(*snws_array) * MAXCPU, M_TEMP,
 	    M_ZERO | M_WAITOK);
 	counter = 0;
 	NETISR_RLOCK(&tracker);
@@ -1456,7 +1456,7 @@ sysctl_netisr_workstream(SYSCTL_HANDLER_ARGS)
 	KASSERT(counter <= MAXCPU,
 	    ("sysctl_netisr_workstream: counter too big (%d)", counter));
 	error = SYSCTL_OUT(req, snws_array, sizeof(*snws_array) * counter);
-	free(snws_array, M_TEMP);
+	vos_free(snws_array, M_TEMP);
 	return (error);
 }
 
@@ -1481,8 +1481,8 @@ sysctl_netisr_work(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != NULL)
-		return (EINVAL);
-	snw_array = malloc(sizeof(*snw_array) * MAXCPU * NETISR_MAXPROT,
+		return (VOS_EINVAL);
+	snw_array = vos_malloc(sizeof(*snw_array) * MAXCPU * NETISR_MAXPROT,
 	    M_TEMP, M_ZERO | M_WAITOK);
 	counter = 0;
 	NETISR_RLOCK(&tracker);
@@ -1516,7 +1516,7 @@ sysctl_netisr_work(SYSCTL_HANDLER_ARGS)
 	    ("sysctl_netisr_work: counter too big (%d)", counter));
 	NETISR_RUNLOCK(&tracker);
 	error = SYSCTL_OUT(req, snw_array, sizeof(*snw_array) * counter);
-	free(snw_array, M_TEMP);
+	vos_free(snw_array, M_TEMP);
 	return (error);
 }
 

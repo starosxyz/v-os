@@ -470,11 +470,11 @@ rip_output(struct mbuf *m, struct socket *so, ...)
 	if ((inp->inp_flags & INP_HDRINCL) == 0) {
 		if (m->m_pkthdr.len + sizeof(struct ip) > IP_MAXPACKET) {
 			m_freem(m);
-			return(EMSGSIZE);
+			return(VOS_EMSGSIZE);
 		}
 		M_PREPEND(m, sizeof(struct ip), M_NOWAIT);
 		if (m == NULL)
-			return(ENOBUFS);
+			return(VOS_ENOBUFS);
 
 		INP_RLOCK(inp);
 		ip = mtod(m, struct ip *);
@@ -523,14 +523,14 @@ rip_output(struct mbuf *m, struct socket *so, ...)
 	} else {
 		if (m->m_pkthdr.len > IP_MAXPACKET) {
 			m_freem(m);
-			return(EMSGSIZE);
+			return(VOS_EMSGSIZE);
 		}
 		ip = mtod(m, struct ip *);
 		hlen = ip->ip_hl << 2;
 		if (m->m_len < hlen) {
 			m = m_pullup(m, hlen);
 			if (m == NULL)
-				return (EINVAL);
+				return (VOS_EINVAL);
 			ip = mtod(m, struct ip *);
 		}
 #ifdef ROUTE_MPATH
@@ -554,7 +554,7 @@ rip_output(struct mbuf *m, struct socket *so, ...)
 		    || (ntohs(ip->ip_len) != m->m_pkthdr.len)) {
 			INP_RUNLOCK(inp);
 			m_freem(m);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		error = prison_check_ip4(inp->inp_cred, &ip->ip_src);
 		if (error != 0) {
@@ -580,14 +580,14 @@ rip_output(struct mbuf *m, struct socket *so, ...)
 			if (cnt < IPOPT_OLEN + sizeof(u_char)) {
 				INP_RUNLOCK(inp);
 				m_freem(m);
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 			optlen = cp[IPOPT_OLEN];
 			if (optlen < IPOPT_OLEN + sizeof(u_char) ||
 			    optlen > cnt) {
 				INP_RUNLOCK(inp);
 				m_freem(m);
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 		}
 		/*
@@ -651,7 +651,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			inp->inp_inc.inc_fibnum = so->so_fibnum;
 			return (0);
 		}
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	error = 0;
@@ -673,7 +673,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (V_ip_fw_ctl_ptr != NULL)
 				error = V_ip_fw_ctl_ptr(sopt);
 			else
-				error = ENOPROTOOPT;
+				error = VOS_ENOPROTOOPT;
 			break;
 
 		case IP_DUMMYNET3:	/* generic dummynet v.3 functions */
@@ -681,7 +681,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (ip_dn_ctl_ptr != NULL)
 				error = ip_dn_ctl_ptr(sopt);
 			else
-				error = ENOPROTOOPT;
+				error = VOS_ENOPROTOOPT;
 			break ;
 
 		case MRT_INIT:
@@ -700,7 +700,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (error != 0)
 				return (error);
 			error = ip_mrouter_get ? ip_mrouter_get(so, sopt) :
-				EOPNOTSUPP;
+				VOS_EOPNOTSUPP;
 			break;
 
 		default:
@@ -736,7 +736,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (V_ip_fw_ctl_ptr != NULL)
 				error = V_ip_fw_ctl_ptr(sopt);
 			else
-				error = ENOPROTOOPT;
+				error = VOS_ENOPROTOOPT;
 			break;
 
 		case IP_DUMMYNET3:	/* generic dummynet v.3 functions */
@@ -746,7 +746,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (ip_dn_ctl_ptr != NULL)
 				error = ip_dn_ctl_ptr(sopt);
 			else
-				error = ENOPROTOOPT ;
+				error = VOS_ENOPROTOOPT ;
 			break ;
 
 		case IP_RSVP_ON:
@@ -769,7 +769,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (error != 0)
 				return (error);
 			error = ip_rsvp_vif ?
-				ip_rsvp_vif(so, sopt) : EINVAL;
+				ip_rsvp_vif(so, sopt) : VOS_EINVAL;
 			break;
 
 		case MRT_INIT:
@@ -788,7 +788,7 @@ rip_ctloutput(struct socket *so, struct sockopt *sopt)
 			if (error != 0)
 				return (error);
 			error = ip_mrouter_set ? ip_mrouter_set(so, sopt) :
-					EOPNOTSUPP;
+					VOS_EOPNOTSUPP;
 			break;
 
 		default:
@@ -890,7 +890,7 @@ rip_attach(struct socket *so, int proto, struct thread *td)
 	if (error)
 		return (error);
 	if (proto >= IPPROTO_MAX || proto < 0)
-		return EPROTONOSUPPORT;
+		return VOS_EPROTONOSUPPORT;
 	error = soreserve(so, rip_sendspace, rip_recvspace);
 	if (error)
 		return (error);
@@ -980,7 +980,7 @@ rip_disconnect(struct socket *so)
 	struct inpcb *inp;
 
 	if ((so->so_state & SS_ISCONNECTED) == 0)
-		return (ENOTCONN);
+		return (VOS_ENOTCONN);
 
 	inp = sotoinpcb(so);
 	KASSERT(inp != NULL, ("rip_disconnect: inp == NULL"));
@@ -997,7 +997,7 @@ rip_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 	int error;
 
 	if (nam->sa_len != sizeof(*addr))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = prison_check_ip4(td->td_ucred, &addr->sin_addr);
 	if (error != 0)
@@ -1011,7 +1011,7 @@ rip_bind(struct socket *so, struct sockaddr *nam, struct thread *td)
 	    (addr->sin_addr.s_addr &&
 	     (inp->inp_flags & INP_BINDANY) == 0 &&
 	     ifa_ifwithaddr_check((struct sockaddr *)addr) == 0))
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 
 	INP_INFO_WLOCK(&V_ripcbinfo);
 	INP_WLOCK(inp);
@@ -1030,11 +1030,11 @@ rip_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 	struct inpcb *inp;
 
 	if (nam->sa_len != sizeof(*addr))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (CK_STAILQ_EMPTY(&V_ifnet))
-		return (EADDRNOTAVAIL);
+		return (VOS_EADDRNOTAVAIL);
 	if (addr->sin_family != AF_INET && addr->sin_family != AF_IMPLINK)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	inp = sotoinpcb(so);
 	KASSERT(inp != NULL, ("rip_connect: inp == NULL"));
@@ -1080,13 +1080,13 @@ rip_send(struct socket *so, int flags, struct mbuf *m, struct sockaddr *nam,
 	if (so->so_state & SS_ISCONNECTED) {
 		if (nam) {
 			m_freem(m);
-			return (EISCONN);
+			return (VOS_EISCONN);
 		}
 		dst = inp->inp_faddr.s_addr;	/* Unlocked read. */
 	} else {
 		if (nam == NULL) {
 			m_freem(m);
-			return (ENOTCONN);
+			return (VOS_ENOTCONN);
 		}
 		dst = ((struct sockaddr_in *)nam)->sin_addr.s_addr;
 	}
@@ -1103,7 +1103,7 @@ rip_pcblist(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != 0)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	if (req->oldptr == 0) {
 		int n;

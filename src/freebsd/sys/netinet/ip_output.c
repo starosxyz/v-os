@@ -131,7 +131,7 @@ ip_output_pfil(struct mbuf **mp, struct ifnet *ifp, int flags,
 	temp.m = &m;
 	switch (pfil_run_hooks(V_inet_pfil_head, temp, ifp, pflags, inp)) {
 	case PFIL_DROPPED:
-		*error = EACCES;
+		*error = VOS_EACCES;
 		/* FALLTHROUGH */
 	case PFIL_CONSUMED:
 		return 1; /* Finished */
@@ -241,7 +241,7 @@ ip_output_send(struct inpcb *inp, struct ifnet *ifp, struct mbuf *m,
 		 * packet.
 		 */
 		if (mst == NULL) {
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 			goto done;
 		}
 		/*
@@ -265,7 +265,7 @@ ip_output_send(struct inpcb *inp, struct ifnet *ifp, struct mbuf *m,
 		KASSERT(m->m_pkthdr.rcvif == NULL,
 		    ("trying to add a send tag to a forwarded packet"));
 		if (mst->ifp != ifp) {
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 			goto done;
 		}
 
@@ -280,13 +280,13 @@ done:
 	/* Check for route change invalidating send tags. */
 #ifdef KERN_TLS
 	if (tls != NULL) {
-		if (error == EAGAIN)
+		if (error == VOS_EAGAIN)
 			error = ktls_output_eagain(inp, tls);
 		ktls_free(tls);
 	}
 #endif
 #ifdef RATELIMIT
-	if (error == EAGAIN)
+	if (error == VOS_EAGAIN)
 		in_pcboutput_eagain(inp);
 #endif
 	return (error);
@@ -429,7 +429,7 @@ again:
 		    (ia = ifatoia(ifa_ifwithdstaddr(sintosa(dst),
 						    M_GETFIB(m)))) == NULL) {
 			IPSTAT_INC(ips_noroute);
-			error = ENETUNREACH;
+			error = VOS_ENETUNREACH;
 			goto bad;
 		}
 		ip->ip_dst.s_addr = INADDR_BROADCAST;
@@ -445,7 +445,7 @@ again:
 		    (ia = ifatoia(ifa_ifwithnet(sintosa(dst), 0,
 						M_GETFIB(m)))) == NULL) {
 			IPSTAT_INC(ips_noroute);
-			error = ENETUNREACH;
+			error = VOS_ENETUNREACH;
 			goto bad;
 		}
 		ifp = ia->ia_ifp;
@@ -491,7 +491,7 @@ again:
 				goto sendit;
 #endif
 				IPSTAT_INC(ips_noroute);
-				error = EHOSTUNREACH;
+				error = VOS_EHOSTUNREACH;
 				goto bad;
 			}
 		}
@@ -527,7 +527,7 @@ again:
 			goto sendit;
 #endif
 			IPSTAT_INC(ips_noroute);
-			error = EHOSTUNREACH;
+			error = VOS_EHOSTUNREACH;
 			goto bad;
 		}
 		ifp = nh->nh_ifp;
@@ -581,7 +581,7 @@ again:
 		if ((imo == NULL) || (imo->imo_multicast_vif == -1)) {
 			if ((ifp->if_flags & IFF_MULTICAST) == 0) {
 				IPSTAT_INC(ips_noroute);
-				error = ENETUNREACH;
+				error = VOS_ENETUNREACH;
 				goto bad;
 			}
 		}
@@ -663,16 +663,16 @@ again:
 	 */
 	if (isbroadcast) {
 		if ((ifp->if_flags & IFF_BROADCAST) == 0) {
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			goto bad;
 		}
 		if ((flags & IP_ALLOWBROADCAST) == 0) {
-			error = EACCES;
+			error = VOS_EACCES;
 			goto bad;
 		}
 		/* don't allow broadcast messages to be fragmented */
 		if (ip_len > mtu) {
-			error = EMSGSIZE;
+			error = VOS_EMSGSIZE;
 			goto bad;
 		}
 		m->m_flags |= M_BCAST;
@@ -684,7 +684,7 @@ sendit:
 #if defined(IPSEC) || defined(IPSEC_SUPPORT)
 	if (IPSEC_ENABLED(ipv4)) {
 		if ((error = IPSEC_OUTPUT(ipv4, m, inp)) != 0) {
-			if (error == EINPROGRESS)
+			if (error == VOS_EINPROGRESS)
 				error = 0;
 			goto done;
 		}
@@ -694,7 +694,7 @@ sendit:
 	 */
 	if (no_route_but_check_spd) {
 		IPSTAT_INC(ips_noroute);
-		error = EHOSTUNREACH;
+		error = VOS_EHOSTUNREACH;
 		goto bad;
 	}
 	/* Update variables that are affected by ipsec4_output(). */
@@ -733,7 +733,7 @@ sendit:
 	    IN_LOOPBACK(ntohl(ip->ip_src.s_addr))) {
 		if ((ifp->if_flags & IFF_LOOPBACK) == 0) {
 			IPSTAT_INC(ips_badaddr);
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			goto bad;
 		}
 	}
@@ -743,7 +743,7 @@ sendit:
 		m = mb_unmapped_to_ext(m);
 		if (m == NULL) {
 			IPSTAT_INC(ips_odropped);
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			goto bad;
 		}
 		in_delayed_cksum(m);
@@ -752,7 +752,7 @@ sendit:
 		m = mb_unmapped_to_ext(m);
 		if (m == NULL) {
 			IPSTAT_INC(ips_odropped);
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			goto bad;
 		}
 	}
@@ -761,7 +761,7 @@ sendit:
 		m = mb_unmapped_to_ext(m);
 		if (m == NULL) {
 			IPSTAT_INC(ips_odropped);
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			goto bad;
 		}
 		sctp_delayed_cksum(m, (uint32_t)(ip->ip_hl << 2));
@@ -819,7 +819,7 @@ sendit:
 	/* Balk when DF bit is set or the interface didn't support TSO. */
 	if ((ip_off & IP_DF) ||
 	    (m->m_pkthdr.csum_flags & (CSUM_TSO | CSUM_INNER_TSO))) {
-		error = EMSGSIZE;
+		error = VOS_EMSGSIZE;
 		IPSTAT_INC(ips_cantfrag);
 		goto bad;
 	}
@@ -891,14 +891,14 @@ ip_fragment(struct ip *ip, struct mbuf **m_frag, int mtu,
 
 	if (ip_off & IP_DF) {	/* Fragmentation not allowed */
 		IPSTAT_INC(ips_cantfrag);
-		return EMSGSIZE;
+		return VOS_EMSGSIZE;
 	}
 
 	/*
 	 * Must be able to put at least 8 bytes per fragment.
 	 */
 	if (len < 8)
-		return EMSGSIZE;
+		return VOS_EMSGSIZE;
 
 	/*
 	 * If the interface will not calculate checksums on
@@ -907,7 +907,7 @@ ip_fragment(struct ip *ip, struct mbuf **m_frag, int mtu,
 	if (m0->m_pkthdr.csum_flags & CSUM_DELAY_DATA) {
 		m0 = mb_unmapped_to_ext(m0);
 		if (m0 == NULL) {
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			IPSTAT_INC(ips_odropped);
 			goto done;
 		}
@@ -918,7 +918,7 @@ ip_fragment(struct ip *ip, struct mbuf **m_frag, int mtu,
 	if (m0->m_pkthdr.csum_flags & CSUM_SCTP) {
 		m0 = mb_unmapped_to_ext(m0);
 		if (m0 == NULL) {
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			IPSTAT_INC(ips_odropped);
 			goto done;
 		}
@@ -978,7 +978,7 @@ smart_frag_failure:
 
 		m = m_gethdr(M_NOWAIT, MT_DATA);
 		if (m == NULL) {
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			IPSTAT_INC(ips_odropped);
 			goto done;
 		}
@@ -991,7 +991,7 @@ smart_frag_failure:
 		 */
 		if (m_dup_pkthdr(m, m0, M_NOWAIT) == 0) {
 			m_free(m);
-			error = ENOBUFS;
+			error = VOS_ENOBUFS;
 			IPSTAT_INC(ips_odropped);
 			goto done;
 		}
@@ -1019,7 +1019,7 @@ smart_frag_failure:
 		m->m_next = m_copym(m0, off, len, M_NOWAIT);
 		if (m->m_next == NULL) {	/* copy failed */
 			m_free(m);
-			error = ENOBUFS;	/* ??? */
+			error = VOS_ENOBUFS;	/* ??? */
 			IPSTAT_INC(ips_odropped);
 			goto done;
 		}
@@ -1070,7 +1070,7 @@ in_delayed_cksum(struct mbuf *m)
 	if (m->m_pkthdr.csum_flags & CSUM_UDP) {
 		/* if udp header is not in the first mbuf copy udplen */
 		if (offset + sizeof(struct udphdr) > m->m_len) {
-			m_copydata(m, offset + offsetof(struct udphdr,
+			m_copydata(m, offset + vos_offsetof(struct udphdr,
 			    uh_ulen), sizeof(cklen), (caddr_t)&cklen);
 			cklen = ntohs(cklen);
 		} else {
@@ -1107,7 +1107,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 
 	error = optval = 0;
 	if (sopt->sopt_level != IPPROTO_IP) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 
 		if (sopt->sopt_level == SOL_SOCKET &&
 		    sopt->sopt_dir == SOPT_SET) {
@@ -1152,7 +1152,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 				INP_WUNLOCK(inp);
 				error = 0;
 #else
-				error = EOPNOTSUPP;
+				error = VOS_EOPNOTSUPP;
 #endif
 				break;
 			default:
@@ -1172,12 +1172,12 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 		{
 			struct mbuf *m;
 			if (sopt->sopt_valsize > MLEN) {
-				error = EMSGSIZE;
+				error = VOS_EMSGSIZE;
 				break;
 			}
 			m = m_get(sopt->sopt_td ? M_WAITOK : M_NOWAIT, MT_DATA);
 			if (m == NULL) {
-				error = ENOBUFS;
+				error = VOS_ENOBUFS;
 				break;
 			}
 			m->m_len = sopt->sopt_valsize;
@@ -1240,7 +1240,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 				if (optval >= 0 && optval <= MAXTTL)
 					inp->inp_ip_minttl = optval;
 				else
-					error = EINVAL;
+					error = VOS_EINVAL;
 				break;
 
 #define	OPTSET(bit) do {						\
@@ -1310,7 +1310,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 					inp->inp_rss_listen_bucket = optval;
 					OPTSET2(INP_RSS_BUCKET_SET, 1);
 				} else {
-					error = EINVAL;
+					error = VOS_EINVAL;
 				}
 				break;
 			case IP_RECVRSSBUCKETID:
@@ -1337,7 +1337,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 						INP_WUNLOCK(inp);
 					}
 				} else
-					error = EINVAL;
+					error = VOS_EINVAL;
 				break;
 			}
 			break;
@@ -1392,7 +1392,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 				break;
 
 			default:
-				error = EINVAL;
+				error = VOS_EINVAL;
 				break;
 			}
 			INP_WUNLOCK(inp);
@@ -1408,7 +1408,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 #endif /* IPSEC */
 
 		default:
-			error = ENOPROTOOPT;
+			error = VOS_ENOPROTOOPT;
 			break;
 		}
 		break;
@@ -1430,7 +1430,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 							     options->m_len);
 					m_freem(options);
 				} else
-					error = ENOMEM;
+					error = VOS_ENOMEM;
 			} else {
 				INP_RUNLOCK(inp);
 				sopt->sopt_valsize = 0;
@@ -1538,7 +1538,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 				if (retval == 0)
 					optval = rss_bucket;
 				else
-					error = EINVAL;
+					error = VOS_EINVAL;
 				break;
 			case IP_RECVRSSBUCKETID:
 				optval = OPTBIT2(INP_RECVRSSBUCKETID);
@@ -1581,7 +1581,7 @@ ip_ctloutput(struct socket *so, struct sockopt *sopt)
 #endif /* IPSEC */
 
 		default:
-			error = ENOPROTOOPT;
+			error = VOS_ENOPROTOOPT;
 			break;
 		}
 		break;

@@ -660,7 +660,7 @@ VNET_PCPUSTAT_DECLARE(struct icmp6stat, icmp6stat);
  */
 void	kmod_icmp6stat_inc(int statnum);
 #define	KMOD_ICMP6STAT_INC(name)	\
-    kmod_icmp6stat_inc(offsetof(struct icmp6stat, name) / sizeof(uint64_t))
+    kmod_icmp6stat_inc(vos_offsetof(struct icmp6stat, name) / sizeof(uint64_t))
 #endif
 
 /*
@@ -718,7 +718,7 @@ do {								\
 	if (ifp)						\
 		counter_u64_add(((struct in6_ifextra *)		\
 		    ((ifp)->if_afdata[AF_INET6]))->icmp6_ifstat[\
-		    offsetof(struct icmp6_ifstat, tag) / sizeof(uint64_t)], 1);\
+		    vos_offsetof(struct icmp6_ifstat, tag) / sizeof(uint64_t)], 1);\
 } while (/*CONSTCOND*/ 0)
 
 #define icmp6_ifoutstat_inc(ifp, type, code) \

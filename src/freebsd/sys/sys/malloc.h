@@ -186,9 +186,9 @@ void	*contigmalloc_domainset(unsigned long long size, struct malloc_type *type,
 	    struct domainset *ds, int flags, vm_paddr_t low, vm_paddr_t high,
 	    unsigned long long alignment, vm_paddr_t boundary)
 	    __malloc_like __result_use_check __alloc_size(1) __alloc_align(7);
-void	free(void *addr, struct malloc_type *type);
+void	vos_free(void *addr, struct malloc_type *type);
 void	zfree(void *addr, struct malloc_type *type);
-void*	malloc(size_t size, struct malloc_type* type, int flags) __malloc_like
+void*	vos_malloc(size_t size, struct malloc_type* type, int flags) __malloc_like
 	__result_use_check __alloc_size(1);
 
 
@@ -262,7 +262,7 @@ void	malloc_type_list(malloc_type_list_func_t *, void *);
 void	malloc_uninit(void *);
 size_t	malloc_size(size_t);
 size_t	malloc_usable_size(const void *);
-void	*realloc(void *addr, size_t size, struct malloc_type *type, int flags)
+void	* vos_realloc(void *addr, size_t size, struct malloc_type *type, int flags)
 	    __result_use_check __alloc_size(2);
 void	*reallocf(void *addr, size_t size, struct malloc_type *type, int flags)
 	    __result_use_check __alloc_size(2);

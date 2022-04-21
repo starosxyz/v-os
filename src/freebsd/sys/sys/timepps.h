@@ -39,7 +39,7 @@ typedef struct ntp_fp {
 } ntp_fp_t;
 
 typedef union pps_timeu {
-	struct timespec	tspec;
+	struct vos_timespec	tspec;
 	ntp_fp_t	ntpfp;
 	unsigned long long	longpad[3];
 } pps_timeu_t;
@@ -108,13 +108,13 @@ typedef struct {
 struct pps_fetch_args {
 	int tsformat;
 	pps_info_t	pps_info_buf;
-	struct timespec	timeout;
+	struct vos_timespec	timeout;
 };
 
 struct pps_fetch_ffc_args {
 	int		tsformat;
 	pps_info_ffc_t	pps_info_buf_ffc;
-	struct timespec	timeout;
+	struct vos_timespec	timeout;
 };
 
 struct pps_kcbind_args {

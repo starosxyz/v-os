@@ -34,7 +34,7 @@
 #define CK_HT_TYPE uint64_t
 #define CK_HT_TYPE_LOAD		ck_pr_load_64
 #define CK_HT_TYPE_STORE 	ck_pr_store_64
-#define CK_HT_TYPE_MAX		UINT64_MAX
+#define CK_HT_TYPE_MAX		VOS_UINT64_MAX
 #else
 #define CK_HT_TYPE uint32_t
 #define CK_HT_TYPE_LOAD		ck_pr_load_32

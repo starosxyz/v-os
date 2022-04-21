@@ -302,7 +302,7 @@ _bt_fill(vmem_t* vm, int flags)
 	}
 
 	if (vm->vm_nfreetags < BT_MAXALLOC)
-		return ENOMEM;
+		return VOS_ENOMEM;
 
 	return 0;
 }
@@ -736,10 +736,10 @@ vmem_rehash(vmem_t* vm, vmem_size_t newhashsize)
 
 	MPASS(newhashsize > 0);
 
-	newhashlist = malloc(sizeof(struct vmem_hashlist) * newhashsize,
+	newhashlist = vos_malloc(sizeof(struct vmem_hashlist) * newhashsize,
 		M_VMEM, M_NOWAIT);
 	if (newhashlist == NULL)
-		return ENOMEM;
+		return VOS_ENOMEM;
 	for (i = 0; i < newhashsize; i++) {
 		LIST_INIT(&newhashlist[i]);
 	}
@@ -762,7 +762,7 @@ vmem_rehash(vmem_t* vm, vmem_size_t newhashsize)
 	VMEM_UNLOCK(vm);
 
 	if (oldhashlist != vm->vm_hash0)
-		free(oldhashlist, M_VMEM);
+		vos_free(oldhashlist, M_VMEM);
 
 	return 0;
 }
@@ -896,7 +896,7 @@ vmem_destroy1(vmem_t* vm)
 		bt_remseg(vm, bt);
 
 	if (vm->vm_hashlist != NULL && vm->vm_hashlist != vm->vm_hash0)
-		free(vm->vm_hashlist, M_VMEM);
+		vos_free(vm->vm_hashlist, M_VMEM);
 
 	bt_freetrim(vm, 0);
 
@@ -912,7 +912,7 @@ vmem_import(vmem_t* vm, vmem_size_t size, vmem_size_t align, int flags)
 	int error;
 
 	if (vm->vm_importfn == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * To make sure we get a span that meets the alignment we double it
@@ -923,7 +923,7 @@ vmem_import(vmem_t* vm, vmem_size_t size, vmem_size_t align, int flags)
 	size = roundup(size, vm->vm_import_quantum);
 
 	if (vm->vm_limit != 0 && vm->vm_limit < vm->vm_size + size)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	bt_save(vm);
 	VMEM_UNLOCK(vm);
@@ -931,7 +931,7 @@ vmem_import(vmem_t* vm, vmem_size_t size, vmem_size_t align, int flags)
 	VMEM_LOCK(vm);
 	bt_restore(vm);
 	if (error)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	vmem_add1(vm, addr, size, BT_TYPE_SPAN);
 
@@ -968,7 +968,7 @@ vmem_fit(const bt_t* bt, vmem_size_t size, vmem_size_t align,
 	if (end > maxaddr)
 		end = maxaddr;
 	if (start > end)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 
 	start = VMEM_ALIGNUP(start - phase, align) + phase;
 	if (start < bt->bt_start)
@@ -988,7 +988,7 @@ vmem_fit(const bt_t* bt, vmem_size_t size, vmem_size_t align,
 
 		return (0);
 	}
-	return (ENOMEM);
+	return (VOS_ENOMEM);
 }
 
 /*
@@ -1120,7 +1120,7 @@ vmem_xalloc_nextfit(vmem_t* vm, const vmem_size_t size, vmem_size_t align,
 	struct vmem_btag* bt, * cursor, * next, * prev;
 	int error;
 
-	error = ENOMEM;
+	error = VOS_ENOMEM;
 	VMEM_LOCK(vm);
 
 	/*
@@ -1163,7 +1163,7 @@ retry:
 		 * The coalesced segment might be able to satisfy our request.
 		 * If not, we might need to release it from the arena.
 		 */
-		if (error == ENOMEM && prev->bt_size >= size &&
+		if (error == VOS_ENOMEM && prev->bt_size >= size &&
 			(error = vmem_fit(prev, size, align, phase, nocross,
 				VMEM_ADDR_MIN, VMEM_ADDR_MAX, addrp)) == 0) {
 			vmem_clip(vm, prev, *addrp, size);
@@ -1191,7 +1191,7 @@ retry:
 	 * Attempt to bring additional resources into the arena.  If that fails
 	 * and M_WAITOK is specified, sleep waiting for resources to be freed.
 	 */
-	if (error == ENOMEM && vmem_try_fetch(vm, size, align, flags))
+	if (error == VOS_ENOMEM && vmem_try_fetch(vm, size, align, flags))
 		goto retry;
 
 out:
@@ -1251,7 +1251,7 @@ vmem_init(vmem_t* vm, const char* name, vmem_addr_t base, vmem_size_t size,
 	VMEM_LOCK_INIT(vm, name);
 	vm->vm_nfreetags = 0;
 	LIST_INIT(&vm->vm_freetags);
-	strlcpy(vm->vm_name, name, sizeof(vm->vm_name));
+	vos_strlcpy(vm->vm_name, name, sizeof(vm->vm_name));
 	vm->vm_quantum_mask = quantum - 1;
 	vm->vm_quantum_shift = flsl(quantum) - 1;
 	vm->vm_nbusytag = 0;
@@ -1429,7 +1429,7 @@ vmem_xalloc(vmem_t* vm, const vmem_size_t size0, vmem_size_t align,
 		 * resources to be freed.
 		 */
 		if (!vmem_try_fetch(vm, size, align, flags)) {
-			error = ENOMEM;
+			error = VOS_ENOMEM;
 			break;
 		}
 	}

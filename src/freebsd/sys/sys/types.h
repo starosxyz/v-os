@@ -52,7 +52,11 @@
 typedef	unsigned char	u_char;
 typedef	unsigned short	u_short;
 typedef	unsigned int	u_int;
+#if defined(__LP64__)
+typedef	unsigned long u_long;
+#else
 typedef	unsigned long long	u_long;
+#endif
 #ifndef _KERNEL
 typedef	unsigned short	ushort;		/* Sys V compatibility */
 typedef	unsigned int	uint;		/* Sys V compatibility */
@@ -294,7 +298,7 @@ typedef	__uint64_t	uoff_t;
 typedef	char		vm_memattr_t;	/* memory attribute codes */
 typedef	struct vm_page	*vm_page_t;
 
-#define offsetof(type, field) __offsetof(type, field)
+#define vos_offsetof(type, field) __offsetof(type, field)
 
 #endif /* _KERNEL */
 
@@ -346,7 +350,7 @@ __bitcount32(__uint32_t _x)
 	return (_x);
 }
 
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 static __inline __uint64_t
 __bitcount64(__uint64_t _x)
 {

@@ -79,7 +79,7 @@ __FBSDID("$FreeBSD$");
  * a single cache line.  The extra levels from a narrow width should not be
  * a problem thanks to path compression.
  */
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 #define	VM_RADIX_WIDTH	4
 #else
 #define	VM_RADIX_WIDTH	3
@@ -414,7 +414,7 @@ vm_radix_insert(struct vm_radix* rtree, vm_page_t page)
 			tmp = vm_radix_node_get(vm_radix_trimkey(index,
 				clev + 1), 2, clev);
 			if (tmp == NULL)
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 			/* These writes are not yet visible due to ordering. */
 			vm_radix_addpage(tmp, index, clev, page, UNSERIALIZED);
 			vm_radix_addpage(tmp, m->pindex, clev, m, UNSERIALIZED);
@@ -445,7 +445,7 @@ vm_radix_insert(struct vm_radix* rtree, vm_page_t page)
 	clev = vm_radix_keydiff(newind, index);
 	tmp = vm_radix_node_get(vm_radix_trimkey(index, clev + 1), 2, clev);
 	if (tmp == NULL)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	slot = vm_radix_slot(newind, clev);
 	/* These writes are not yet visible due to ordering. */
 	vm_radix_addpage(tmp, index, clev, page, UNSERIALIZED);

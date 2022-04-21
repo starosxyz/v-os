@@ -656,7 +656,7 @@ ff_getsockopt(int s, int level, int optname, void *optval,
 
     optname = linux2freebsd_opt(level, optname);
     if (optname < 0) {
-        rc = EINVAL;
+        rc = VOS_EINVAL;
         goto kern_fail;
     }
 
@@ -699,7 +699,7 @@ ff_setsockopt(int s, int level, int optname, const void *optval,
 
     optname = linux2freebsd_opt(level, optname);
     if (optname < 0) {
-        rc = EINVAL;
+        rc = VOS_EINVAL;
         goto kern_fail;
     }
 
@@ -740,7 +740,7 @@ ff_ioctl(int fd, unsigned long request, ...)
 
     long long req = linux2freebsd_ioctl(request);
     if (req < 0) {
-        rc = EINVAL;
+        rc = VOS_EINVAL;
         goto kern_fail;
     }
 
@@ -801,7 +801,7 @@ ff_read(int fd, void *buf, size_t nbytes)
     int rc;
     
     if (nbytes > INT_MAX) {
-        rc = EINVAL;
+        rc = VOS_EINVAL;
         goto kern_fail;
     }
 
@@ -853,7 +853,7 @@ ff_write(int fd, const void *buf, size_t nbytes)
     int rc;
 
     if (nbytes > INT_MAX) {
-        rc = EINVAL;
+        rc = VOS_EINVAL;
         goto kern_fail;
     }
 
@@ -1088,12 +1088,12 @@ ff_accept(int s, struct linux_sockaddr * addr,
         *addrlen = pf->sa_len;
     
     if(pf != NULL)
-        free(pf, M_SONAME);
+        vos_free(pf, M_SONAME);
     return (rc);
     
 kern_fail:
     if(pf != NULL)
-        free(pf, M_SONAME);
+        vos_free(pf, M_SONAME);
     ff_os_errno(rc);
     return (-1);
 }
@@ -1161,12 +1161,12 @@ ff_getpeername(int s, struct linux_sockaddr * name,
         freebsd2linux_sockaddr(name, pf);
 
     if(pf != NULL)
-        free(pf, M_SONAME);
+        vos_free(pf, M_SONAME);
     return (rc);
     
 kern_fail:
     if(pf != NULL)
-        free(pf, M_SONAME);
+        vos_free(pf, M_SONAME);
     ff_os_errno(rc);
     return (-1);
 }
@@ -1185,12 +1185,12 @@ ff_getsockname(int s, struct linux_sockaddr *name,
         freebsd2linux_sockaddr(name, pf);
 
     if(pf != NULL)
-        free(pf, M_SONAME);
+        vos_free(pf, M_SONAME);
     return (rc);
 
 kern_fail:
     if(pf != NULL)
-        free(pf, M_SONAME);
+        vos_free(pf, M_SONAME);
     ff_os_errno(rc);
     return (-1);
 }
@@ -1266,7 +1266,7 @@ int
 ff_poll(struct pollfd fds[], nfds_t nfds, int timeout)
 {
     int rc;
-    struct timespec ts;
+    struct vos_timespec ts;
     ts.tv_sec = 0;
     ts.tv_nsec = 0;
     if ((rc = kern_poll(curthread, fds, nfds, &ts, NULL)))
@@ -1300,7 +1300,7 @@ struct sys_kevent_args {
     int nchanges;
     void *eventlist;
     int nevents;
-    const struct timespec *timeout;
+    const struct vos_timespec *timeout;
     void (*do_each)(void **, struct kevent *);
 };
 
@@ -1344,11 +1344,11 @@ kevent_copyin(void *arg, struct kevent *kevp, int count)
 
 int
 ff_kevent_do_each(int kq, const struct kevent *changelist, int nchanges, 
-    void *eventlist, int nevents, const struct timespec *timeout, 
+    void *eventlist, int nevents, const struct vos_timespec *timeout,
     void (*do_each)(void **, struct kevent *))
 {
     int rc;
-    struct timespec ts;
+    struct vos_timespec  ts;
     if (timeout)
     {
         ts.tv_sec = timeout->tv_sec;
@@ -1389,7 +1389,7 @@ kern_fail:
 
 int
 ff_kevent(int kq, const struct kevent *changelist, int nchanges, 
-    struct kevent *eventlist, int nevents, const struct timespec *timeout)
+    struct kevent *eventlist, int nevents, const struct vos_timespec *timeout)
 {
     return ff_kevent_do_each(kq, changelist, nchanges, (struct kevent* )eventlist, nevents, timeout, NULL);
 }
@@ -1464,7 +1464,7 @@ ff_route_ctl(enum FF_ROUTE_CTL req, enum FF_ROUTE_FLAG flag,
             rtreq = RTM_CHANGE;
             break;
         default:
-            rc = EINVAL;
+            rc = VOS_EINVAL;
             goto kern_fail;
     }
 
@@ -1476,7 +1476,7 @@ ff_route_ctl(enum FF_ROUTE_CTL req, enum FF_ROUTE_FLAG flag,
             rtflag = RTF_GATEWAY;
             break;
         default:
-            rc = EINVAL;
+            rc = VOS_EINVAL;
             goto kern_fail;
     };
 

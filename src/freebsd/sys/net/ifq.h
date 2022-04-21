@@ -169,7 +169,7 @@ do {									\
 	else {								\
 		if (_IF_QFULL(ifq)) {					\
 			m_freem(m);					\
-			(err) = ENOBUFS;				\
+			(err) = VOS_ENOBUFS;				\
 		} else {						\
 			_IF_ENQUEUE(ifq, m);				\
 			(err) = 0;					\

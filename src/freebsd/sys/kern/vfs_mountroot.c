@@ -174,7 +174,7 @@ root_mount_hold(const char *identifier)
 {
 	struct root_hold_token *h;
 
-	h = malloc(sizeof *h, M_DEVBUF, M_ZERO | M_WAITOK);
+	h = vos_malloc(sizeof *h, M_DEVBUF, M_ZERO | M_WAITOK);
 	h->flags = RH_ALLOC;
 	h->who = identifier;
 	mtx_lock(&root_holds_mtx);
@@ -220,7 +220,7 @@ root_mount_rel(struct root_hold_token *h)
 	wakeup(&root_holds);
 	mtx_unlock(&root_holds_mtx);
 	if (h->flags == RH_ALLOC) {
-		free(h, M_DEVBUF);
+		vos_free(h, M_DEVBUF);
 	} else
 		h->flags = RH_FREE;
 }
@@ -326,7 +326,7 @@ parse_token(char **conf, char **tok)
 	p = *conf;
 	error = parse_skipto(conf, CC_WHITESPACE);
 	len = *conf - p;
-	*tok = malloc(len + 1, M_TEMP, M_WAITOK | M_ZERO);
+	*tok = vos_malloc(len + 1, M_TEMP, M_WAITOK | M_ZERO);
 	bcopy(p, *tok, len);
 	return (0);
 }
@@ -372,7 +372,7 @@ parse_dir_ask(char **conf)
 	printf("  <empty line>    Abort manual input\n");
 
 	do {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		printf("\nmountroot> ");
 		cngets(name, sizeof(name), GETS_ECHO);
 		if (name[0] == '\0')
@@ -421,10 +421,10 @@ parse_dir_onfail(char **conf)
 		root_mount_onfail = A_RETRY;
 	else {
 		printf("rootmount: %s: unknown action\n", action);
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 
-	free(action, M_TEMP);
+	vos_free(action, M_TEMP);
 	return (0);
 }
 
@@ -440,10 +440,10 @@ parse_dir_timeout(char **conf)
 		return (error);
 
 	secs = strtol(tok, &endtok, 0);
-	error = (secs < 0 || *endtok != '\0') ? EINVAL : 0;
+	error = (secs < 0 || *endtok != '\0') ? VOS_EINVAL : 0;
 	if (!error)
 		root_mount_timeout = secs;
-	free(tok, M_TEMP);
+	vos_free(tok, M_TEMP);
 	return (error);
 }
 
@@ -469,9 +469,9 @@ parse_directive(char **conf)
 		printf("mountroot: invalid directive `%s'\n", dir);
 		/* Ignore the rest of the line. */
 		(void)parse_skipto(conf, '\n');
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
-	free(dir, M_TEMP);
+	vos_free(dir, M_TEMP);
 	return (error);
 }
 
@@ -504,7 +504,7 @@ parse_mount(char **conf)
 	fs = tok;
 	error = parse_skipto(&tok, ':');
 	if (error) {
-		free(fs, M_TEMP);
+		vos_free(fs, M_TEMP);
 		return (error);
 	}
 	parse_poke(&tok, '\0');
@@ -513,7 +513,7 @@ parse_mount(char **conf)
 
 	if (root_mount_mddev != -1) {
 		/* Handle substitution for the md unit number. */
-		tok = strstr(dev, "md#");
+		tok = vos_strstr(dev, "md#");
 		if (tok != NULL)
 			tok[2] = '0' + root_mount_mddev;
 	}
@@ -525,11 +525,11 @@ parse_mount(char **conf)
 	printf("Trying to mount root from %s:%s [%s]...\n", fs, dev,
 	    (opts != NULL) ? opts : "");
 
-	errmsg = malloc(ERRMSGL, M_TEMP, M_WAITOK | M_ZERO);
+	errmsg = vos_malloc(ERRMSGL, M_TEMP, M_WAITOK | M_ZERO);
 
 	if (vfs_byname(fs) == NULL) {
-		strlcpy(errmsg, "unknown file system", ERRMSGL);
-		error = ENOENT;
+		vos_strlcpy(errmsg, "unknown file system", ERRMSGL);
+		error = VOS_ENOENT;
 		goto out;
 	}
 
@@ -570,12 +570,12 @@ parse_mount(char **conf)
 			printf(": %s", errmsg);
 		printf(".\n");
 	}
-	free(fs, M_TEMP);
-	free(errmsg, M_TEMP);
+	vos_free(fs, M_TEMP);
+	vos_free(errmsg, M_TEMP);
 	if (opts != NULL)
-		free(opts, M_TEMP);
+		vos_free(opts, M_TEMP);
 	/* kernel_mount can return -1 on error. */
-	return ((error < 0) ? EDOOFUS : error);
+	return ((error < 0) ? VOS_EDOOFUS : error);
 }
 #undef ERRMSGL
 
@@ -591,7 +591,7 @@ vfs_mountroot_parse(struct sbuf *sb, struct mount *mpdevfs)
 retry:
 	conf = sbuf_data(sb);
 	mp = TAILQ_NEXT(mpdevfs, mnt_list);
-	error = (mp == NULL) ? 0 : EDOOFUS;
+	error = (mp == NULL) ? 0 : VOS_EDOOFUS;
 	root_mount_onfail = A_CONTINUE;
 	while (mp == NULL) {
 		error = parse_skipto(&conf, CC_NONWHITESPACE);
@@ -676,7 +676,7 @@ vfs_mountroot_conf0(struct sbuf *sb)
 		while (!error) {
 			sbuf_printf(sb, "%s %s\n", mnt,
 			    (opt != NULL) ? opt : "");
-			free(mnt, M_TEMP);
+			vos_free(mnt, M_TEMP);
 			error = parse_token(&tok, &mnt);
 		}
 		if (opt != NULL)
@@ -773,7 +773,7 @@ vfs_mountroot_wait_if_neccessary(const char *fs, const char *dev)
 	 * specific device.  Also do the wait if the user forced that
 	 * behaviour by setting vfs.root_mount_always_wait=1.
 	 */
-	if (strcmp(fs, "zfs") == 0 || strstr(fs, "nfs") != NULL ||
+	if (strcmp(fs, "zfs") == 0 || vos_strstr(fs, "nfs") != NULL ||
 	    dev[0] == '\0' || root_mount_always_wait != 0) {
 		vfs_mountroot_wait();
 		return (0);
@@ -802,7 +802,7 @@ vfs_mountroot_wait_if_neccessary(const char *fs, const char *dev)
 	} while (timeout > 0 && !parse_mount_dev_present(dev));
 
 	if (timeout <= 0)
-		return (ENODEV);
+		return (VOS_ENODEV);
 
 	return (0);
 }
@@ -886,12 +886,12 @@ parse_mountroot_options(struct mntarg *ma, const char *options)
 	if (options == NULL || options[0] == '\0')
 		return (ma);
 
-	p = opts = strdup(options, M_MOUNT);
+	p = opts = vos_strdup(options, M_MOUNT);
 	if (opts == NULL) {
 		return (ma);
 	}
 
-	while((name = strsep(&p, ",")) != NULL) {
+	while((name = vos_strsep(&p, ",")) != NULL) {
 		if (name[0] == '\0')
 			break;
 
@@ -909,14 +909,14 @@ parse_mountroot_options(struct mntarg *ma, const char *options)
 			 */
 			continue;
 		}
-		name_arg = strdup(name, M_MOUNT);
+		name_arg = vos_strdup(name, M_MOUNT);
 		val_arg = NULL;
 		if (val != NULL)
-			val_arg = strdup(val, M_MOUNT);
+			val_arg = vos_strdup(val, M_MOUNT);
 
 		ma = mount_arg(ma, name_arg, val_arg,
 		    (val_arg != NULL ? -1 : 0));
 	}
-	free(opts, M_MOUNT);
+	vos_free(opts, M_MOUNT);
 	return (ma);
 }

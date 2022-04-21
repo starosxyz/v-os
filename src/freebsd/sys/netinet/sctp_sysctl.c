@@ -389,8 +389,8 @@ sctp_sysctl_handle_assoclist(SYSCTL_HANDLER_ARGS)
 	}
 	if (req->newptr != NULL) {
 		SCTP_INP_INFO_RUNLOCK();
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_SYSCTL, EPERM);
-		return (EPERM);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_SYSCTL, VOS_EPERM);
+		return (VOS_EPERM);
 	}
 	memset(&xinpcb, 0, sizeof(xinpcb));
 	memset(&xstcb, 0, sizeof(xstcb));
@@ -580,7 +580,7 @@ sctp_sysctl_handle_udp_tunneling(SYSCTL_HANDLER_ARGS)
 		if ((new < SCTPCTL_UDP_TUNNELING_PORT_MIN) ||
 		    (new > SCTPCTL_UDP_TUNNELING_PORT_MAX)) {
 #endif
-			error = EINVAL;
+			error = VOS_EINVAL;
 		} else {
 			SCTP_INP_INFO_WLOCK();
 			SCTP_BASE_SYSCTL(sctp_udp_tunneling_port) = new;
@@ -614,7 +614,7 @@ sctp_sysctl_handle_auth(SYSCTL_HANDLER_ARGS)
 		    (new > SCTPCTL_AUTH_ENABLE_MAX) ||
 		    ((new == 0) && (SCTP_BASE_SYSCTL(sctp_asconf_enable) == 1))) {
 #endif
-			error = EINVAL;
+			error = VOS_EINVAL;
 		} else {
 			SCTP_BASE_SYSCTL(sctp_auth_enable) = new;
 		}
@@ -640,7 +640,7 @@ sctp_sysctl_handle_asconf(SYSCTL_HANDLER_ARGS)
 		    (new > SCTPCTL_ASCONF_ENABLE_MAX) ||
 		    ((new == 1) && (SCTP_BASE_SYSCTL(sctp_auth_enable) == 0))) {
 #endif
-			error = EINVAL;
+			error = VOS_EINVAL;
 		} else {
 			SCTP_BASE_SYSCTL(sctp_asconf_enable) = new;
 		}
@@ -661,7 +661,7 @@ sctp_sysctl_handle_stats(SYSCTL_HANDLER_ARGS)
 
 	if ((req->newptr != NULL) &&
 	    (req->newlen != sizeof(struct sctpstat))) {
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	memset(&sb_temp, 0, sizeof(struct sctpstat));
 
@@ -847,7 +847,7 @@ sctp_sysctl_handle_trace_log_clear(SYSCTL_HANDLER_ARGS)
 		if ((error == 0) && (req->newptr != NULL)) {		\
 			if ((new < prefix##_MIN) ||			\
 			    (new > prefix##_MAX)) {			\
-				error = EINVAL;				\
+				error = VOS_EINVAL;				\
 			} else {					\
 				SCTP_BASE_SYSCTL(var_name) = new;	\
 			}						\

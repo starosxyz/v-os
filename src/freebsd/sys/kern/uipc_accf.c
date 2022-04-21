@@ -82,11 +82,11 @@ accept_filt_add(struct accept_filter *filt)
 		if (strcmp(p->accf_name, filt->accf_name) == 0)  {
 			if (p->accf_callback != NULL) {
 				ACCEPT_FILTER_UNLOCK();
-				return (EEXIST);
+				return (VOS_EEXIST);
 			} else {
 				p->accf_callback = filt->accf_callback;
 				ACCEPT_FILTER_UNLOCK();
-				free(filt, M_ACCF);
+				vos_free(filt, M_ACCF);
 				return (0);
 			}
 		}
@@ -104,7 +104,7 @@ accept_filt_del(char *name)
 
 	p = accept_filt_get(name);
 	if (p == NULL)
-		return (ENOENT);
+		return (VOS_ENOENT);
 
 	p->accf_callback = NULL;
 	return (0);
@@ -133,7 +133,7 @@ accept_filt_generic_mod_event(module_t mod, int event, void *data)
 
 	switch (event) {
 	case MOD_LOAD:
-		p = malloc(sizeof(*p), M_ACCF, M_WAITOK);
+		p = vos_malloc(sizeof(*p), M_ACCF, M_WAITOK);
 		bcopy(accfp, p, sizeof(*p));
 		error = accept_filt_add(p);
 		break;
@@ -148,7 +148,7 @@ accept_filt_generic_mod_event(module_t mod, int event, void *data)
 		if (unloadable != 0) {
 			error = accept_filt_del(accfp->accf_name);
 		} else
-			error = EOPNOTSUPP;
+			error = VOS_EOPNOTSUPP;
 		break;
 
 	case MOD_SHUTDOWN:
@@ -156,7 +156,7 @@ accept_filt_generic_mod_event(module_t mod, int event, void *data)
 		break;
 
 	default:
-		error = EOPNOTSUPP;
+		error = VOS_EOPNOTSUPP;
 		break;
 	}
 
@@ -170,24 +170,24 @@ accept_filt_getopt(struct socket *so, struct sockopt *sopt)
 	int error;
 
 	error = 0;
-	afap = malloc(sizeof(*afap), M_TEMP, M_WAITOK | M_ZERO);
+	afap = vos_malloc(sizeof(*afap), M_TEMP, M_WAITOK | M_ZERO);
 	SOCK_LOCK(so);
 	if ((so->so_options & SO_ACCEPTCONN) == 0) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 	if (so->sol_accept_filter == NULL) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
-	strcpy(afap->af_name, so->sol_accept_filter->accf_name);
+	vos_strcpy(afap->af_name, so->sol_accept_filter->accf_name);
 	if (so->sol_accept_filter_str != NULL)
-		strcpy(afap->af_arg, so->sol_accept_filter_str);
+		vos_strcpy(afap->af_arg, so->sol_accept_filter_str);
 out:
 	SOCK_UNLOCK(so);
 	if (error == 0)
 		error = sooptcopyout(sopt, afap, sizeof(*afap));
-	free(afap, M_TEMP);
+	vos_free(afap, M_TEMP);
 	return (error);
 }
 
@@ -210,7 +210,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 		SOCK_LOCK(so);
 		if ((so->so_options & SO_ACCEPTCONN) == 0) {
 			SOCK_UNLOCK(so);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		if (so->sol_accept_filter == NULL) {
 			SOCK_UNLOCK(so);
@@ -219,7 +219,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 		if (so->sol_accept_filter->accf_destroy != NULL)
 			so->sol_accept_filter->accf_destroy(so);
 		if (so->sol_accept_filter_str != NULL)
-			free(so->sol_accept_filter_str, M_ACCF);
+			vos_free(so->sol_accept_filter_str, M_ACCF);
 		so->sol_accept_filter = NULL;
 		so->sol_accept_filter_arg = NULL;
 		so->sol_accept_filter_str = NULL;
@@ -254,23 +254,23 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 	 * Pre-allocate any memory we may need later to avoid blocking at
 	 * untimely moments.  This does not optimize for invalid arguments.
 	 */
-	afap = malloc(sizeof(*afap), M_TEMP, M_WAITOK);
+	afap = vos_malloc(sizeof(*afap), M_TEMP, M_WAITOK);
 	error = sooptcopyin(sopt, afap, sizeof *afap, sizeof *afap);
 	afap->af_name[sizeof(afap->af_name)-1] = '\0';
 	afap->af_arg[sizeof(afap->af_arg)-1] = '\0';
 	if (error) {
-		free(afap, M_TEMP);
+		vos_free(afap, M_TEMP);
 		return (error);
 	}
 	afp = accept_filt_get(afap->af_name);
 	if (afp == NULL) {
-		free(afap, M_TEMP);
-		return (ENOENT);
+		vos_free(afap, M_TEMP);
+		return (VOS_ENOENT);
 	}
 	if (afp->accf_create != NULL && afap->af_name[0] != '\0') {
-		size_t len = strlen(afap->af_name) + 1;
-		accept_filter_str = malloc(len, M_ACCF, M_WAITOK);
-		strcpy(accept_filter_str, afap->af_name);
+		size_t len = vos_strlen(afap->af_name) + 1;
+		accept_filter_str = vos_malloc(len, M_ACCF, M_WAITOK);
+		vos_strcpy(accept_filter_str, afap->af_name);
 	}
 
 	/*
@@ -280,7 +280,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 	SOCK_LOCK(so);
 	if ((so->so_options & SO_ACCEPTCONN) == 0 ||
 	    so->sol_accept_filter != NULL) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -292,7 +292,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 	if (afp->accf_create != NULL) {
 		accept_filter_arg = afp->accf_create(so, afap->af_arg);
 		if (accept_filter_arg == NULL) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 	}
@@ -304,7 +304,7 @@ accept_filt_setopt(struct socket *so, struct sockopt *sopt)
 out:
 	SOCK_UNLOCK(so);
 	if (accept_filter_str != NULL)
-		free(accept_filter_str, M_ACCF);
-	free(afap, M_TEMP);
+		vos_free(accept_filter_str, M_ACCF);
+	vos_free(afap, M_TEMP);
 	return (error);
 }

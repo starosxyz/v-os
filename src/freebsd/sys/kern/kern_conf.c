@@ -174,19 +174,19 @@ int
 eopnotsupp(void)
 {
 
-	return (EOPNOTSUPP);
+	return (VOS_EOPNOTSUPP);
 }
 
 static int
 enxio(void)
 {
-	return (ENXIO);
+	return (VOS_ENXIO);
 }
 
 static int
 enodev(void)
 {
-	return (ENODEV);
+	return (VOS_ENODEV);
 }
 
 /* Define a dead_cdevsw for use when devices leave unexpectedly. */
@@ -203,7 +203,7 @@ static void
 dead_strategy(struct bio* bp)
 {
 
-	biofinish(bp, NULL, ENXIO);
+	biofinish(bp, NULL, VOS_ENXIO);
 }
 
 #define dead_dump	(dumper_t *)enxio
@@ -241,7 +241,7 @@ static void
 no_strategy(struct bio* bp)
 {
 
-	biofinish(bp, NULL, ENODEV);
+	biofinish(bp, NULL, VOS_ENODEV);
 }
 
 static int
@@ -261,7 +261,7 @@ giant_open(struct cdev* dev, int oflags, int devtype, struct thread* td)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_open(dev, oflags, devtype, td);
 	mtx_unlock(&Giant);
@@ -277,7 +277,7 @@ giant_fdopen(struct cdev* dev, int oflags, struct thread* td, struct file* fp)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_fdopen(dev, oflags, td, fp);
 	mtx_unlock(&Giant);
@@ -293,7 +293,7 @@ giant_close(struct cdev* dev, int fflag, int devtype, struct thread* td)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_close(dev, fflag, devtype, td);
 	mtx_unlock(&Giant);
@@ -311,7 +311,7 @@ giant_strategy(struct bio* bp)
 	dev = bp->bio_dev;
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL) {
-		biofinish(bp, NULL, ENXIO);
+		biofinish(bp, NULL, VOS_ENXIO);
 		return;
 	}
 	mtx_lock(&Giant);
@@ -328,7 +328,7 @@ giant_ioctl(struct cdev* dev, u_long cmd, caddr_t data, int fflag, struct thread
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_ioctl(dev, cmd, data, fflag, td);
 	mtx_unlock(&Giant);
@@ -344,7 +344,7 @@ giant_read(struct cdev* dev, struct uio* uio, int ioflag)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_read(dev, uio, ioflag);
 	mtx_unlock(&Giant);
@@ -360,7 +360,7 @@ giant_write(struct cdev* dev, struct uio* uio, int ioflag)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_write(dev, uio, ioflag);
 	mtx_unlock(&Giant);
@@ -376,7 +376,7 @@ giant_poll(struct cdev* dev, int events, struct thread* td)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_poll(dev, events, td);
 	mtx_unlock(&Giant);
@@ -392,7 +392,7 @@ giant_kqfilter(struct cdev* dev, struct knote* kn)
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_kqfilter(dev, kn);
 	mtx_unlock(&Giant);
@@ -409,7 +409,7 @@ giant_mmap(struct cdev* dev, vm_ooffset_t offset, vm_paddr_t* paddr, int nprot,
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_mmap(dev, offset, paddr, nprot,
 		memattr);
@@ -427,7 +427,7 @@ giant_mmap_single(struct cdev* dev, vm_ooffset_t* offset, vm_size_t size,
 
 	dsw = dev_refthread(dev, &ref);
 	if (dsw == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 	mtx_lock(&Giant);
 	retval = dsw->d_gianttrick->d_mmap_single(dev, offset, size, object,
 		nprot);
@@ -446,14 +446,14 @@ notify(struct cdev* dev, const char* ev, int flags)
 	if (cold)
 		return;
 	mflags = (flags & MAKEDEV_NOWAIT) ? M_NOWAIT : M_WAITOK;
-	namelen = strlen(dev->si_name);
-	data = malloc(namelen + sizeof(prefix), M_TEMP, mflags);
+	namelen = vos_strlen(dev->si_name);
+	data = vos_malloc(namelen + sizeof(prefix), M_TEMP, mflags);
 	if (data == NULL)
 		return;
 	memcpy(data, prefix, sizeof(prefix) - 1);
 	memcpy(data + sizeof(prefix) - 1, dev->si_name, namelen + 1);
 	devctl_notify("DEVFS", "CDEV", ev, data);
-	free(data, M_TEMP);
+	vos_free(data, M_TEMP);
 }
 
 static void
@@ -548,7 +548,7 @@ prep_devname(struct cdev* dev, const char* fmt, va_list ap)
 
 	len = vsnrprintf(dev->si_name, sizeof(dev->si_name), 32, fmt, ap);
 	if (len > sizeof(dev->si_name) - 1)
-		return (ENAMETOOLONG);
+		return (VOS_ENAMETOOLONG);
 
 	/* Strip leading slashes. */
 	for (from = dev->si_name; *from == '/'; from++)
@@ -560,36 +560,36 @@ prep_devname(struct cdev* dev, const char* fmt, va_list ap)
 		 * problems for the devctl(4) protocol.
 		 * Reject names containing those characters.
 		 */
-		if (isspace(*from) || *from == '"')
-			return (EINVAL);
+		if (vos_isspace(*from) || *from == '"')
+			return (VOS_EINVAL);
 		/* Treat multiple sequential slashes as single. */
 		while (from[0] == '/' && from[1] == '/')
 			from++;
 		/* Trailing slash is considered invalid. */
 		if (from[0] == '/' && from[1] == '\0')
-			return (EINVAL);
+			return (VOS_EINVAL);
 		*to = *from;
 	}
 	*to = '\0';
 
 	if (dev->si_name[0] == '\0')
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* Disallow "." and ".." components. */
 	for (s = dev->si_name;;) {
 		for (q = s; *q != '/' && *q != '\0'; q++)
 			;
 		if (q - s == 1 && s[0] == '.')
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (q - s == 2 && s[0] == '.' && s[1] == '.')
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (*q != '/')
 			break;
 		s = q + 1;
 	}
 
 	if (devfs_dev_exists(dev->si_name) != 0)
-		return (EEXIST);
+		return (VOS_EEXIST);
 
 	return (0);
 }
@@ -688,8 +688,8 @@ struct cdev*
 		fmt, ap);
 	va_end(ap);
 
-	KASSERT(((flags & MAKEDEV_NOWAIT) != 0 && res == ENOMEM) ||
-		((flags & MAKEDEV_CHECKNAME) != 0 && res != ENOMEM) || res == 0,
+	KASSERT(((flags & MAKEDEV_NOWAIT) != 0 && res == VOS_ENOMEM) ||
+		((flags & MAKEDEV_CHECKNAME) != 0 && res != VOS_ENOMEM) || res == 0,
 		("make_dev_credf: failed make_dev_credv (error=%d)", res));
 	return (res == 0 ? dev : NULL);
 }
@@ -706,8 +706,8 @@ make_dev_p(int flags, struct cdev** cdev, struct cdevsw* devsw,
 		fmt, ap);
 	va_end(ap);
 
-	KASSERT(((flags & MAKEDEV_NOWAIT) != 0 && res == ENOMEM) ||
-		((flags & MAKEDEV_CHECKNAME) != 0 && res != ENOMEM) || res == 0,
+	KASSERT(((flags & MAKEDEV_NOWAIT) != 0 && res == VOS_ENOMEM) ||
+		((flags & MAKEDEV_CHECKNAME) != 0 && res != VOS_ENOMEM) || res == 0,
 		("make_dev_p: failed make_dev_credv (error=%d)", res));
 	return (res);
 }
@@ -782,12 +782,12 @@ make_dev_physpath_alias(int flags, struct cdev** cdev, struct cdev* pdev,
 
 	*cdev = NULL;
 	devfspath = NULL;
-	physpath_len = strlen(physpath);
-	ret = EINVAL;
+	physpath_len = vos_strlen(physpath);
+	ret = VOS_EINVAL;
 	if (physpath_len == 0)
 		goto out;
 
-	if (strncmp("id1,", physpath, 4) == 0) {
+	if (vos_strncmp("id1,", physpath, 4) == 0) {
 		physpath += 4;
 		physpath_len -= 4;
 		if (physpath_len == 0)
@@ -795,21 +795,21 @@ make_dev_physpath_alias(int flags, struct cdev** cdev, struct cdev* pdev,
 	}
 
 	max_parentpath_len = SPECNAMELEN - physpath_len - /*/*/1;
-	parentpath_len = strlen(pdev->si_name);
+	parentpath_len = vos_strlen(pdev->si_name);
 	if (max_parentpath_len < parentpath_len) {
 		if (bootverbose)
 			printf("WARNING: Unable to alias %s "
 				"to %s/%s - path too long\n",
 				pdev->si_name, physpath, pdev->si_name);
-		ret = ENAMETOOLONG;
+		ret = VOS_ENAMETOOLONG;
 		goto out;
 	}
 
 	mflags = (flags & MAKEDEV_NOWAIT) ? M_NOWAIT : M_WAITOK;
 	devfspathbuf_len = physpath_len + /*/*/1 + parentpath_len + /*NUL*/1;
-	devfspath = malloc(devfspathbuf_len, M_DEVBUF, mflags);
+	devfspath = vos_malloc(devfspathbuf_len, M_DEVBUF, mflags);
 	if (devfspath == NULL) {
-		ret = ENOMEM;
+		ret = VOS_ENOMEM;
 		goto out;
 	}
 
@@ -827,7 +827,7 @@ out:
 	if (old_alias != NULL)
 		destroy_dev(old_alias);
 	if (devfspath != NULL)
-		free(devfspath, M_DEVBUF);
+		vos_free(devfspath, M_DEVBUF);
 	return (ret);
 }
 
@@ -883,15 +883,15 @@ dev_stdclone(char* name, char** namep, const char* stem, int* unit)
 {
 	int u, i;
 
-	i = strlen(stem);
-	if (strncmp(stem, name, i) != 0)
+	i = vos_strlen(stem);
+	if (vos_strncmp(stem, name, i) != 0)
 		return (0);
-	if (!isdigit(name[i]))
+	if (!vos_isdigit(name[i]))
 		return (0);
 	u = 0;
-	if (name[i] == '0' && isdigit(name[i + 1]))
+	if (name[i] == '0' && vos_isdigit(name[i + 1]))
 		return (0);
-	while (isdigit(name[i])) {
+	while (vos_isdigit(name[i])) {
 		u *= 10;
 		u += name[i++] - '0';
 	}
@@ -930,7 +930,7 @@ void
 clone_setup(struct clonedevs** cdp)
 {
 
-	*cdp = malloc(sizeof * *cdp, M_DEVBUF, M_WAITOK | M_ZERO);
+	*cdp = vos_malloc(sizeof * *cdp, M_DEVBUF, M_WAITOK | M_ZERO);
 	LIST_INIT(&(*cdp)->head);
 }
 
@@ -1118,8 +1118,8 @@ DB_SHOW_COMMAND(cdev, db_show_cdev)
 #define	SI_FLAG(flag)	do {						\
 	if (flags & (flag)) {						\
 		if (buf[0] != '\0')					\
-			strlcat(buf, ", ", sizeof(buf));		\
-		strlcat(buf, (#flag) + 3, sizeof(buf));			\
+			vos_strlcat(buf, ", ", sizeof(buf));		\
+		vos_strlcat(buf, (#flag) + 3, sizeof(buf));			\
 		flags &= ~(flag);					\
 	}								\
 } while (0)
@@ -1136,8 +1136,8 @@ DB_SHOW_COMMAND(cdev, db_show_cdev)
 #define	CDP_FLAG(flag)	do {						\
 	if (flags & (flag)) {						\
 		if (buf[0] != '\0')					\
-			strlcat(buf, ", ", sizeof(buf));		\
-		strlcat(buf, (#flag) + 4, sizeof(buf));			\
+			vos_strlcat(buf, ", ", sizeof(buf));		\
+		vos_strlcat(buf, (#flag) + 4, sizeof(buf));			\
 		flags &= ~(flag);					\
 	}								\
 } while (0)

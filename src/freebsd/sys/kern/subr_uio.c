@@ -263,11 +263,11 @@ uiomove_frombuf(void *buf, int buflen, struct uio *uio)
 
 	if (uio->uio_offset < 0 || uio->uio_resid < 0 ||
 	    (offset = uio->uio_offset) != uio->uio_offset)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (buflen <= 0 || offset >= buflen)
 		return (0);
 	if ((n = buflen - offset) > IOSIZE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (uiomove((char *)buf + offset, n, uio));
 }
 
@@ -295,7 +295,7 @@ again:
 	switch (uio->uio_segflg) {
 	case UIO_USERSPACE:
 		if (subyte(iov->iov_base, c) < 0)
-			return (EFAULT);
+			return (VOS_EFAULT);
 		break;
 
 	case UIO_SYSSPACE:
@@ -322,10 +322,10 @@ copyiniov(const struct iovec *iovp, u_int iovcnt, struct iovec **iov, int error)
 	if (iovcnt > UIO_MAXIOV)
 		return (error);
 	iovlen = iovcnt * sizeof (struct iovec);
-	*iov = malloc(iovlen, M_IOV, M_WAITOK);
+	*iov = vos_malloc(iovlen, M_IOV, M_WAITOK);
 	error = copyin(iovp, *iov, iovlen);
 	if (error) {
-		free(*iov, M_IOV);
+		vos_free(*iov, M_IOV);
 		*iov = NULL;
 	}
 	return (error);
@@ -341,13 +341,13 @@ copyinuio(const struct iovec *iovp, u_int iovcnt, struct uio **uiop)
 
 	*uiop = NULL;
 	if (iovcnt > UIO_MAXIOV)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	iovlen = iovcnt * sizeof (struct iovec);
-	uio = malloc(iovlen + sizeof *uio, M_IOV, M_WAITOK);
+	uio = vos_malloc(iovlen + sizeof *uio, M_IOV, M_WAITOK);
 	iov = (struct iovec *)(uio + 1);
 	error = copyin(iovp, iov, iovlen);
 	if (error) {
-		free(uio, M_IOV);
+		vos_free(uio, M_IOV);
 		return (error);
 	}
 	uio->uio_iov = iov;
@@ -357,8 +357,8 @@ copyinuio(const struct iovec *iovp, u_int iovcnt, struct uio **uiop)
 	uio->uio_resid = 0;
 	for (i = 0; i < iovcnt; i++) {
 		if (iov->iov_len > IOSIZE_MAX - uio->uio_resid) {
-			free(uio, M_IOV);
-			return (EINVAL);
+			vos_free(uio, M_IOV);
+			return (VOS_EINVAL);
 		}
 		uio->uio_resid += iov->iov_len;
 		iov++;
@@ -374,7 +374,7 @@ cloneuio(struct uio *uiop)
 	int iovlen;
 
 	iovlen = uiop->uio_iovcnt * sizeof (struct iovec);
-	uio = malloc(iovlen + sizeof *uio, M_IOV, M_WAITOK);
+	uio = vos_malloc(iovlen + sizeof *uio, M_IOV, M_WAITOK);
 	*uio = *uiop;
 	uio->uio_iov = (struct iovec *)(uio + 1);
 	bcopy(uiop->uio_iov, uio->uio_iov, iovlen);
@@ -403,7 +403,7 @@ copyout_map(struct thread *td, vm_offset_t *addr, size_t sz)
 	/* round size up to page boundary */
 	size = (vm_size_t)round_page(sz);
 	if (size == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	error = vm_mmap_object(&vms->vm_map, addr, size, VM_PROT_READ |
 	    VM_PROT_WRITE, VM_PROT_ALL, MAP_PRIVATE | MAP_ANON, NULL, 0,
 	    FALSE, td);
@@ -426,7 +426,7 @@ copyout_unmap(struct thread *td, vm_offset_t addr, size_t sz)
 	size = (vm_size_t)round_page(sz);
 
 	if (vm_map_remove(map, addr, addr + size) != KERN_SUCCESS)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	return (0);
 }

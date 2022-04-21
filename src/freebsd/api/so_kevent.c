@@ -34,13 +34,13 @@ int vos_kqueue(void)
     return ff_kqueue();
 }
 int vos_kevent(int kq, const struct so_kevent* changelist, int nchanges,
-    struct so_kevent* eventlist, int nevents, const struct timespec* timeout)
+    struct so_kevent* eventlist, int nevents, const struct vos_timespec* timeout)
 {
     return ff_kevent(kq, changelist, nchanges, eventlist, nevents, timeout);
 }
 typedef void (*do_each_type)(void**, struct kevent*);
 int vos_kevent_do_each(int kq, const struct so_kevent* changelist, int nchanges,
-    void* eventlist, int nevents, const struct timespec* timeout,
+    void* eventlist, int nevents, const struct vos_timespec* timeout,
     void (*do_each)(void**, struct so_kevent*))
 {
 

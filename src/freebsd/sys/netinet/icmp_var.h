@@ -75,7 +75,7 @@ VNET_PCPUSTAT_DECLARE(struct icmpstat, icmpstat);
  */
 void	kmod_icmpstat_inc(int statnum);
 #define	KMOD_ICMPSTAT_INC(name)						\
-    kmod_icmpstat_inc(offsetof(struct icmpstat, name) / sizeof(uint64_t))
+    kmod_icmpstat_inc(vos_offsetof(struct icmpstat, name) / sizeof(uint64_t))
 #endif
 
 /*

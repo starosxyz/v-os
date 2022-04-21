@@ -33,13 +33,14 @@
 
 #define	DEFINE_IFUNC(qual, ret_type, name, args)			\
     static ret_type (*name##_resolver(void))args __used;		\
-    qual ret_type name args __attribute__((ifunc(#name "_resolver")));	\
-    static ret_type (*name##_resolver(void))args
+    qual ret_type name args;	\
+    static ret_type (*name##_resolver(void))args;\
+    qual ret_type name args
 
 #define	DEFINE_UIFUNC(qual, ret_type, name, args)			\
     static ret_type (*name##_resolver(uint32_t, uint32_t, uint32_t,	\
 	uint32_t))args __used;						\
-    qual ret_type name args __attribute__((ifunc(#name "_resolver")));	\
+    qual ret_type name args;	\
     static ret_type (*name##_resolver(				\
 	uint32_t cpu_feature __unused,					\
 	uint32_t cpu_feature2 __unused,					\

@@ -138,7 +138,7 @@ ttyinq_setsize(struct ttyinq *ti, struct tty *tp, size_t size)
 
 		if (tty_gone(tp)) {
 			uma_zfree(ttyinq_zone, tib);
-			return (ENXIO);
+			return (VOS_ENXIO);
 		}
 
 		TTYINQ_INSERT_TAIL(ti, tib);
@@ -255,7 +255,7 @@ ttyinq_read_uio(struct ttyinq *ti, struct tty *tp, struct uio *uio,
 		if (error != 0)
 			return (error);
 		if (tty_gone(tp))
-			return (ENXIO);
+			return (VOS_ENXIO);
 	}
 
 	return (0);

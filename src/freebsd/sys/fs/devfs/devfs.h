@@ -148,9 +148,9 @@ struct devfs_dirent {
 	uid_t			de_uid;
 	gid_t			de_gid;
 	struct label		*de_label;
-	struct timespec 	de_atime;
-	struct timespec 	de_mtime;
-	struct timespec 	de_ctime;
+	struct vos_timespec 	de_atime;
+	struct vos_timespec 	de_mtime;
+	struct vos_timespec 	de_ctime;
 	struct vnode 		*de_vnode;
 	char 			*de_symlink;
 	int			de_usecount;

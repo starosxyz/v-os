@@ -90,7 +90,7 @@ inet_aton(const char *cp, struct in_addr *addr)
 			break;
 
 		default:
-			if (isspace((unsigned char)*c)) {
+			if (vos_isspace((unsigned char)*c)) {
 				gotend = 1;
 				break;
 			} else {

@@ -206,7 +206,7 @@ if_clone_create(char *name, size_t len, caddr_t params)
 	IF_CLONERS_UNLOCK();
 
 	if (ifc == NULL)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	return (if_clone_createif(ifc, name, len, params));
 }
@@ -233,7 +233,7 @@ if_clone_createif(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 	struct ifnet *ifp;
 
 	if (ifunit(name) != NULL)
-		return (EEXIST);
+		return (VOS_EEXIST);
 
 	if (ifc->ifc_type == SIMPLE)
 		err = ifc_simple_create(ifc, name, len, params);
@@ -263,7 +263,7 @@ if_clone_destroy(const char *name)
 
 	ifp = ifunit_ref(name);
 	if (ifp == NULL)
-		return (ENXIO);
+		return (VOS_ENXIO);
 
 	/* Find the cloner for this interface */
 	IF_CLONERS_LOCK();
@@ -289,7 +289,7 @@ if_clone_destroy(const char *name)
 	IF_CLONERS_UNLOCK();
 	if (ifc == NULL) {
 		if_rele(ifp);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	err = if_clone_destroyif(ifc, ifp);
@@ -307,7 +307,7 @@ if_clone_destroyif(struct if_clone *ifc, struct ifnet *ifp)
 	struct ifnet *ifcifp;
 
 	if (ifc->ifc_type == ADVANCED && ifc->ifc_destroy == NULL)
-		return(EOPNOTSUPP);
+		return(VOS_EOPNOTSUPP);
 
 	/*
 	 * Given that the cloned ifnet might be attached to a different
@@ -326,7 +326,7 @@ if_clone_destroyif(struct if_clone *ifc, struct ifnet *ifp)
 	IF_CLONE_UNLOCK(ifc);
 	if (ifcifp == NULL) {
 		CURVNET_RESTORE();
-		return (ENXIO);		/* ifp is not on the list. */
+		return (VOS_ENXIO);		/* ifp is not on the list. */
 	}
 	if ((ifc->ifc_flags & IFC_NOGROUP) == 0)
 		if_delgroup(ifp, ifc->ifc_name);
@@ -355,8 +355,8 @@ if_clone_alloc(const char *name, int maxunit)
 
 	KASSERT(name != NULL, ("%s: no name\n", __func__));
 
-	ifc = malloc(sizeof(struct if_clone), M_CLONE, M_WAITOK | M_ZERO);
-	strncpy(ifc->ifc_name, name, IFCLOSIZ-1);
+	ifc = vos_malloc(sizeof(struct if_clone), M_CLONE, M_WAITOK | M_ZERO);
+	vos_strncpy(ifc->ifc_name, name, IFCLOSIZ-1);
 	IF_CLONE_LOCK_INIT(ifc);
 	IF_CLONE_ADDREF(ifc);
 	ifc->ifc_maxunit = maxunit ? maxunit : IF_MAXUNIT;
@@ -376,7 +376,7 @@ if_clone_attach(struct if_clone *ifc)
 		if (strcmp(ifc->ifc_name, ifc1->ifc_name) == 0) {
 			IF_CLONERS_UNLOCK();
 			IF_CLONE_REMREF(ifc);
-			return (EEXIST);
+			return (VOS_EEXIST);
 		}
 	LIST_INSERT_HEAD(&V_if_cloners, ifc, ifc_list);
 	V_if_cloners_count++;
@@ -469,7 +469,7 @@ if_clone_free(struct if_clone *ifc)
 
 	IF_CLONE_LOCK_DESTROY(ifc);
 	delete_unrhdr(ifc->ifc_unrhdr);
-	free(ifc, M_CLONE);
+	vos_free(ifc, M_CLONE);
 }
 
 /*
@@ -483,7 +483,7 @@ if_clone_list(struct if_clonereq *ifcr)
 	int buf_count, count, err = 0;
 
 	if (ifcr->ifcr_count < 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	IF_CLONERS_LOCK();
 	/*
@@ -498,7 +498,7 @@ if_clone_list(struct if_clonereq *ifcr)
 	    V_if_cloners_count : ifcr->ifcr_count;
 	IF_CLONERS_UNLOCK();
 
-	outbuf = malloc(IFNAMSIZ*buf_count, M_CLONE, M_WAITOK | M_ZERO);
+	outbuf = vos_malloc(IFNAMSIZ*buf_count, M_CLONE, M_WAITOK | M_ZERO);
 
 	IF_CLONERS_LOCK();
 
@@ -513,7 +513,7 @@ if_clone_list(struct if_clonereq *ifcr)
 	for (ifc = LIST_FIRST(&V_if_cloners), buf = outbuf;
 	    ifc != NULL && count != 0;
 	    ifc = LIST_NEXT(ifc, ifc_list), count--, buf += IFNAMSIZ) {
-		strlcpy(buf, ifc->ifc_name, IFNAMSIZ);
+		vos_strlcpy(buf, ifc->ifc_name, IFNAMSIZ);
 	}
 
 done:
@@ -521,7 +521,7 @@ done:
 	if (err == 0 && dst != NULL)
 		err = copyout(outbuf, dst, buf_count*IFNAMSIZ);
 	if (outbuf != NULL)
-		free(outbuf, M_CLONE);
+		vos_free(outbuf, M_CLONE);
 	return (err);
 }
 
@@ -588,16 +588,16 @@ ifc_name2unit(const char *name, int *unit)
 		*unit = -1;
 	} else if (cp[0] == '0' && cp[1] != '\0') {
 		/* Disallow leading zeroes. */
-		return (EINVAL);
+		return (VOS_EINVAL);
 	} else {
 		for (*unit = 0; *cp != '\0'; cp++) {
 			if (*cp < '0' || *cp > '9') {
 				/* Bogus unit number. */
-				return (EINVAL);
+				return (VOS_EINVAL);
 			}
 			if (*unit > cutoff ||
 			    (*unit == cutoff && *cp - '0' > cutlim))
-				return (EINVAL);
+				return (VOS_EINVAL);
 			*unit = (*unit * 10) + (*cp - '0');
 		}
 	}
@@ -611,15 +611,15 @@ ifc_alloc_unit_specific(struct if_clone *ifc, int *unit)
 	char name[IFNAMSIZ];
 
 	if (*unit > ifc->ifc_maxunit)
-		return (ENOSPC);
+		return (VOS_ENOSPC);
 
 	if (alloc_unr_specific(ifc->ifc_unrhdr, *unit) == -1)
-		return (EEXIST);
+		return (VOS_EEXIST);
 
 	snprintf(name, IFNAMSIZ, "%s%d", ifc->ifc_name, *unit);
 	if (ifunit(name) != NULL) {
 		free_unr(ifc->ifc_unrhdr, *unit);
-		return (EEXIST);
+		return (VOS_EEXIST);
 	}
 
 	IF_CLONE_ADDREF(ifc);
@@ -634,12 +634,12 @@ ifc_alloc_unit_next(struct if_clone *ifc, int *unit)
 
 	*unit = alloc_unr(ifc->ifc_unrhdr);
 	if (*unit == -1)
-		return (ENOSPC);
+		return (VOS_ENOSPC);
 
 	free_unr(ifc->ifc_unrhdr, *unit);
 	for (;;) {
 		error = ifc_alloc_unit_specific(ifc, unit);
-		if (error != EEXIST)
+		if (error != VOS_EEXIST)
 			break;
 
 		(*unit)++;
@@ -672,7 +672,7 @@ ifc_simple_match(struct if_clone *ifc, const char *name)
 	int i;
 
 	/* Match the name */
-	for (cp = name, i = 0; i < strlen(ifc->ifc_name); i++, cp++) {
+	for (cp = name, i = 0; i < vos_strlen(ifc->ifc_name); i++, cp++) {
 		if (ifc->ifc_name[i] != *cp)
 			return (0);
 	}
@@ -735,7 +735,7 @@ ifc_simple_destroy(struct if_clone *ifc, struct ifnet *ifp)
 	unit = ifp->if_dunit;
 
 	if (unit < ifc->ifcs_minifs) 
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	ifc->ifcs_destroy(ifp);
 

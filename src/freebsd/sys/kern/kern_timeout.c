@@ -625,7 +625,7 @@ softclock_call_cc(struct callout* c, struct callout_cpu* cc,
 #endif
 #if defined(DIAGNOSTIC) || defined(CALLOUT_PROFILING) 
 	sbintime_t sbt1, sbt2;
-	struct timespec ts2;
+	struct vos_timespec ts2;
 	static sbintime_t maxdt = 2 * SBT_1MS;	/* 2 msec */
 	static callout_func_t* lastfunc;
 #endif
@@ -854,7 +854,7 @@ callout_when(sbintime_t sbt, sbintime_t precision, int flags,
 		 * This value is per-CPU, but it is equal for all
 		 * active ones.
 		 */
-#ifdef __LP64__
+#if defined(__LP64__)||defined(_WIN64)
 		to_sbt = DPCPU_GET(hardclocktime);
 #else
 		spinlock_enter();

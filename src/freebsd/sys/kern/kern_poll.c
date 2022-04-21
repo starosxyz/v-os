@@ -120,7 +120,7 @@ static int poll_burst_max_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr )
 		return (error);
 	if (val < MIN_POLL_BURST_MAX || val > MAX_POLL_BURST_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	mtx_lock(&poll_mtx);
 	poll_burst_max = val;
@@ -146,12 +146,12 @@ static int poll_each_burst_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr )
 		return (error);
 	if (val < 1)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	mtx_lock(&poll_mtx);
 	if (val > poll_burst_max) {
 		mtx_unlock(&poll_mtx);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	poll_each_burst = val;
 	mtx_unlock(&poll_mtx);
@@ -177,7 +177,7 @@ static int user_frac_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr )
 		return (error);
 	if (val > 99)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	mtx_lock(&poll_mtx);
 	user_frac = val;
@@ -201,7 +201,7 @@ static int reg_frac_sysctl(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr )
 		return (error);
 	if (val < 1 || val > hz)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	mtx_lock(&poll_mtx);
 	reg_frac = val;
@@ -499,7 +499,7 @@ ether_poll_register(poll_handler_t *h, if_t ifp)
 			verbose--;
 		}
 		mtx_unlock(&poll_mtx);
-		return (ENOMEM); /* no polling for you */
+		return (VOS_ENOMEM); /* no polling for you */
 	}
 
 	for (i = 0 ; i < poll_handlers ; i++)
@@ -507,7 +507,7 @@ ether_poll_register(poll_handler_t *h, if_t ifp)
 			mtx_unlock(&poll_mtx);
 			log(LOG_DEBUG, "ether_poll_register: %s: handler"
 			    " already registered\n", ifp->if_xname);
-			return (EEXIST);
+			return (VOS_EEXIST);
 		}
 
 	pr[poll_handlers].handler = h;
@@ -538,7 +538,7 @@ ether_poll_deregister(if_t ifp)
 		log(LOG_DEBUG, "ether_poll_deregister: %s: not found!\n",
 		    ifp->if_xname);
 		mtx_unlock(&poll_mtx);
-		return (ENOENT);
+		return (VOS_ENOENT);
 	}
 	poll_handlers--;
 	if (i < poll_handlers) { /* Last entry replaces this one. */

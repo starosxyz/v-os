@@ -28,7 +28,7 @@ __FBSDID("$FreeBSD$");
  * Returns strlen(src); if retval >= dsize, truncation occurred.
  */
 size_t
-strlcpy(char * __restrict dst, const char * __restrict src, size_t dsize)
+vos_strlcpy(char * __restrict dst, const char * __restrict src, size_t dsize)
 {
 	const char *osrc = src;
 	size_t nleft = dsize;

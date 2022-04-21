@@ -178,10 +178,10 @@ vslock(void* addr, size_t len)
 	start = trunc_page((vm_offset_t)addr);
 	end = round_page(last);
 	if (last < (vm_offset_t)addr || end < (vm_offset_t)addr)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	npages = atop(end - start);
 	if (npages > vm_page_max_user_wired)
-		return (ENOMEM);
+		return (VOS_ENOMEM);
 	error = vm_map_wire(&curproc->p_vmspace->vm_map, start, end,
 		VM_MAP_WIRE_SYSTEM | VM_MAP_WIRE_NOHOLES);
 	if (error == KERN_SUCCESS) {
@@ -190,10 +190,10 @@ vslock(void* addr, size_t len)
 	}
 
 	/*
-	 * Return EFAULT on error to match copy{in,out}() behaviour
-	 * rather than returning ENOMEM like mlock() would.
+	 * Return VOS_EFAULT on error to match copy{in,out}() behaviour
+	 * rather than returning VOS_ENOMEM like mlock() would.
 	 */
-	return (EFAULT);
+	return (VOS_EFAULT);
 }
 
 void

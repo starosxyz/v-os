@@ -119,8 +119,8 @@ __FBSDID("$FreeBSD$");
  * struct in6_ifreq and struct ifreq must be type punnable for common members
  * of ifr_ifru to allow accessors to be shared.
  */
-_Static_assert(offsetof(struct in6_ifreq, ifr_ifru) ==
-    offsetof(struct ifreq, ifr_ifru),
+_Static_assert(vos_offsetof(struct in6_ifreq, ifr_ifru) ==
+	vos_offsetof(struct ifreq, ifr_ifru),
     "struct in6_ifreq and struct ifreq are not type punnable");
 
 VNET_DECLARE(int, icmp6_nodeinfo_oldmcprefix);
@@ -268,7 +268,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 		 * We cannot see how that would be needed, so do not adjust the
 		 * KPI blindly; more likely should clean up the IPv4 variant.
 		 */
-		return (mrt6_ioctl ? mrt6_ioctl(cmd, data) : EOPNOTSUPP);
+		return (mrt6_ioctl ? mrt6_ioctl(cmd, data) : VOS_EOPNOTSUPP);
 	}
 
 	switch (cmd) {
@@ -283,7 +283,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 	}
 
 	if (ifp == NULL)
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 
 	switch (cmd) {
 	case SIOCSNDFLUSH_IN6:
@@ -331,7 +331,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 		log(LOG_NOTICE,
 		    "prefix ioctls are now invalidated. "
 		    "please use ifconfig.\n");
-		return (EOPNOTSUPP);
+		return (VOS_EOPNOTSUPP);
 	}
 
 	switch (cmd) {
@@ -393,7 +393,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 		 * privileged layer, and do not perform any credentials
 		 * checks or input validation.
 		 */
-		return (EINVAL);
+		return (VOS_EINVAL);
 	default:
 		sa6 = NULL;
 		break;
@@ -421,7 +421,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 		 * on a single interface, SIOCSIFxxx ioctls are deprecated.
 		 */
 		/* we decided to obsolete this command (20000704) */
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 
 	case SIOCDIFADDR_IN6:
@@ -433,7 +433,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 		 * first one" semantics to be not preferable.
 		 */
 		if (ia == NULL) {
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			goto out;
 		}
 		/* FALLTHROUGH */
@@ -444,7 +444,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 		 */
 		if (ifra->ifra_addr.sin6_family != AF_INET6 ||
 		    ifra->ifra_addr.sin6_len != sizeof(struct sockaddr_in6)) {
-			error = EAFNOSUPPORT;
+			error = VOS_EAFNOSUPPORT;
 			goto out;
 		}
 
@@ -458,7 +458,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 	case SIOCGIFSTAT_IN6:
 	case SIOCGIFSTAT_ICMP6:
 		if (ifp->if_afdata[AF_INET6] == NULL) {
-			error = EPFNOSUPPORT;
+			error = VOS_EPFNOSUPPORT;
 			goto out;
 		}
 		break;
@@ -472,7 +472,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 	case SIOCGIFALIFETIME_IN6:
 		/* must think again about its semantics */
 		if (ia == NULL) {
-			error = EADDRNOTAVAIL;
+			error = VOS_EADDRNOTAVAIL;
 			goto out;
 		}
 		break;
@@ -487,7 +487,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 
 	case SIOCGIFDSTADDR_IN6:
 		if ((ifp->if_flags & IFF_POINTOPOINT) == 0) {
-			error = EINVAL;
+			error = VOS_EINVAL;
 			goto out;
 		}
 		ifr->ifr_dstaddr = ia->ia_dstaddr;
@@ -587,7 +587,7 @@ in6_control(struct socket *so, u_long cmd, caddr_t data,
 				error = (*carp_attach_p)(&ia->ia_ifa,
 				    ifra->ifra_vhid);
 			else
-				error = EPROTONOSUPPORT;
+				error = VOS_EPROTONOSUPPORT;
 			if (error)
 				goto out;
 			else
@@ -703,7 +703,7 @@ aifaddr_out:
 
 	default:
 		if (ifp->if_ioctl == NULL) {
-			error = EOPNOTSUPP;
+			error = VOS_EOPNOTSUPP;
 			goto out;
 		}
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
@@ -724,9 +724,9 @@ in6_joingroup_legacy(struct ifnet *ifp, const struct in6_addr *mcaddr,
 	struct in6_multi_mship *imm;
 	int error;
 
-	imm = malloc(sizeof(*imm), M_IP6MADDR, M_NOWAIT);
+	imm = vos_malloc(sizeof(*imm), M_IP6MADDR, M_NOWAIT);
 	if (imm == NULL) {
-		*errorp = ENOBUFS;
+		*errorp = VOS_ENOBUFS;
 		return (NULL);
 	}
 
@@ -735,7 +735,7 @@ in6_joingroup_legacy(struct ifnet *ifp, const struct in6_addr *mcaddr,
 	error = in6_joingroup(ifp, mcaddr, NULL, &imm->i6mm_maddr, delay);
 	if (error) {
 		*errorp = error;
-		free(imm, M_IP6MADDR);
+		vos_free(imm, M_IP6MADDR);
 		return (NULL);
 	}
 
@@ -877,7 +877,7 @@ in6_update_ifa(struct ifnet *ifp, struct in6_aliasreq *ifra,
 	if (ia == NULL) {
 		hostIsNew = 1;
 		if ((ia = in6_alloc_ifa(ifp, ifra, flags)) == NULL)
-			return (ENOBUFS);
+			return (VOS_ENOBUFS);
 	}
 
 	error = in6_update_ifa_internal(ifp, ifra, ia, hostIsNew, flags);
@@ -927,7 +927,7 @@ in6_validate_ifra(struct ifnet *ifp, struct in6_aliasreq *ifra,
 
 	/* Validate parameters */
 	if (ifp == NULL || ifra == NULL) /* this maybe redundant */
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * The destination address for a p2p link must have a family
@@ -936,21 +936,21 @@ in6_validate_ifra(struct ifnet *ifp, struct in6_aliasreq *ifra,
 	if ((ifp->if_flags & IFF_POINTOPOINT) != 0 &&
 	    ifra->ifra_dstaddr.sin6_family != AF_INET6 &&
 	    ifra->ifra_dstaddr.sin6_family != AF_UNSPEC)
-		return (EAFNOSUPPORT);
+		return (VOS_EAFNOSUPPORT);
 
 	/*
 	 * Validate address
 	 */
 	if (ifra->ifra_addr.sin6_len != sizeof(struct sockaddr_in6) ||
 	    ifra->ifra_addr.sin6_family != AF_INET6)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/*
 	 * validate ifra_prefixmask.  don't check sin6_family, netmask
 	 * does not carry fields other than sin6_len.
 	 */
 	if (ifra->ifra_prefixmask.sin6_len > sizeof(struct sockaddr_in6))
-		return (EINVAL);
+		return (VOS_EINVAL);
 	/*
 	 * Because the IPv6 address architecture is classless, we require
 	 * users to specify a (non 0) prefix length (mask) for a new address.
@@ -958,13 +958,13 @@ in6_validate_ifra(struct ifnet *ifp, struct in6_aliasreq *ifra,
 	 * reject a non-consecutive mask.
 	 */
 	if (ia == NULL && ifra->ifra_prefixmask.sin6_len == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (ifra->ifra_prefixmask.sin6_len != 0) {
 		plen = in6_mask2len(&ifra->ifra_prefixmask.sin6_addr,
 		    (u_char *)&ifra->ifra_prefixmask +
 		    ifra->ifra_prefixmask.sin6_len);
 		if (plen <= 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 	} else {
 		/*
 		 * In this case, ia must not be NULL.  We just use its prefix
@@ -985,17 +985,17 @@ in6_validate_ifra(struct ifnet *ifp, struct in6_aliasreq *ifra,
 
 		in6_tmp = dst6.sin6_addr;
 		if (in6_setscope(&in6_tmp, ifp, &zoneid))
-			return (EINVAL); /* XXX: should be impossible */
+			return (VOS_EINVAL); /* XXX: should be impossible */
 
 		if (dst6.sin6_scope_id != 0) {
 			if (dst6.sin6_scope_id != zoneid)
-				return (EINVAL);
+				return (VOS_EINVAL);
 		} else		/* user omit to specify the ID. */
 			dst6.sin6_scope_id = zoneid;
 
 		/* convert into the internal form */
 		if (sa6_embedscope(&dst6, 0))
-			return (EINVAL); /* XXX: should be impossible */
+			return (VOS_EINVAL); /* XXX: should be impossible */
 	}
 	/* Modify original ifra_dstaddr to reflect changes */
 	ifra->ifra_dstaddr = dst6;
@@ -1010,18 +1010,18 @@ in6_validate_ifra(struct ifnet *ifp, struct in6_aliasreq *ifra,
 			/* XXX: noisy message */
 			nd6log((LOG_INFO, "in6_update_ifa: a destination can "
 			    "be specified for a p2p or a loopback IF only\n"));
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		if (plen != 128) {
 			nd6log((LOG_INFO, "in6_update_ifa: prefixlen should "
 			    "be 128 when dstaddr is specified\n"));
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 	}
 	/* lifetime consistency check */
 	lt = &ifra->ifra_lifetime;
 	if (lt->ia6t_pltime > lt->ia6t_vltime)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (lt->ia6t_vltime == 0) {
 		/*
 		 * the following log might be noisy, but this is a typical
@@ -1049,7 +1049,7 @@ in6_validate_ifra(struct ifnet *ifp, struct in6_aliasreq *ifra,
 			    "of an existing %s address should not be changed\n",
 			    ip6_sprintf(ip6buf, &ia->ia_addr.sin6_addr)));
 
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 	}
 
@@ -1339,7 +1339,7 @@ in6_purgeaddr(struct ifaddr *ifa)
 		LIST_REMOVE(imm, i6mm_chain);
 		if (imm->i6mm_maddr != NULL)
 			in6_leavegroup(imm->i6mm_maddr, NULL);
-		free(imm, M_IP6MADDR);
+		vos_free(imm, M_IP6MADDR);
 	}
 	/* Check if we need to remove p2p route */
 	if ((ia->ia_flags & IFA_ROUTE) && ifa_is_p2p(ia)) {
@@ -2100,7 +2100,7 @@ in6_lltable_destroy_lle_unlocked(epoch_context_t ctx)
 	lle = __containerof(ctx, struct llentry, lle_epoch_ctx);
 	LLE_LOCK_DESTROY(lle);
 	LLE_REQ_DESTROY(lle);
-	free(lle, M_LLTABLE);
+	vos_free(lle, M_LLTABLE);
 }
 
 /*
@@ -2120,7 +2120,7 @@ in6_lltable_new(const struct in6_addr *addr6, u_int flags)
 {
 	struct in6_llentry *lle;
 
-	lle = malloc(sizeof(struct in6_llentry), M_LLTABLE, M_NOWAIT | M_ZERO);
+	lle = vos_malloc(sizeof(struct in6_llentry), M_LLTABLE, M_NOWAIT | M_ZERO);
 	if (lle == NULL)		/* NB: caller generates msg */
 		return NULL;
 
@@ -2216,7 +2216,7 @@ in6_lltable_rtcheck(struct ifnet *ifp,
 		}
 		log(LOG_INFO, "IPv6 address: \"%s\" is not on the network\n",
 		    ip6_sprintf(ip6buf, &sin6->sin6_addr));
-		return EINVAL;
+		return VOS_EINVAL;
 	}
 	return 0;
 }
@@ -2395,7 +2395,7 @@ in6_lltable_dump_entry(struct lltable *llt, struct llentry *lle,
 		/*
 		 * ndp.c assumes that sdl is word aligned
 		 */
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 		uint32_t		pad;
 #endif
 		struct sockaddr_dl	sdl;
@@ -2494,15 +2494,15 @@ in6_domifattach(struct ifnet *ifp)
 	case IFT_USB:
 		return (NULL);
 	}
-	ext = (struct in6_ifextra *)malloc(sizeof(*ext), M_IFADDR, M_WAITOK);
+	ext = (struct in6_ifextra *)vos_malloc(sizeof(*ext), M_IFADDR, M_WAITOK);
 	bzero(ext, sizeof(*ext));
 
-	ext->in6_ifstat = malloc(sizeof(counter_u64_t) *
+	ext->in6_ifstat = vos_malloc(sizeof(counter_u64_t) *
 	    sizeof(struct in6_ifstat) / sizeof(uint64_t), M_IFADDR, M_WAITOK);
 	COUNTER_ARRAY_ALLOC(ext->in6_ifstat,
 	    sizeof(struct in6_ifstat) / sizeof(uint64_t), M_WAITOK);
 
-	ext->icmp6_ifstat = malloc(sizeof(counter_u64_t) *
+	ext->icmp6_ifstat = vos_malloc(sizeof(counter_u64_t) *
 	    sizeof(struct icmp6_ifstat) / sizeof(uint64_t), M_IFADDR,
 	    M_WAITOK);
 	COUNTER_ARRAY_ALLOC(ext->icmp6_ifstat,
@@ -2537,11 +2537,11 @@ in6_domifdetach(struct ifnet *ifp, void *aux)
 	lltable_free(ext->lltable);
 	COUNTER_ARRAY_FREE(ext->in6_ifstat,
 	    sizeof(struct in6_ifstat) / sizeof(uint64_t));
-	free(ext->in6_ifstat, M_IFADDR);
+	vos_free(ext->in6_ifstat, M_IFADDR);
 	COUNTER_ARRAY_FREE(ext->icmp6_ifstat,
 	    sizeof(struct icmp6_ifstat) / sizeof(uint64_t));
-	free(ext->icmp6_ifstat, M_IFADDR);
-	free(ext, M_IFADDR);
+	vos_free(ext->icmp6_ifstat, M_IFADDR);
+	vos_free(ext, M_IFADDR);
 }
 
 /*
@@ -2596,9 +2596,9 @@ in6_sin_2_v4mapsin6_in_sock(struct sockaddr **nam)
 	struct sockaddr_in *sin_p;
 	struct sockaddr_in6 *sin6_p;
 
-	sin6_p = malloc(sizeof *sin6_p, M_SONAME, M_WAITOK);
+	sin6_p = vos_malloc(sizeof *sin6_p, M_SONAME, M_WAITOK);
 	sin_p = (struct sockaddr_in *)*nam;
 	in6_sin_2_v4mapsin6(sin_p, sin6_p);
-	free(*nam, M_SONAME);
+	vos_free(*nam, M_SONAME);
 	*nam = (struct sockaddr *)sin6_p;
 }

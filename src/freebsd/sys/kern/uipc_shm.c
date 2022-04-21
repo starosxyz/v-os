@@ -222,7 +222,7 @@ uiomove_object_page(vm_object_t obj, size_t len, struct uio *uio)
 		VM_OBJECT_WUNLOCK(obj);
 		printf("uiomove_object: vm_obj %p idx %jd pager error %d\n",
 		    obj, idx, rv);
-		return (EIO);
+		return (VOS_EIO);
 	}
 	VM_OBJECT_WUNLOCK(obj);
 
@@ -354,14 +354,14 @@ shm_seek(struct file *fp, off_t offset, int whence, struct thread *td)
 	case L_INCR:
 		if (foffset < 0 ||
 		    (offset > 0 && foffset > OFF_MAX - offset)) {
-			error = EOVERFLOW;
+			error = VOS_EOVERFLOW;
 			break;
 		}
 		offset += foffset;
 		break;
 	case L_XTND:
 		if (offset > 0 && shmfd->shm_size > OFF_MAX - offset) {
-			error = EOVERFLOW;
+			error = VOS_EOVERFLOW;
 			break;
 		}
 		offset += shmfd->shm_size;
@@ -369,11 +369,11 @@ shm_seek(struct file *fp, off_t offset, int whence, struct thread *td)
 	case L_SET:
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 	}
 	if (error == 0) {
 		if (offset < 0 || offset > shmfd->shm_size)
-			error = EINVAL;
+			error = VOS_EINVAL;
 		else
 			td->td_uretoff.tdu_off = offset;
 	}
@@ -420,7 +420,7 @@ shm_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 		return (error);
 #endif
 	if (shm_largepage(shmfd) && shmfd->shm_lp_psind == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	foffset_lock_uio(fp, uio, flags);
 	if (uio->uio_resid > OFF_MAX - uio->uio_offset) {
 		/*
@@ -430,7 +430,7 @@ shm_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 		 */
 		if ((shmfd->shm_flags & SHM_GROW_ON_WRITE) != 0) {
 			foffset_unlock_uio(fp, uio, flags);
-			return (EFBIG);
+			return (VOS_EFBIG);
 		}
 
 		size = shmfd->shm_size;
@@ -445,7 +445,7 @@ shm_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 		    size, &shmfd->shm_mtx);
 	}
 	if ((shmfd->shm_seals & F_SEAL_WRITE) != 0) {
-		error = EPERM;
+		error = VOS_EPERM;
 	} else {
 		error = 0;
 		if ((shmfd->shm_flags & SHM_GROW_ON_WRITE) != 0 &&
@@ -498,18 +498,18 @@ shm_ioctl(struct file *fp, u_long com, void *data, struct ucred *active_cred,
 		return (0);
 	case FIOSSHMLPGCNF:
 		if (!shm_largepage(shmfd))
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 		conf = data;
 		if (shmfd->shm_lp_psind != 0 &&
 		    conf->psind != shmfd->shm_lp_psind)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (conf->psind <= 0 || conf->psind >= MAXPAGESIZES ||
 		    pagesizes[conf->psind] == 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		if (conf->alloc_policy != SHM_LARGEPAGE_ALLOC_DEFAULT &&
 		    conf->alloc_policy != SHM_LARGEPAGE_ALLOC_NOWAIT &&
 		    conf->alloc_policy != SHM_LARGEPAGE_ALLOC_HARD)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		rl_cookie = rangelock_wlock(&shmfd->shm_rl, 0, OFF_MAX,
 		    &shmfd->shm_mtx);
@@ -520,7 +520,7 @@ shm_ioctl(struct file *fp, u_long com, void *data, struct ucred *active_cred,
 		return (0);
 	case FIOGSHMLPGCNF:
 		if (!shm_largepage(shmfd))
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 		conf = data;
 		rl_cookie = rangelock_rlock(&shmfd->shm_rl, 0, OFF_MAX,
 		    &shmfd->shm_mtx);
@@ -529,7 +529,7 @@ shm_ioctl(struct file *fp, u_long com, void *data, struct ucred *active_cred,
 		rangelock_unlock(&shmfd->shm_rl, rl_cookie, &shmfd->shm_mtx);
 		return (0);
 	default:
-		return (ENOTTY);
+		return (VOS_ENOTTY);
 	}
 }
 
@@ -595,12 +595,12 @@ shm_copyin_path(struct thread *td, const char *userpath_in, char **path_out) {
 	const char *pr_path;
 	size_t pr_pathlen;
 
-	path = malloc(MAXPATHLEN, M_SHMFD, M_WAITOK);
+	path = vos_malloc(MAXPATHLEN, M_SHMFD, M_WAITOK);
 	pr_path = td->td_ucred->cr_prison->pr_path;
 
 	/* Construct a full pathname for jailed callers. */
 	pr_pathlen = strcmp(pr_path, "/") ==
-	    0 ? 0 : strlcpy(path, pr_path, MAXPATHLEN);
+	    0 ? 0 : vos_strlcpy(path, pr_path, MAXPATHLEN);
 	error = copyinstr(userpath_in, path + pr_pathlen,
 	    MAXPATHLEN - pr_pathlen, NULL);
 	if (error != 0)
@@ -613,7 +613,7 @@ shm_copyin_path(struct thread *td, const char *userpath_in, char **path_out) {
 
 	/* Require paths to start with a '/' character. */
 	if (path[pr_pathlen] != '/') {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -621,7 +621,7 @@ shm_copyin_path(struct thread *td, const char *userpath_in, char **path_out) {
 
 out:
 	if (error != 0)
-		free(path, M_SHMFD);
+		vos_free(path, M_SHMFD);
 
 	return (error);
 }
@@ -646,14 +646,14 @@ shm_dotruncate_locked(struct shmfd *shmfd, off_t length, void *rl_cookie)
 	/* Are we shrinking?  If so, trim the end. */
 	if (length < shmfd->shm_size) {
 		if ((shmfd->shm_seals & F_SEAL_SHRINK) != 0)
-			return (EPERM);
+			return (VOS_EPERM);
 
 		/*
 		 * Disallow any requests to shrink the size if this
 		 * object is mapped into the kernel.
 		 */
 		if (shmfd->shm_kmappings > 0)
-			return (EBUSY);
+			return (VOS_EBUSY);
 
 		/*
 		 * Zero the truncated part of the last page.
@@ -689,7 +689,7 @@ retry:
 				} else {
 					vm_page_free(m);
 					VM_OBJECT_WUNLOCK(object);
-					return (EIO);
+					return (VOS_EIO);
 				}
 			}
 			if (m != NULL) {
@@ -711,12 +711,12 @@ retry:
 		object->charge -= delta;
 	} else {
 		if ((shmfd->shm_seals & F_SEAL_GROW) != 0)
-			return (EPERM);
+			return (VOS_EPERM);
 
 		/* Try to reserve additional swap space. */
 		delta = IDX_TO_OFF(nobjsize - object->size);
 		if (!swap_reserve_by_cred(delta, object->cred))
-			return (ENOMEM);
+			return (VOS_ENOMEM);
 		object->charge += delta;
 	}
 	shmfd->shm_size = length;
@@ -747,16 +747,16 @@ shm_dotruncate_largepage(struct shmfd *shmfd, off_t length, void *rl_cookie)
 		return (0);
 	psind = shmfd->shm_lp_psind;
 	if (psind == 0 && length != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if ((length & (pagesizes[psind] - 1)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if (length < shmfd->shm_size) {
 		if ((shmfd->shm_seals & F_SEAL_SHRINK) != 0)
-			return (EPERM);
+			return (VOS_EPERM);
 		if (shmfd->shm_kmappings > 0)
-			return (EBUSY);
-		return (ENOTSUP);	/* Pages are unmanaged. */
+			return (VOS_EBUSY);
+		return (VOS_ENOTSUP);	/* Pages are unmanaged. */
 #if 0
 		vm_object_page_remove(object, newobjsz, oldobjsz, 0);
 		object->size = newobjsz;
@@ -766,7 +766,7 @@ shm_dotruncate_largepage(struct shmfd *shmfd, off_t length, void *rl_cookie)
 	}
 
 	if ((shmfd->shm_seals & F_SEAL_GROW) != 0)
-		return (EPERM);
+		return (VOS_EPERM);
 
 	aflags = VM_ALLOC_NORMAL | VM_ALLOC_ZERO;
 	if (shmfd->shm_lp_alloc_policy == SHM_LARGEPAGE_ALLOC_NOWAIT)
@@ -791,7 +791,7 @@ shm_dotruncate_largepage(struct shmfd *shmfd, off_t length, void *rl_cookie)
 			    SHM_LARGEPAGE_ALLOC_DEFAULT &&
 			    try >= largepage_reclaim_tries)) {
 				VM_OBJECT_WLOCK(object);
-				return (ENOMEM);
+				return (VOS_ENOMEM);
 			}
 			error = vm_page_reclaim_contig(aflags,
 			    pagesizes[psind] / PAGE_SIZE, 0, ~0,
@@ -855,7 +855,7 @@ shm_alloc(struct ucred *ucred, mode_t mode, bool largepage)
 {
 	struct shmfd *shmfd;
 
-	shmfd = malloc(sizeof(*shmfd), M_SHMFD, M_WAITOK | M_ZERO);
+	shmfd = vos_malloc(sizeof(*shmfd), M_SHMFD, M_WAITOK | M_ZERO);
 	shmfd->shm_size = 0;
 	shmfd->shm_uid = ucred->cr_uid;
 	shmfd->shm_gid = ucred->cr_gid;
@@ -904,7 +904,7 @@ shm_drop(struct shmfd *shmfd)
 		rangelock_destroy(&shmfd->shm_rl);
 		mtx_destroy(&shmfd->shm_mtx);
 		vm_object_deallocate(shmfd->shm_object);
-		free(shmfd, M_SHMFD);
+		vos_free(shmfd, M_SHMFD);
 	}
 }
 
@@ -989,7 +989,7 @@ shm_insert(char *path, Fnv32_t fnv, struct shmfd *shmfd)
 {
 	struct shm_mapping *map;
 
-	map = malloc(sizeof(struct shm_mapping), M_SHMFD, M_WAITOK);
+	map = vos_malloc(sizeof(struct shm_mapping), M_SHMFD, M_WAITOK);
 	map->sm_path = path;
 	map->sm_fnv = fnv;
 	map->sm_shmfd = shm_hold(shmfd);
@@ -1019,13 +1019,13 @@ shm_remove(char *path, Fnv32_t fnv, struct ucred *ucred)
 			map->sm_shmfd->shm_path = NULL;
 			LIST_REMOVE(map, sm_link);
 			shm_drop(map->sm_shmfd);
-			free(map->sm_path, M_SHMFD);
-			free(map, M_SHMFD);
+			vos_free(map->sm_path, M_SHMFD);
+			vos_free(map, M_SHMFD);
 			return (0);
 		}
 	}
 
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 int
@@ -1044,7 +1044,7 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 
 	if ((shmflags & ~(SHM_ALLOW_SEALING | SHM_GROW_ON_WRITE |
 	    SHM_LARGEPAGE)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	initial_seals = F_SEAL_SEAL;
 	if ((shmflags & SHM_ALLOW_SEALING) != 0)
@@ -1055,21 +1055,21 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 	 * shm_open(2) is only allowed for anonymous objects.
 	 */
 	if (IN_CAPABILITY_MODE(td) && (userpath != SHM_ANON))
-		return (ECAPMODE);
+		return (VOS_ECAPMODE);
 #endif
 
 	AUDIT_ARG_FFLAGS(flags);
 	AUDIT_ARG_MODE(mode);
 
 	if ((flags & O_ACCMODE) != O_RDONLY && (flags & O_ACCMODE) != O_RDWR)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	if ((flags & ~(O_ACCMODE | O_CREAT | O_EXCL | O_TRUNC | O_CLOEXEC)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	largepage = (shmflags & SHM_LARGEPAGE) != 0;
 	if (largepage && !PMAP_HAS_LARGEPAGES)
-		return (ENOTTY);
+		return (VOS_ENOTTY);
 
 	/*
 	 * Currently only F_SEAL_SEAL may be set when creating or opening shmfd.
@@ -1080,7 +1080,7 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 	 * the seals being added with respect to current mappings.
 	 */
 	if ((initial_seals & ~F_SEAL_SEAL) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	pdp = td->td_proc->p_pd;
 	cmode = (mode & ~pdp->pd_cmask) & ACCESSPERMS;
@@ -1102,7 +1102,7 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 		if ((flags & O_ACCMODE) == O_RDONLY) {
 			fdclose(td, fp, fd);
 			fdrop(fp, td);
-			return (EINVAL);
+			return (VOS_EINVAL);
 		}
 		shmfd = shm_alloc(td->td_ucred, cmode, largepage);
 		shmfd->shm_seals = initial_seals;
@@ -1136,8 +1136,8 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 				}
 #endif
 			} else {
-				free(path, M_SHMFD);
-				error = ENOENT;
+				vos_free(path, M_SHMFD);
+				error = VOS_ENOENT;
 			}
 		} else {
 			rl_cookie = rangelock_wlock(&shmfd->shm_rl, 0, OFF_MAX,
@@ -1157,7 +1157,7 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 			 * Object already exists, obtain a new
 			 * reference if requested and permitted.
 			 */
-			free(path, M_SHMFD);
+			vos_free(path, M_SHMFD);
 
 			/*
 			 * initial_seals can't set additional seals if we've
@@ -1170,12 +1170,12 @@ kern_shm_open2(struct thread *td, const char *userpath, int flags, mode_t mode,
 			 */
 			if ((shmfd->shm_seals & F_SEAL_SEAL) != 0 &&
 			    initial_seals != 0)
-				error = EPERM;
+				error = VOS_EPERM;
 			else if ((flags & (O_CREAT | O_EXCL)) ==
 			    (O_CREAT | O_EXCL))
-				error = EEXIST;
+				error = VOS_EEXIST;
 			else if (shmflags != 0 && shmflags != shmfd->shm_flags)
-				error = EINVAL;
+				error = VOS_EINVAL;
 			else {
 #ifdef MAC
 				error = mac_posixshm_check_open(td->td_ucred,
@@ -1260,7 +1260,7 @@ sys_shm_unlink(struct thread *td, struct shm_unlink_args *uap)
 	sx_xlock(&shm_dict_lock);
 	error = shm_remove(path, fnv, td->td_ucred);
 	sx_xunlock(&shm_dict_lock);
-	free(path, M_SHMFD);
+	vos_free(path, M_SHMFD);
 
 	return (error);
 }
@@ -1286,7 +1286,7 @@ sys_shm_rename(struct thread *td, struct shm_rename_args *uap)
 	    SHM_RENAME_NOREPLACE |
 	    SHM_RENAME_EXCHANGE
 	    )) != 0) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -1296,13 +1296,13 @@ sys_shm_rename(struct thread *td, struct shm_rename_args *uap)
 	 */
 	if ((flags & SHM_RENAME_NOREPLACE) != 0 &&
 	    (flags & SHM_RENAME_EXCHANGE) != 0) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
 	/* Renaming to or from anonymous makes no sense */
 	if (uap->path_from == SHM_ANON || uap->path_to == SHM_ANON) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -1328,13 +1328,13 @@ sys_shm_rename(struct thread *td, struct shm_rename_args *uap)
 
 	fd_from = shm_lookup(path_from, fnv_from);
 	if (fd_from == NULL) {
-		error = ENOENT;
+		error = VOS_ENOENT;
 		goto out_locked;
 	}
 
 	fd_to = shm_lookup(path_to, fnv_to);
 	if ((flags & SHM_RENAME_NOREPLACE) != 0 && fd_to != NULL) {
-		error = EEXIST;
+		error = VOS_EEXIST;
 		goto out_locked;
 	}
 
@@ -1346,10 +1346,10 @@ sys_shm_rename(struct thread *td, struct shm_rename_args *uap)
 	error = shm_remove(path_from, fnv_from, td->td_ucred);
 
 	/*
-	 * One of my assumptions failed if ENOENT (e.g. locking didn't
+	 * One of my assumptions failed if VOS_ENOENT (e.g. locking didn't
 	 * protect us)
 	 */
-	KASSERT(error != ENOENT, ("Our shm disappeared during shm_rename: %s",
+	KASSERT(error != VOS_ENOENT, ("Our shm disappeared during shm_rename: %s",
 	    path_from));
 	if (error != 0) {
 		shm_drop(fd_from);
@@ -1366,17 +1366,17 @@ sys_shm_rename(struct thread *td, struct shm_rename_args *uap)
 	/*
 	 * NOTE: if path_to is not already in the hash, c'est la vie;
 	 * it simply means we have nothing already at path_to to unlink.
-	 * That is the ENOENT case.
+	 * That is the VOS_ENOENT case.
 	 *
 	 * If we somehow don't have access to unlink this guy, but
 	 * did for the shm at path_from, then relink the shm to path_from
-	 * and abort with EACCES.
+	 * and abort with VOS_EACCES.
 	 *
 	 * All other errors: that is weird; let's relink and abort the
 	 * operation.
 	 */
 	error = shm_remove(path_to, fnv_to, td->td_ucred);
-	if (error != 0 && error != ENOENT) {
+	if (error != 0 && error != VOS_ENOENT) {
 		shm_insert(path_from, fnv_from, fd_from);
 		shm_drop(fd_from);
 		/* Don't free path_from now, since the hash references it */
@@ -1408,8 +1408,8 @@ out_locked:
 	sx_xunlock(&shm_dict_lock);
 
 out:
-	free(path_from, M_SHMFD);
-	free(path_to, M_SHMFD);
+	vos_free(path_from, M_SHMFD);
+	vos_free(path_to, M_SHMFD);
 	return (error);
 }
 
@@ -1425,7 +1425,7 @@ shm_mmap_large(struct shmfd *shmfd, vm_map_t map, vm_offset_t *addr,
 	bool curmap;
 
 	if (shmfd->shm_lp_psind == 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	/* MAP_PRIVATE is disabled */
 	if ((flags & ~(MAP_SHARED | MAP_FIXED | MAP_EXCL |
@@ -1434,7 +1434,7 @@ shm_mmap_large(struct shmfd *shmfd, vm_map_t map, vm_offset_t *addr,
 	    MAP_32BIT |
 #endif
 	    MAP_ALIGNMENT_MASK)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	vms = td->td_proc->p_vmspace;
 	curmap = map == &vms->vm_map;
@@ -1451,7 +1451,7 @@ shm_mmap_large(struct shmfd *shmfd, vm_map_t map, vm_offset_t *addr,
 
 	mask = pagesizes[shmfd->shm_lp_psind] - 1;
 	if ((foff & mask) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	maxaddr = vm_map_max(map);
 #ifdef MAP_32BIT
 	if ((flags & MAP_32BIT) != 0 && maxaddr > MAP_32BIT_MAX_ADDR)
@@ -1460,21 +1460,21 @@ shm_mmap_large(struct shmfd *shmfd, vm_map_t map, vm_offset_t *addr,
 	if (size == 0 || (size & mask) != 0 ||
 	    (*addr != 0 && ((*addr & mask) != 0 ||
 	    *addr + size < *addr || *addr + size > maxaddr)))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	align = flags & MAP_ALIGNMENT_MASK;
 	if (align == 0) {
 		align = pagesizes[shmfd->shm_lp_psind];
 	} else if (align == MAP_ALIGNED_SUPER) {
 		if (shmfd->shm_lp_psind != 1)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		align = pagesizes[1];
 	} else {
 		align >>= MAP_ALIGNMENT_SHIFT;
 		align = 1ULL << align;
 		/* Also handles overflow. */
 		if (align < pagesizes[shmfd->shm_lp_psind])
-			return (EINVAL);
+			return (VOS_EINVAL);
 	}
 
 	vm_map_lock(map);
@@ -1505,7 +1505,7 @@ again:
 		if (rv != KERN_SUCCESS)
 			goto fail1;
 	} else {
-		error = ENOSPC;
+		error = VOS_ENOSPC;
 		if (vm_map_lookup_entry(map, *addr, &prev_entry))
 			goto fail;
 		next_entry = vm_map_entry_succ(prev_entry);
@@ -1565,7 +1565,7 @@ shm_mmap(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t objsize,
 		 */
 		writecnt = (maxprot & VM_PROT_WRITE) != 0;
 		if (!writecnt && (prot & VM_PROT_WRITE) != 0) {
-			error = EACCES;
+			error = VOS_EACCES;
 			goto out;
 		}
 	}
@@ -1577,7 +1577,7 @@ shm_mmap(struct file *fp, vm_map_t map, vm_offset_t *addr, vm_size_t objsize,
 	    objsize > OFF_MAX ||
 #endif
 	    foff > OFF_MAX - objsize) {
-		error = EINVAL;
+		error = VOS_EINVAL;
 		goto out;
 	}
 
@@ -1687,7 +1687,7 @@ shm_map(struct file *fp, size_t size, off_t offset, void **memp)
 	int rv;
 
 	if (fp->f_type != DTYPE_SHM)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	shmfd = fp->f_data;
 	obj = shmfd->shm_object;
 	VM_OBJECT_WLOCK(obj);
@@ -1698,7 +1698,7 @@ shm_map(struct file *fp, size_t size, off_t offset, void **memp)
 	if (offset >= shmfd->shm_size ||
 	    offset + size > round_page(shmfd->shm_size)) {
 		VM_OBJECT_WUNLOCK(obj);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 
 	shmfd->shm_kmappings++;
@@ -1750,7 +1750,7 @@ shm_unmap(struct file *fp, void *mem, size_t size)
 	int rv;
 
 	if (fp->f_type != DTYPE_SHM)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	shmfd = fp->f_data;
 	kva = (vm_offset_t)mem;
 	ofs = kva & PAGE_MASK;
@@ -1760,14 +1760,14 @@ shm_unmap(struct file *fp, void *mem, size_t size)
 	rv = vm_map_lookup(&map, kva, VM_PROT_READ | VM_PROT_WRITE, &entry,
 	    &obj, &pindex, &prot, &wired);
 	if (rv != KERN_SUCCESS)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (entry->start != kva || entry->end != kva + size) {
 		vm_map_lookup_done(map, entry);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	vm_map_lookup_done(map, entry);
 	if (obj != shmfd->shm_object)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	vm_map_remove(map, kva, kva + size);
 	VM_OBJECT_WLOCK(obj);
 	KASSERT(shmfd->shm_kmappings > 0, ("shm_unmap: object not mapped"));
@@ -1793,15 +1793,15 @@ shm_fill_kinfo_locked(struct shmfd *shmfd, struct kinfo_file *kif, bool list)
 			pr_path = curthread->td_ucred->cr_prison->pr_path;
 			if (strcmp(pr_path, "/") != 0) {
 				/* Return the jail-rooted pathname. */
-				pr_pathlen = strlen(pr_path);
-				visible = strncmp(path, pr_path, pr_pathlen)
+				pr_pathlen = vos_strlen(pr_path);
+				visible = vos_strncmp(path, pr_path, pr_pathlen)
 				    == 0 && path[pr_pathlen] == '/';
 				if (list && !visible)
-					return (EPERM);
+					return (VOS_EPERM);
 				if (visible)
 					path += pr_pathlen;
 			}
-			strlcpy(kif->kf_path, path, sizeof(kif->kf_path));
+			vos_strlcpy(kif->kf_path, path, sizeof(kif->kf_path));
 		}
 	}
 	return (0);
@@ -1832,15 +1832,15 @@ shm_add_seals(struct file *fp, int seals)
 	rl_cookie = rangelock_wlock(&shmfd->shm_rl, 0, OFF_MAX,
 	    &shmfd->shm_mtx);
 
-	/* Even already-set seals should result in EPERM. */
+	/* Even already-set seals should result in VOS_EPERM. */
 	if ((shmfd->shm_seals & F_SEAL_SEAL) != 0) {
-		error = EPERM;
+		error = VOS_EPERM;
 		goto out;
 	}
 	nseals = seals & ~shmfd->shm_seals;
 	if ((nseals & F_SEAL_WRITE) != 0) {
 		if (shm_largepage(shmfd)) {
-			error = ENOTSUP;
+			error = VOS_ENOTSUP;
 			goto out;
 		}
 
@@ -1855,7 +1855,7 @@ shm_add_seals(struct file *fp, int seals)
 		VM_OBJECT_RUNLOCK(shmfd->shm_object);
 		/* kmappings are also writable */
 		if (writemappings > 0) {
-			error = EBUSY;
+			error = VOS_EBUSY;
 			goto out;
 		}
 	}
@@ -1903,8 +1903,8 @@ shm_fallocate(struct file *fp, off_t offset, off_t len, struct thread *td)
 		error = shm_dotruncate_cookie(shmfd, size, rl_cookie);
 	rangelock_unlock(&shmfd->shm_rl, rl_cookie, &shmfd->shm_mtx);
 	/* Translate to posix_fallocate(2) return value as needed. */
-	if (error == ENOMEM)
-		error = ENOSPC;
+	if (error == VOS_ENOMEM)
+		error = VOS_ENOSPC;
 	return (error);
 }
 
@@ -1927,7 +1927,7 @@ sysctl_posix_shm_list(SYSCTL_HANDLER_ARGS)
 		LIST_FOREACH(shmm, &shm_dictionary[i], sm_link) {
 			error = shm_fill_kinfo_locked(shmm->sm_shmfd,
 			    &kif, true);
-			if (error == EPERM)
+			if (error == VOS_EPERM)
 				continue;
 			if (error != 0)
 				break;
@@ -1936,7 +1936,7 @@ sysctl_posix_shm_list(SYSCTL_HANDLER_ARGS)
 			    kif.kf_structsize + curlen > req->oldlen)
 				break;
 			error = sbuf_bcat(&sb, &kif, kif.kf_structsize) == 0 ?
-			    0 : ENOMEM;
+			    0 : VOS_ENOMEM;
 			if (error != 0)
 				break;
 			curlen += kif.kf_structsize;

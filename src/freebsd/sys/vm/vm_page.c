@@ -288,7 +288,7 @@ vm_page_blacklist_next(char** list, char* end)
 	 * the kenv and we know it's null-terminated.
 	 */
 	if (end == NULL)
-		end = *list + strlen(*list);
+		end = *list + vos_strlen(*list);
 
 	/* Ensure that strtoq() won't walk off the end */
 	if (*end != '\0') {
@@ -2801,7 +2801,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 		 * lock is held and the page is unmapped.
 		 */
 		if (vm_page_wired(m))
-			error = EBUSY;
+			error = VOS_EBUSY;
 		else if ((object = atomic_load_ptr(&m->object)) != NULL) {
 			/*
 			 * The page is relocated if and only if it could be
@@ -2813,14 +2813,14 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 				(object->type != OBJT_DEFAULT &&
 					(object->flags & OBJ_SWAP) == 0 &&
 					object->type != OBJT_VNODE))
-				error = EINVAL;
+				error = VOS_EINVAL;
 			else if (object->memattr != VM_MEMATTR_DEFAULT)
-				error = EINVAL;
+				error = VOS_EINVAL;
 			else if (vm_page_queue(m) != PQ_NONE &&
 				vm_page_tryxbusy(m) != 0) {
 				if (vm_page_wired(m)) {
 					vm_page_xunbusy(m);
-					error = EBUSY;
+					error = VOS_EBUSY;
 					goto unlock;
 				}
 				KASSERT(pmap_page_get_memattr(m) ==
@@ -2869,7 +2869,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 					}
 					if (m_new == NULL) {
 						vm_page_xunbusy(m);
-						error = ENOMEM;
+						error = VOS_ENOMEM;
 						goto unlock;
 					}
 
@@ -2882,7 +2882,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 						!vm_page_try_remove_all(m)) {
 						vm_page_xunbusy(m);
 						vm_page_free(m_new);
-						error = EBUSY;
+						error = VOS_EBUSY;
 						goto unlock;
 					}
 
@@ -2925,7 +2925,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 				}
 			}
 			else
-				error = EBUSY;
+				error = VOS_EBUSY;
 		unlock:
 			VM_OBJECT_WUNLOCK(object);
 		}
@@ -2951,7 +2951,7 @@ vm_page_reclaim_run(int req_class, int domain, u_long npages, vm_page_t m_run,
 #endif
 			vm_domain_free_unlock(vmd);
 			if (order == VM_NFREEORDER)
-				error = EINVAL;
+				error = VOS_EINVAL;
 		}
 	}
 	if ((m = SLIST_FIRST(&free)) != NULL) {
@@ -3357,7 +3357,7 @@ vm_domain_alloc_fail(struct vm_domain* vmd, vm_object_t object, int req)
 		if (object != NULL)
 			VM_OBJECT_WLOCK(object);
 		if (req & VM_ALLOC_WAITOK)
-			return (EAGAIN);
+			return (VOS_EAGAIN);
 	}
 
 	return (0);

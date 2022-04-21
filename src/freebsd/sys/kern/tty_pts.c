@@ -171,7 +171,7 @@ ptsdev_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
 
 		/* Wait for more data. */
 		if (fp->f_flag & O_NONBLOCK) {
-			error = EWOULDBLOCK;
+			error = VOS_EWOULDBLOCK;
 			break;
 		}
 		error = cv_wait_sig(&psc->pts_outwait, tp->t_mtx);
@@ -224,13 +224,13 @@ ptsdev_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 
 			/* Maybe the device isn't used anyway. */
 			if (psc->pts_flags & PTS_FINISHED) {
-				error = EIO;
+				error = VOS_EIO;
 				goto done;
 			}
 
 			/* Wait for more data. */
 			if (fp->f_flag & O_NONBLOCK) {
-				error = EWOULDBLOCK;
+				error = VOS_EWOULDBLOCK;
 				goto done;
 			}
 
@@ -294,9 +294,9 @@ ptsdev_ioctl(struct file *fp, u_long cmd, void *data,
 		/* Reverse device name lookups, for ptsname() and ttyname(). */
 		fgn = data;
 		p = tty_devname(tp);
-		i = strlen(p) + 1;
+		i = vos_strlen(p) + 1;
 		if (i > fgn->len)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		return (copyout(p, fiodgname_buf_get_ptr(fgn, cmd), i));
 	}
 
@@ -333,7 +333,7 @@ ptsdev_ioctl(struct file *fp, u_long cmd, void *data,
 		 * Get the device unit number.
 		 */
 		if (psc->pts_unit < 0)
-			return (ENOTTY);
+			return (VOS_ENOTTY);
 		*(unsigned int *)data = psc->pts_unit;
 		return (0);
 #endif /* PTS_COMPAT || PTS_LINUX */
@@ -350,7 +350,7 @@ ptsdev_ioctl(struct file *fp, u_long cmd, void *data,
 		/* Get the session leader process ID. */
 		tty_lock(tp);
 		if (tp->t_session == NULL)
-			error = ENOTTY;
+			error = VOS_ENOTTY;
 		else
 			*(int *)data = tp->t_session->s_sid;
 		tty_unlock(tp);
@@ -362,7 +362,7 @@ ptsdev_ioctl(struct file *fp, u_long cmd, void *data,
 		/* Signal the foreground process group. */
 		sig = *(int *)data;
 		if (sig < 1 || sig >= NSIG)
-			return (EINVAL);
+			return (VOS_EINVAL);
 
 		tty_lock(tp);
 		tty_signal_pgrp(tp, sig);
@@ -383,8 +383,8 @@ ptsdev_ioctl(struct file *fp, u_long cmd, void *data,
 	tty_lock(tp);
 	error = tty_ioctl(tp, cmd, data, fp->f_flag, td);
 	tty_unlock(tp);
-	if (error == ENOIOCTL)
-		error = ENOTTY;
+	if (error == VOS_ENOIOCTL)
+		error = VOS_ENOTTY;
 
 	return (error);
 }
@@ -526,7 +526,7 @@ ptsdev_kqfilter(struct file *fp, struct knote *kn)
 		knlist_add(&psc->pts_inpoll.si_note, kn, 1);
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 
@@ -602,7 +602,7 @@ ptsdev_fill_kinfo(struct file *fp, struct kinfo_file *kif, struct filedesc *fdp)
 	kif->kf_un.kf_pts.kf_pts_dev = tty_udev(tp);
 	kif->kf_un.kf_pts.kf_pts_dev_freebsd11 =
 	    kif->kf_un.kf_pts.kf_pts_dev; /* truncate */
-	strlcpy(kif->kf_path, tty_devname(tp), sizeof(kif->kf_path));
+	vos_strlcpy(kif->kf_path, tty_devname(tp), sizeof(kif->kf_path));
 	return (0);
 }
 
@@ -719,7 +719,7 @@ ptsdrv_free(void *softc)
 		destroy_dev_sched(psc->pts_cdev);
 #endif /* PTS_EXTERNAL */
 
-	free(psc, M_PTS);
+	vos_free(psc, M_PTS);
 }
 
 static struct ttydevsw pts_class = {
@@ -749,13 +749,13 @@ pts_alloc(int fflags, struct thread *td, struct file *fp)
 	error = racct_add(p, RACCT_NPTS, 1);
 	if (error != 0) {
 		PROC_UNLOCK(p);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 	ok = chgptscnt(cred->cr_ruidinfo, 1, lim_cur(td, RLIMIT_NPTS));
 	if (!ok) {
 		racct_sub(p, RACCT_NPTS, 1);
 		PROC_UNLOCK(p);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 	PROC_UNLOCK(p);
 
@@ -764,11 +764,11 @@ pts_alloc(int fflags, struct thread *td, struct file *fp)
 	if (unit < 0) {
 		racct_sub(p, RACCT_NPTS, 1);
 		chgptscnt(cred->cr_ruidinfo, -1, 0);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 
 	/* Allocate TTY and softc. */
-	psc = malloc(sizeof(struct pts_softc), M_PTS, M_WAITOK|M_ZERO);
+	psc = vos_malloc(sizeof(struct pts_softc), M_PTS, M_WAITOK|M_ZERO);
 	cv_init(&psc->pts_inwait, "ptsin");
 	cv_init(&psc->pts_outwait, "ptsout");
 
@@ -803,18 +803,18 @@ pts_alloc_external(int fflags, struct thread *td, struct file *fp,
 	error = racct_add(p, RACCT_NPTS, 1);
 	if (error != 0) {
 		PROC_UNLOCK(p);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 	ok = chgptscnt(cred->cr_ruidinfo, 1, lim_cur(td, RLIMIT_NPTS));
 	if (!ok) {
 		racct_sub(p, RACCT_NPTS, 1);
 		PROC_UNLOCK(p);
-		return (EAGAIN);
+		return (VOS_EAGAIN);
 	}
 	PROC_UNLOCK(p);
 
 	/* Allocate TTY and softc. */
-	psc = malloc(sizeof(struct pts_softc), M_PTS, M_WAITOK|M_ZERO);
+	psc = vos_malloc(sizeof(struct pts_softc), M_PTS, M_WAITOK|M_ZERO);
 	cv_init(&psc->pts_inwait, "ptsin");
 	cv_init(&psc->pts_outwait, "ptsout");
 
@@ -846,7 +846,7 @@ sys_posix_openpt(struct thread *td, struct posix_openpt_args *uap)
 	 * don't allow this.
 	 */
 	if (uap->flags & ~(O_RDWR|O_NOCTTY|O_CLOEXEC))
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	error = falloc(td, &fp, &fd, uap->flags);
 	if (error)

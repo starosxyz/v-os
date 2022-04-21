@@ -117,7 +117,7 @@ SYSCTL_INT(_p1003_1b, OID_AUTO, nsems, CTLFLAG_RD, &nsems, 0,
 	"Number of active kernel POSIX semaphores");
 
 static int	kern_sem_wait(struct thread* td, semid_t id, int tryflag,
-	struct timespec* abstime);
+	struct vos_timespec* abstime);
 static int	ksem_access(struct ksem* ks, struct ucred* ucred);
 static struct ksem* ksem_alloc(struct ucred* ucred, mode_t mode,
 	unsigned int value);
@@ -283,12 +283,12 @@ ksem_fill_kinfo(struct file* fp, struct kinfo_file* kif, struct filedesc* fdp)
 			pr_path = curthread->td_ucred->cr_prison->pr_path;
 			if (strcmp(pr_path, "/") != 0) {
 				/* Return the jail-rooted pathname. */
-				pr_pathlen = strlen(pr_path);
-				if (strncmp(path, pr_path, pr_pathlen) == 0 &&
+				pr_pathlen = vos_strlen(pr_path);
+				if (vos_strncmp(path, pr_path, pr_pathlen) == 0 &&
 					path[pr_pathlen] == '/')
 					path += pr_pathlen;
 			}
-			strlcpy(kif->kf_path, path, sizeof(kif->kf_path));
+			vos_strlcpy(kif->kf_path, path, sizeof(kif->kf_path));
 		}
 		sx_sunlock(&ksem_dict_lock);
 	}
@@ -311,7 +311,7 @@ ksem_alloc(struct ucred* ucred, mode_t mode, unsigned int value)
 	}
 	nsems++;
 	mtx_unlock(&ksem_count_lock);
-	ks = malloc(sizeof(*ks), M_KSEM, M_WAITOK | M_ZERO);
+	ks = vos_malloc(sizeof(*ks), M_KSEM, M_WAITOK | M_ZERO);
 	ks->ks_uid = ucred->cr_uid;
 	ks->ks_gid = ucred->cr_gid;
 	ks->ks_mode = mode;
@@ -345,7 +345,7 @@ ksem_drop(struct ksem* ks)
 		mac_posixsem_destroy(ks);
 #endif
 		cv_destroy(&ks->ks_cv);
-		free(ks, M_KSEM);
+		vos_free(ks, M_KSEM);
 		mtx_lock(&ksem_count_lock);
 		nsems--;
 		mtx_unlock(&ksem_count_lock);
@@ -393,7 +393,7 @@ ksem_insert(char* path, Fnv32_t fnv, struct ksem* ks)
 {
 	struct ksem_mapping* map;
 
-	map = malloc(sizeof(struct ksem_mapping), M_KSEM, M_WAITOK);
+	map = vos_malloc(sizeof(struct ksem_mapping), M_KSEM, M_WAITOK);
 	map->km_path = path;
 	map->km_fnv = fnv;
 	map->km_ksem = ksem_hold(ks);
@@ -422,13 +422,13 @@ ksem_remove(char* path, Fnv32_t fnv, struct ucred* ucred)
 			map->km_ksem->ks_path = NULL;
 			LIST_REMOVE(map, km_link);
 			ksem_drop(map->km_ksem);
-			free(map->km_path, M_KSEM);
-			free(map, M_KSEM);
+			vos_free(map->km_path, M_KSEM);
+			vos_free(map, M_KSEM);
 			return (0);
 		}
 	}
 
-	return (ENOENT);
+	return (VOS_ENOENT);
 }
 
 static int
@@ -480,14 +480,14 @@ ksem_create(struct thread* td, const char* name, semid_t* semidp, mode_t mode,
 	AUDIT_ARG_VALUE(value);
 
 	if (value > SEM_VALUE_MAX)
-		return (EINVAL);
+		return (VOS_EINVAL);
 
 	pdp = td->td_proc->p_pd;
 	mode = (mode & ~pdp->pd_cmask) & ACCESSPERMS;
 	error = falloc(td, &fp, &fd, O_CLOEXEC);
 	if (error) {
 		if (name == NULL)
-			error = ENOSPC;
+			error = VOS_ENOSPC;
 		return (error);
 	}
 
@@ -507,27 +507,27 @@ ksem_create(struct thread* td, const char* name, semid_t* semidp, mode_t mode,
 		/* Create an anonymous semaphore. */
 		ks = ksem_alloc(td->td_ucred, mode, value);
 		if (ks == NULL)
-			error = ENOSPC;
+			error = VOS_ENOSPC;
 		else
 			ks->ks_flags |= KS_ANONYMOUS;
 	}
 	else {
-		path = malloc(MAXPATHLEN, M_KSEM, M_WAITOK);
+		path = vos_malloc(MAXPATHLEN, M_KSEM, M_WAITOK);
 		pr_path = td->td_ucred->cr_prison->pr_path;
 
 		/* Construct a full pathname for jailed callers. */
 		pr_pathlen = strcmp(pr_path, "/") == 0 ? 0
-			: strlcpy(path, pr_path, MAXPATHLEN);
+			: vos_strlcpy(path, pr_path, MAXPATHLEN);
 		error = copyinstr(name, path + pr_pathlen,
 			MAXPATHLEN - pr_pathlen, NULL);
 
 		/* Require paths to start with a '/' character. */
 		if (error == 0 && path[pr_pathlen] != '/')
-			error = EINVAL;
+			error = VOS_EINVAL;
 		if (error) {
 			fdclose(td, fp, fd);
 			fdrop(fp, td);
-			free(path, M_KSEM);
+			vos_free(path, M_KSEM);
 			return (error);
 		}
 
@@ -540,14 +540,14 @@ ksem_create(struct thread* td, const char* name, semid_t* semidp, mode_t mode,
 			if (flags & O_CREAT) {
 				ks = ksem_alloc(td->td_ucred, mode, value);
 				if (ks == NULL)
-					error = ENFILE;
+					error = VOS_ENFILE;
 				else {
 					ksem_insert(path, fnv, ks);
 					path = NULL;
 				}
 			}
 			else
-				error = ENOENT;
+				error = VOS_ENOENT;
 		}
 		else {
 			/*
@@ -556,7 +556,7 @@ ksem_create(struct thread* td, const char* name, semid_t* semidp, mode_t mode,
 			 */
 			if ((flags & (O_CREAT | O_EXCL)) ==
 				(O_CREAT | O_EXCL))
-				error = EEXIST;
+				error = VOS_EEXIST;
 			else {
 #ifdef MAC
 				error = mac_posixsem_check_open(td->td_ucred,
@@ -574,7 +574,7 @@ ksem_create(struct thread* td, const char* name, semid_t* semidp, mode_t mode,
 		}
 		sx_xunlock(&ksem_dict_lock);
 		if (path)
-			free(path, M_KSEM);
+			vos_free(path, M_KSEM);
 	}
 
 	if (error) {
@@ -602,15 +602,15 @@ ksem_get(struct thread* td, semid_t id, cap_rights_t* rightsp,
 
 	error = fget(td, id, rightsp, &fp);
 	if (error)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	if (fp->f_type != DTYPE_SEM) {
 		fdrop(fp, td);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	ks = fp->f_data;
 	if (ks->ks_flags & KS_DEAD) {
 		fdrop(fp, td);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	*fpp = fp;
 	return (0);
@@ -647,7 +647,7 @@ sys_ksem_open(struct thread* td, struct ksem_open_args* uap)
 	DP((">>> ksem_open start, pid=%d\n", (int)td->td_proc->p_pid));
 
 	if ((uap->oflag & ~(O_CREAT | O_EXCL)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (ksem_create(td, uap->name, uap->idp, uap->mode, uap->value,
 		uap->oflag, 0));
 }
@@ -666,14 +666,14 @@ sys_ksem_unlink(struct thread* td, struct ksem_unlink_args* uap)
 	Fnv32_t fnv;
 	int error;
 
-	path = malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
+	path = vos_malloc(MAXPATHLEN, M_TEMP, M_WAITOK);
 	pr_path = td->td_ucred->cr_prison->pr_path;
 	pr_pathlen = strcmp(pr_path, "/") == 0 ? 0
-		: strlcpy(path, pr_path, MAXPATHLEN);
+		: vos_strlcpy(path, pr_path, MAXPATHLEN);
 	error = copyinstr(uap->name, path + pr_pathlen, MAXPATHLEN - pr_pathlen,
 		NULL);
 	if (error) {
-		free(path, M_TEMP);
+		vos_free(path, M_TEMP);
 		return (error);
 	}
 
@@ -682,7 +682,7 @@ sys_ksem_unlink(struct thread* td, struct ksem_unlink_args* uap)
 	sx_xlock(&ksem_dict_lock);
 	error = ksem_remove(path, fnv, td->td_ucred);
 	sx_xunlock(&ksem_dict_lock);
-	free(path, M_TEMP);
+	vos_free(path, M_TEMP);
 
 	return (error);
 }
@@ -707,7 +707,7 @@ sys_ksem_close(struct thread* td, struct ksem_close_args* uap)
 	ks = fp->f_data;
 	if (ks->ks_flags & KS_ANONYMOUS) {
 		fdrop(fp, td);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	error = kern_close(td, uap->id);
 	fdrop(fp, td);
@@ -741,7 +741,7 @@ sys_ksem_post(struct thread* td, struct ksem_post_args* uap)
 		goto err;
 #endif
 	if (ks->ks_value == SEM_VALUE_MAX) {
-		error = EOVERFLOW;
+		error = VOS_EOVERFLOW;
 		goto err;
 	}
 	++ks->ks_value;
@@ -770,18 +770,18 @@ sys_ksem_wait(struct thread* td, struct ksem_wait_args* uap)
 #ifndef _SYS_SYSPROTO_H_
 struct ksem_timedwait_args {
 	semid_t		id;
-	const struct timespec* abstime;
+	const struct vos_timespec* abstime;
 };
 #endif
 int
 sys_ksem_timedwait(struct thread* td, struct ksem_timedwait_args* uap)
 {
-	struct timespec abstime;
-	struct timespec* ts;
+	struct vos_timespec abstime;
+	struct vos_timespec* ts;
 	int error;
 
 	/*
-	 * We allow a null timespec (wait forever).
+	 * We allow a null vos_timespec (wait forever).
 	 */
 	if (uap->abstime == NULL)
 		ts = NULL;
@@ -790,7 +790,7 @@ sys_ksem_timedwait(struct thread* td, struct ksem_timedwait_args* uap)
 		if (error != 0)
 			return (error);
 		if (abstime.tv_nsec >= 1000000000 || abstime.tv_nsec < 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		ts = &abstime;
 	}
 	return (kern_sem_wait(td, uap->id, 0, ts));
@@ -810,9 +810,9 @@ sys_ksem_trywait(struct thread* td, struct ksem_trywait_args* uap)
 
 static int
 kern_sem_wait(struct thread* td, semid_t id, int tryflag,
-	struct timespec* abstime)
+	struct vos_timespec* abstime)
 {
-	struct timespec ts1, ts2;
+	struct vos_timespec ts1, ts2;
 	struct timeval tv;
 	cap_rights_t rights;
 	struct file* fp;
@@ -841,7 +841,7 @@ kern_sem_wait(struct thread* td, semid_t id, int tryflag,
 	while (ks->ks_value == 0) {
 		ks->ks_waiters++;
 		if (tryflag != 0)
-			error = EAGAIN;
+			error = VOS_EAGAIN;
 		else if (abstime == NULL)
 			error = cv_wait_sig(&ks->ks_cv, &sem_lock);
 		else {
@@ -851,12 +851,12 @@ kern_sem_wait(struct thread* td, semid_t id, int tryflag,
 				timespecsub(&ts1, &ts2, &ts1);
 				TIMESPEC_TO_TIMEVAL(&tv, &ts1);
 				if (tv.tv_sec < 0) {
-					error = ETIMEDOUT;
+					error = VOS_ETIMEDOUT;
 					break;
 				}
 				error = cv_timedwait_sig(&ks->ks_cv,
 					&sem_lock, tvtohz(&tv));
-				if (error != EWOULDBLOCK)
+				if (error != VOS_EWOULDBLOCK)
 					break;
 			}
 		}
@@ -933,12 +933,12 @@ sys_ksem_destroy(struct thread* td, struct ksem_destroy_args* uap)
 	ks = fp->f_data;
 	if (!(ks->ks_flags & KS_ANONYMOUS)) {
 		fdrop(fp, td);
-		return (EINVAL);
+		return (VOS_EINVAL);
 	}
 	mtx_lock(&sem_lock);
 	if (ks->ks_waiters != 0) {
 		mtx_unlock(&sem_lock);
-		error = EBUSY;
+		error = VOS_EBUSY;
 		goto err;
 	}
 	ks->ks_flags |= KS_DEAD;
@@ -984,7 +984,7 @@ freebsd32_ksem_open(struct thread* td, struct freebsd32_ksem_open_args* uap)
 {
 
 	if ((uap->oflag & ~(O_CREAT | O_EXCL)) != 0)
-		return (EINVAL);
+		return (VOS_EINVAL);
 	return (ksem_create(td, uap->name, uap->idp, uap->mode, uap->value,
 		uap->oflag, 1));
 }
@@ -994,11 +994,11 @@ freebsd32_ksem_timedwait(struct thread* td,
 	struct freebsd32_ksem_timedwait_args* uap)
 {
 	struct timespec32 abstime32;
-	struct timespec* ts, abstime;
+	struct vos_timespec* ts, abstime;
 	int error;
 
 	/*
-	 * We allow a null timespec (wait forever).
+	 * We allow a null vos_timespec (wait forever).
 	 */
 	if (uap->abstime == NULL)
 		ts = NULL;
@@ -1009,7 +1009,7 @@ freebsd32_ksem_timedwait(struct thread* td,
 		CP(abstime32, abstime, tv_sec);
 		CP(abstime32, abstime, tv_nsec);
 		if (abstime.tv_nsec >= 1000000000 || abstime.tv_nsec < 0)
-			return (EINVAL);
+			return (VOS_EINVAL);
 		ts = &abstime;
 	}
 	return (kern_sem_wait(td, uap->id, 0, ts));
@@ -1087,7 +1087,7 @@ sem_modload(struct module* module, int cmd, void* arg)
 	case MOD_UNLOAD:
 		mtx_lock(&ksem_count_lock);
 		if (nsems != 0) {
-			error = EOPNOTSUPP;
+			error = VOS_EOPNOTSUPP;
 			mtx_unlock(&ksem_count_lock);
 			break;
 		}
@@ -1099,7 +1099,7 @@ sem_modload(struct module* module, int cmd, void* arg)
 	case MOD_SHUTDOWN:
 		break;
 	default:
-		error = EINVAL;
+		error = VOS_EINVAL;
 		break;
 	}
 	return (error);
