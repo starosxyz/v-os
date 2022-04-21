@@ -971,7 +971,7 @@ quiesce_cpus(cpuset_t map, const char *wmesg, int prio)
 		thread_unlock(curthread);
 		while (gen[cpu] == pcpu->pc_idlethread->td_generation) {
 			error = tsleep(quiesce_cpus, prio, wmesg, 1);
-			if (error != VOS_EWOULDBLOCK)
+			if (error != EWOULDBLOCK)
 				goto out;
 			error = 0;
 		}
@@ -1097,7 +1097,7 @@ topo_add_node_by_hwid(struct topo_node *parent, int hwid,
 		}
 	}
 
-	node = vos_malloc(sizeof(*node), M_TOPO, M_WAITOK);
+	node = malloc(sizeof(*node), M_TOPO, M_WAITOK);
 	topo_init_node(node);
 	node->parent = parent;
 	node->hwid = hwid;

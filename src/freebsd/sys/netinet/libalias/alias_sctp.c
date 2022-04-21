@@ -186,9 +186,9 @@ void SctpShowAliasStats(struct libalias *la);
 static MALLOC_DEFINE(M_SCTPNAT, "sctpnat", "sctp nat dbs");
 /* Use kernel allocator. */
 #ifdef _SYS_MALLOC_H_
-#define	sn_malloc(x)	vos_malloc(x, M_SCTPNAT, M_NOWAIT|M_ZERO)
+#define	sn_malloc(x)	malloc(x, M_SCTPNAT, M_NOWAIT|M_ZERO)
 #define	sn_calloc(n,x)	mallocarray((n), (x), M_SCTPNAT, M_NOWAIT|M_ZERO)
-#define	sn_free(x)	vos_free(x, M_SCTPNAT)
+#define	sn_free(x)	free(x, M_SCTPNAT)
 #endif// #ifdef _SYS_MALLOC_H_
 
 #else //#ifdef	_KERNEL

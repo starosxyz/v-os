@@ -36,7 +36,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/libkern.h>
 
 char *
-vos_strrchr(const char *cp, int ch)
+strrchr(const char *cp, int ch)
 {
 	char *p, *save;
 

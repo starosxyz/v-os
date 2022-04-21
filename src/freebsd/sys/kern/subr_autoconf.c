@@ -83,7 +83,7 @@ config_intrhook_oneshot_func(void *arg)
 	ohook = arg;
 	ohook->och_func(ohook->och_arg);
 	config_intrhook_disestablish(&ohook->och_hook);
-	vos_free(ohook, M_DEVBUF);
+	free(ohook, M_DEVBUF);
 }
 
 /*
@@ -162,7 +162,7 @@ boot_run_interrupt_driven_config_hooks(void *dummy)
 	while (!TAILQ_EMPTY(&intr_config_hook_list)) {
 		if (msleep(&intr_config_hook_list, &intr_config_hook_lock,
 		    0, "conifhk", WARNING_INTERVAL_SECS * hz) ==
-		    VOS_EWOULDBLOCK) {
+		    EWOULDBLOCK) {
 			mtx_unlock(&intr_config_hook_lock);
 			warned++;
 			run_interrupt_driven_config_hooks_warning(warned);
@@ -220,7 +220,7 @@ config_intrhook_oneshot(ich_func_t func, void *arg)
 {
 	struct oneshot_config_hook *ohook;
 
-	ohook = vos_malloc(sizeof(*ohook), M_DEVBUF, M_WAITOK);
+	ohook = malloc(sizeof(*ohook), M_DEVBUF, M_WAITOK);
 	ohook->och_func = func;
 	ohook->och_arg  = arg;
 	ohook->och_hook.ich_func = config_intrhook_oneshot_func;
@@ -285,7 +285,7 @@ config_intrhook_drain(struct intr_config_hook *hook)
 	 */
 	while (hook->ich_state != ICHS_DONE) {
 		if (msleep(&intr_config_hook_list, &intr_config_hook_lock,
-		    0, "confhd", hz) == VOS_EWOULDBLOCK) {
+		    0, "confhd", hz) == EWOULDBLOCK) {
 			// XXX do I whine?
 		}
 	}

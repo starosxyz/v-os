@@ -102,8 +102,6 @@ static int sysctl_kern_smp_active(SYSCTL_HANDLER_ARGS);
 /* This is used in modules that need to work in both SMP and UP. */
 cpuset_t all_cpus;
 
-int mp_ncpus = 1;
-
 volatile int smp_started;
 u_int mp_maxid;
 
@@ -193,7 +191,7 @@ copystr(const void *kfaddr, void *kdaddr, size_t len, size_t *done)
 {
     size_t bytes;
 
-    bytes = vos_strlcpy(kdaddr, kfaddr, len);
+    bytes = strlcpy(kdaddr, kfaddr, len);
     if (done != NULL)
         *done = bytes;
 
@@ -206,7 +204,7 @@ copyinstr(const void *uaddr, void *kaddr, size_t len, size_t *done)
 {    
     size_t bytes;
 
-    bytes = vos_strlcpy(kaddr, uaddr, len);
+    bytes = strlcpy(kaddr, uaddr, len);
     if (done != NULL)
         *done = bytes;
 
@@ -248,7 +246,7 @@ void
 DELAY(int delay)
 {
 #if 0
-    struct vos_timespec rqt;
+    struct timespec rqt;
 
     if (delay < 1000)
         return;
@@ -560,4 +558,9 @@ int
 uma_zone_reserve_kva(uma_zone_t zone, int count)
 {
     return 0;
+}
+
+void longjmp(struct _jmp_buf* a, int b)
+{
+	
 }

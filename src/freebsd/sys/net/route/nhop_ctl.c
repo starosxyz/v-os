@@ -223,7 +223,7 @@ set_nhop_gw_from_info(struct nhop_object *nh, struct rt_addrinfo *info)
 		if (gw->sa_len > sizeof(struct sockaddr_in6)) {
 			DPRINTF("nhop SA size too big: AF %d len %u",
 			    gw->sa_family, gw->sa_len);
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		}
 		memcpy(&nh->gw_sa, gw, gw->sa_len);
 	} else {
@@ -245,12 +245,12 @@ set_nhop_gw_from_info(struct nhop_object *nh, struct rt_addrinfo *info)
 		sdl = (struct sockaddr_dl *)gw;
 		if (sdl->sdl_family != AF_LINK) {
 			DPRINTF("unsupported AF: %d", sdl->sdl_family);
-			return (VOS_ENOTSUP);
+			return (ENOTSUP);
 		}
 		ifp = ifnet_byindex(sdl->sdl_index);
 		if (ifp == NULL) {
 			DPRINTF("invalid ifindex %d", sdl->sdl_index);
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 		fill_sdl_from_ifp(&nh->gwl_sa, ifp);
 	}
@@ -322,7 +322,7 @@ nhop_create_from_info(struct rib_head *rnh, struct rt_addrinfo *info,
 	NET_EPOCH_ASSERT();
 
 	if (info->rti_info[RTAX_GATEWAY] == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	nh_priv = alloc_nhop_structure();
 
@@ -530,7 +530,7 @@ finalize_nhop(struct nh_control *ctl, struct rt_addrinfo *info,
 		uma_zfree(nhops_zone, nh);
 		RTSTAT_INC(rts_nh_alloc_failure);
 		DPRINTF("nh_alloc_finalize failed");
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 
 	/* Save vnet to ease destruction */
@@ -559,7 +559,7 @@ finalize_nhop(struct nh_control *ctl, struct rt_addrinfo *info,
 		DPRINTF("link_nhop failed!");
 		destroy_nhop(nh_priv);
 
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 	}
 
 	return (0);

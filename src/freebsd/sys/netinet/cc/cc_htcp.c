@@ -238,7 +238,7 @@ htcp_ack_received(struct cc_var *ccv, uint16_t type)
 static void
 htcp_cb_destroy(struct cc_var *ccv)
 {
-	vos_free(ccv->cc_data, M_HTCP);
+	free(ccv->cc_data, M_HTCP);
 }
 
 static int
@@ -246,10 +246,10 @@ htcp_cb_init(struct cc_var *ccv)
 {
 	struct htcp *htcp_data;
 
-	htcp_data = vos_malloc(sizeof(struct htcp), M_HTCP, M_NOWAIT);
+	htcp_data = malloc(sizeof(struct htcp), M_HTCP, M_NOWAIT);
 
 	if (htcp_data == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/* Init some key variables with sensible defaults. */
 	htcp_data->alpha = HTCP_INIT_ALPHA;

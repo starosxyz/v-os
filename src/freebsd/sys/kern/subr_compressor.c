@@ -89,14 +89,14 @@ gz_alloc(void *arg __unused, u_int n, u_int sz)
 	 * used to compress a kernel dump, and we don't want zlib to attempt to
 	 * compress its own state.
 	 */
-	return (vos_malloc(n * sz, M_COMPRESS, M_WAITOK | M_ZERO | M_NODUMP));
+	return (malloc(n * sz, M_COMPRESS, M_WAITOK | M_ZERO | M_NODUMP));
 }
 
 static void
 gz_free(void *arg __unused, void *ptr)
 {
 
-	vos_free(ptr, M_COMPRESS);
+	free(ptr, M_COMPRESS);
 }
 
 static void *
@@ -184,7 +184,7 @@ gz_write(void *stream, void *data, size_t len, compressor_cb_t cb,
 	do {
 		zerror = deflate(&s->gz_stream, zflag);
 		if (zerror != Z_OK && zerror != Z_STREAM_END) {
-			error = VOS_EIO;
+			error = EIO;
 			break;
 		}
 
@@ -283,7 +283,7 @@ zstdio_init(size_t maxiosize, int level)
 
 	s = NULL;
 	wkspc_size = ZSTD_estimateCStreamSize(level);
-	owkspc = wkspc = vos_malloc(wkspc_size + 8, M_COMPRESS,
+	owkspc = wkspc = malloc(wkspc_size + 8, M_COMPRESS,
 	    M_WAITOK | M_NODUMP);
 	/* Zstd API requires 8-byte alignment. */
 	if ((uintptr_t)wkspc % 8 != 0)
@@ -310,9 +310,9 @@ zstdio_init(size_t maxiosize, int level)
 	}
 
 	buf_size = ZSTD_CStreamOutSize() * 2;
-	buffer = vos_malloc(buf_size, M_COMPRESS, M_WAITOK | M_NODUMP);
+	buffer = malloc(buf_size, M_COMPRESS, M_WAITOK | M_NODUMP);
 
-	s = vos_malloc(sizeof(*s), M_COMPRESS, M_NODUMP | M_WAITOK);
+	s = malloc(sizeof(*s), M_COMPRESS, M_NODUMP | M_WAITOK);
 	s->zst_buffer = buffer;
 	s->zst_outbuffer.dst = buffer;
 	s->zst_outbuffer.size = buf_size;
@@ -324,7 +324,7 @@ zstdio_init(size_t maxiosize, int level)
 
 out:
 	if (s == NULL)
-		vos_free(owkspc, M_COMPRESS);
+		free(owkspc, M_COMPRESS);
 	return (s);
 }
 
@@ -395,12 +395,12 @@ zstdio_flush(struct zstdio_stream *s, compressor_cb_t cb, void *arg)
 		if (ZSTD_isError(rc)) {
 			printf("%s: ZSTD_endStream failed (%s)\n", __func__,
 			    ZSTD_getErrorName(rc));
-			return (VOS_EIO);
+			return (EIO);
 		}
 		if (lastpos == s->zst_outbuffer.pos) {
 			printf("%s: did not make forward progress endStream %zu\n",
 			    __func__, lastpos);
-			return (VOS_EIO);
+			return (EIO);
 		}
 
 		error = zst_flush_intermediate(s, cb, arg);
@@ -448,7 +448,7 @@ zstdio_write(void *stream, void *data, size_t len, compressor_cb_t cb,
 		if (ZSTD_isError(rc)) {
 			printf("%s: Compress failed on %p! (%s)\n",
 			    __func__, data, ZSTD_getErrorName(rc));
-			return (VOS_EIO);
+			return (EIO);
 		}
 
 		if (lastpos == s->zst_inbuffer.pos) {
@@ -457,7 +457,7 @@ zstdio_write(void *stream, void *data, size_t len, compressor_cb_t cb,
 			 */
 			printf("ZSTD: did not make forward progress @pos %zu\n",
 			    lastpos);
-			return (VOS_EIO);
+			return (EIO);
 		}
 		lastpos = s->zst_inbuffer.pos;
 
@@ -475,11 +475,11 @@ zstdio_fini(void *stream)
 
 	s = stream;
 	if (s->zst_static_wkspc != NULL)
-		vos_free(s->zst_static_wkspc, M_COMPRESS);
+		free(s->zst_static_wkspc, M_COMPRESS);
 	else
 		ZSTD_freeCCtx(s->zst_stream);
-	vos_free(s->zst_buffer, M_COMPRESS);
-	vos_free(s, M_COMPRESS);
+	free(s->zst_buffer, M_COMPRESS);
+	free(s, M_COMPRESS);
 }
 
 static struct compressor_methods zstd_methods = {
@@ -524,7 +524,7 @@ compressor_init(compressor_cb_t cb, int format, size_t maxiosize, int level,
 	if (priv == NULL)
 		return (NULL);
 
-	s = vos_malloc(sizeof(*s), M_COMPRESS, M_WAITOK | M_ZERO);
+	s = malloc(sizeof(*s), M_COMPRESS, M_WAITOK | M_ZERO);
 	s->methods = (*iter);
 	s->priv = priv;
 	s->cb = cb;

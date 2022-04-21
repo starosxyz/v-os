@@ -169,14 +169,14 @@ kdb_sysctl_current(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (kdb_dbbe != NULL)
-		vos_strlcpy(buf, kdb_dbbe->dbbe_name, sizeof(buf));
+		strlcpy(buf, kdb_dbbe->dbbe_name, sizeof(buf));
 	else
 		*buf = '\0';
 	error = sysctl_handle_string(oidp, buf, sizeof(buf), req);
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (kdb_active)
-		return (VOS_EBUSY);
+		return (EBUSY);
 	return (kdb_dbbe_select(buf));
 }
 
@@ -193,7 +193,7 @@ kdb_sysctl_enter(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (kdb_active)
-		return (VOS_EBUSY);
+		return (EBUSY);
 	kdb_enter(KDB_WHY_SYSCTL, "sysctl debug.kdb.enter");
 	return (0);
 }
@@ -485,7 +485,7 @@ kdb_dbbe_select(const char *name)
 			return (0);
 		}
 	}
-	return (VOS_EINVAL);
+	return (EINVAL);
 }
 
 /*
@@ -671,7 +671,7 @@ int
 kdb_thr_select(struct thread *thr)
 {
 	if (thr == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	kdb_thread = thr;
 	kdb_thrctx = kdb_thr_ctx(thr);
 	return (0);

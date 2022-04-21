@@ -152,7 +152,7 @@ size_t sintrcnt;
 size_t sintrnames;
 
 /* Sanity check for __curthread() */
-CTASSERT(vos_offsetof(struct pcpu, pc_curthread) == 0);
+CTASSERT(offsetof(struct pcpu, pc_curthread) == 0);
 
 /*
  * The PTI trampoline stack needs enough space for a hardware trapframe and a
@@ -160,7 +160,7 @@ CTASSERT(vos_offsetof(struct pcpu, pc_curthread) == 0);
  * iret fault.
  */
 CTASSERT(PC_PTI_STACK_SZ * sizeof(register_t) >= 2 * sizeof(struct pti_frame) -
-	vos_offsetof(struct pti_frame, pti_rip));
+	offsetof(struct pti_frame, pti_rip));
 
 extern u_int64_t hammer_time(u_int64_t, u_int64_t);
 
@@ -360,14 +360,14 @@ void* dummy;
 	 */
 	sysenv = kern_getenv("smbios.system.product");
 	if (sysenv != NULL) {
-		if (vos_strncmp(sysenv, "MacBook1,1", 10) == 0 ||
-			vos_strncmp(sysenv, "MacBook3,1", 10) == 0 ||
-			vos_strncmp(sysenv, "MacBook4,1", 10) == 0 ||
-			vos_strncmp(sysenv, "MacBookPro1,1", 13) == 0 ||
-			vos_strncmp(sysenv, "MacBookPro1,2", 13) == 0 ||
-			vos_strncmp(sysenv, "MacBookPro3,1", 13) == 0 ||
-			vos_strncmp(sysenv, "MacBookPro4,1", 13) == 0 ||
-			vos_strncmp(sysenv, "Macmini1,1", 10) == 0) {
+		if (strncmp(sysenv, "MacBook1,1", 10) == 0 ||
+			strncmp(sysenv, "MacBook3,1", 10) == 0 ||
+			strncmp(sysenv, "MacBook4,1", 10) == 0 ||
+			strncmp(sysenv, "MacBookPro1,1", 13) == 0 ||
+			strncmp(sysenv, "MacBookPro1,2", 13) == 0 ||
+			strncmp(sysenv, "MacBookPro3,1", 13) == 0 ||
+			strncmp(sysenv, "MacBookPro4,1", 13) == 0 ||
+			strncmp(sysenv, "Macmini1,1", 10) == 0) {
 			if (bootverbose)
 				printf("Disabling LEGACY_USB_EN bit on "
 					"Intel ICH.\n");

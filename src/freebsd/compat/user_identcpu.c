@@ -243,9 +243,9 @@ printcpuinfo(void)
 	printf("CPU: ");
 #ifdef __i386__
 	cpu_class = cpus[cpu].cpu_class;
-	vos_strncpy(cpu_model, cpus[cpu].cpu_name, sizeof (cpu_model));
+	strncpy(cpu_model, cpus[cpu].cpu_name, sizeof (cpu_model));
 #else
-	vos_strncpy(cpu_model, "Hammer", sizeof (cpu_model));
+	strncpy(cpu_model, "Hammer", sizeof (cpu_model));
 #endif
 
 	/* Check for extended CPUID information and a processor name. */
@@ -268,10 +268,10 @@ printcpuinfo(void)
 
 			switch (cpu_id & 0x3000) {
 			case 0x1000:
-				vos_strcpy(cpu_model, "Overdrive ");
+				strcpy(cpu_model, "Overdrive ");
 				break;
 			case 0x2000:
-				vos_strcpy(cpu_model, "Dual ");
+				strcpy(cpu_model, "Dual ");
 				break;
 			}
 
@@ -389,7 +389,7 @@ printcpuinfo(void)
 				brand_index = cpu_procinfo & CPUID_BRAND_INDEX;
 				if (brand_index <= MAX_BRAND_INDEX &&
 				    cpu_brandtable[brand_index] != NULL)
-					vos_strcpy(cpu_brand,
+					strcpy(cpu_brand,
 					    cpu_brandtable[brand_index]);
 			}
 		}
@@ -404,7 +404,7 @@ printcpuinfo(void)
 		 * http://www.amd.com/K6/k6docs/pdf/20734g.pdf
 		 * (also describes ``Features'' encodings.
 		 */
-		vos_strcpy(cpu_model, "AMD ");
+		strcpy(cpu_model, "AMD ");
 #ifdef __i386__
 		switch (cpu_id & 0xFF0) {
 		case 0x410:
@@ -468,7 +468,7 @@ printcpuinfo(void)
 		break;
 #ifdef __i386__
 	case CPU_VENDOR_CYRIX:
-		vos_strcpy(cpu_model, "Cyrix ");
+		strcpy(cpu_model, "Cyrix ");
 		switch (cpu_id & 0xff0) {
 		case 0x440:
 			strcat(cpu_model, "MediaGX");
@@ -587,7 +587,7 @@ printcpuinfo(void)
 					strcat(cpu_model, "Overdrive CPU");
 					break;
 				case 0x0e:
-					vos_strcpy(cpu_model, "Texas Instruments 486SXL");
+					strcpy(cpu_model, "Texas Instruments 486SXL");
 					break;
 				case 0x0f:
 					strcat(cpu_model, "486SLC/DLC");
@@ -605,7 +605,7 @@ printcpuinfo(void)
 		}
 		break;
 	case CPU_VENDOR_RISE:
-		vos_strcpy(cpu_model, "Rise ");
+		strcpy(cpu_model, "Rise ");
 		switch (cpu_id & 0xff0) {
 		case 0x500:	/* 6401 and 6441 (Kirin) */
 		case 0x520:	/* 6510 (Lynx) */
@@ -620,41 +620,41 @@ printcpuinfo(void)
 #ifdef __i386__
 		switch (cpu_id & 0xff0) {
 		case 0x540:
-			vos_strcpy(cpu_model, "IDT WinChip C6");
+			strcpy(cpu_model, "IDT WinChip C6");
 			break;
 		case 0x580:
-			vos_strcpy(cpu_model, "IDT WinChip 2");
+			strcpy(cpu_model, "IDT WinChip 2");
 			break;
 		case 0x590:
-			vos_strcpy(cpu_model, "IDT WinChip 3");
+			strcpy(cpu_model, "IDT WinChip 3");
 			break;
 		case 0x660:
-			vos_strcpy(cpu_model, "VIA C3 Samuel");
+			strcpy(cpu_model, "VIA C3 Samuel");
 			break;
 		case 0x670:
 			if (cpu_id & 0x8)
-				vos_strcpy(cpu_model, "VIA C3 Ezra");
+				strcpy(cpu_model, "VIA C3 Ezra");
 			else
-				vos_strcpy(cpu_model, "VIA C3 Samuel 2");
+				strcpy(cpu_model, "VIA C3 Samuel 2");
 			break;
 		case 0x680:
-			vos_strcpy(cpu_model, "VIA C3 Ezra-T");
+			strcpy(cpu_model, "VIA C3 Ezra-T");
 			break;
 		case 0x690:
-			vos_strcpy(cpu_model, "VIA C3 Nehemiah");
+			strcpy(cpu_model, "VIA C3 Nehemiah");
 			break;
 		case 0x6a0:
 		case 0x6d0:
-			vos_strcpy(cpu_model, "VIA C7 Esther");
+			strcpy(cpu_model, "VIA C7 Esther");
 			break;
 		case 0x6f0:
-			vos_strcpy(cpu_model, "VIA Nano");
+			strcpy(cpu_model, "VIA Nano");
 			break;
 		default:
-			vos_strcpy(cpu_model, "VIA/IDT Unknown");
+			strcpy(cpu_model, "VIA/IDT Unknown");
 		}
 #else
-		vos_strcpy(cpu_model, "VIA ");
+		strcpy(cpu_model, "VIA ");
 		if ((cpu_id & 0xff0) == 0x6f0)
 			strcat(cpu_model, "Nano Processor");
 		else
@@ -663,22 +663,22 @@ printcpuinfo(void)
 		break;
 #ifdef __i386__
 	case CPU_VENDOR_IBM:
-		vos_strcpy(cpu_model, "Blue Lightning CPU");
+		strcpy(cpu_model, "Blue Lightning CPU");
 		break;
 	case CPU_VENDOR_NSC:
 		switch (cpu_id & 0xff0) {
 		case 0x540:
-			vos_strcpy(cpu_model, "Geode SC1100");
+			strcpy(cpu_model, "Geode SC1100");
 			cpu = CPU_GEODE1100;
 			break;
 		default:
-			vos_strcpy(cpu_model, "Geode/NSC unknown");
+			strcpy(cpu_model, "Geode/NSC unknown");
 			break;
 		}
 		break;
 #endif
 	case CPU_VENDOR_HYGON:
-		vos_strcpy(cpu_model, "Hygon ");
+		strcpy(cpu_model, "Hygon ");
 #ifdef __i386__
 		strcat(cpu_model, "Unknown");
 #else
@@ -702,7 +702,7 @@ printcpuinfo(void)
 	while (*brand == ' ')
 		++brand;
 	if (*brand != '\0')
-		vos_strcpy(cpu_model, brand);
+		strcpy(cpu_model, brand);
 
 	printf("%s (", cpu_model);
 	if (tsc_freq != 0) {
@@ -1410,7 +1410,7 @@ identify_hypervisor_cpuid_base(void)
 
 		if (regs[0] >= leaf) {
 			for (i = 0; i < nitems(vm_cpuids); i++)
-				if (vos_strncmp((const char *)&regs[1],
+				if (strncmp((const char *)&regs[1],
 				    vm_cpuids[i].vm_cpuid, 12) == 0) {
 					vm_guest = vm_cpuids[i].vm_guest;
 					break;
@@ -1627,7 +1627,7 @@ finishidentcpu(void)
 			 *     - Cyrix/IBM CPU is detected.
 			 */
 			if (identblue() == IDENTBLUE_IBMCPU) {
-				vos_strcpy(cpu_vendor, "IBM");
+				strcpy(cpu_vendor, "IBM");
 				cpu_vendor_id = CPU_VENDOR_IBM;
 				cpu = CPU_BLUE;
 				return;
@@ -1700,7 +1700,7 @@ finishidentcpu(void)
 		 * cpu.
 		 */
 		if (identblue() == IDENTBLUE_IBMCPU) {
-			vos_strcpy(cpu_vendor, "IBM");
+			strcpy(cpu_vendor, "IBM");
 			cpu_vendor_id = CPU_VENDOR_IBM;
 			cpu = CPU_BLUE;
 			return;

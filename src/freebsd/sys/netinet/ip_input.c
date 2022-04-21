@@ -231,7 +231,7 @@ sysctl_netinet_intr_queue_maxlen(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (qlimit < 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	return (netisr_setqlimit(&ip_nh, qlimit));
 }
 SYSCTL_PROC(_net_inet_ip, IPCTL_INTRQMAXLEN, intr_queue_maxlen,
@@ -251,7 +251,7 @@ sysctl_netinet_intr_queue_drops(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (qdrops != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	netisr_clearqdrops(&ip_nh);
 	return (0);
 }
@@ -272,7 +272,7 @@ sysctl_netinet_intr_direct_queue_maxlen(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (qlimit < 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	return (netisr_setqlimit(&ip_direct_nh, qlimit));
 }
 SYSCTL_PROC(_net_inet_ip, IPCTL_INTRDQMAXLEN, intr_direct_queue_maxlen,
@@ -292,7 +292,7 @@ sysctl_netinet_intr_direct_queue_drops(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (qdrops != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	netisr_clearqdrops(&ip_direct_nh);
 	return (0);
 }
@@ -878,7 +878,7 @@ ipproto_register(short ipproto)
 
 	/* Sanity checks. */
 	if (ipproto <= 0 || ipproto >= IPPROTO_MAX)
-		return (VOS_EPROTONOSUPPORT);
+		return (EPROTONOSUPPORT);
 
 	/*
 	 * The protocol slot must not be occupied by another protocol
@@ -886,9 +886,9 @@ ipproto_register(short ipproto)
 	 */
 	pr = pffindproto(PF_INET, IPPROTO_RAW, SOCK_RAW);
 	if (pr == NULL)
-		return (VOS_EPFNOSUPPORT);
+		return (EPFNOSUPPORT);
 	if (ip_protox[ipproto] != pr - inetsw)	/* IPPROTO_RAW */
-		return (VOS_EEXIST);
+		return (EEXIST);
 
 	/* Find the protocol position in inetsw[] and set the index. */
 	for (pr = inetdomain.dom_protosw;
@@ -899,7 +899,7 @@ ipproto_register(short ipproto)
 			return (0);
 		}
 	}
-	return (VOS_EPROTONOSUPPORT);
+	return (EPROTONOSUPPORT);
 }
 
 int
@@ -909,14 +909,14 @@ ipproto_unregister(short ipproto)
 
 	/* Sanity checks. */
 	if (ipproto <= 0 || ipproto >= IPPROTO_MAX)
-		return (VOS_EPROTONOSUPPORT);
+		return (EPROTONOSUPPORT);
 
 	/* Check if the protocol was indeed registered. */
 	pr = pffindproto(PF_INET, IPPROTO_RAW, SOCK_RAW);
 	if (pr == NULL)
-		return (VOS_EPFNOSUPPORT);
+		return (EPFNOSUPPORT);
 	if (ip_protox[ipproto] == pr - inetsw)  /* IPPROTO_RAW */
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	/* Reset the protocol slot to IPPROTO_RAW. */
 	ip_protox[ipproto] = pr - inetsw;
@@ -925,11 +925,11 @@ ipproto_unregister(short ipproto)
 
 u_char inetctlerrmap[PRC_NCMDS] = {
 	0,		0,		0,		0,
-	0,		VOS_EMSGSIZE,	VOS_EHOSTDOWN,	VOS_EHOSTUNREACH,
-	VOS_EHOSTUNREACH,	VOS_EHOSTUNREACH,	VOS_ECONNREFUSED,	VOS_ECONNREFUSED,
-	VOS_EMSGSIZE,	VOS_EHOSTUNREACH,	0,		0,
-	0,		0,		VOS_EHOSTUNREACH,	0,
-	VOS_ENOPROTOOPT,	VOS_ECONNREFUSED
+	0,		EMSGSIZE,	EHOSTDOWN,	EHOSTUNREACH,
+	EHOSTUNREACH,	EHOSTUNREACH,	ECONNREFUSED,	ECONNREFUSED,
+	EMSGSIZE,	EHOSTUNREACH,	0,		0,
+	0,		0,		EHOSTUNREACH,	0,
+	ENOPROTOOPT,	ECONNREFUSED
 };
 
 /*
@@ -1027,7 +1027,7 @@ ip_forward(struct mbuf *m, int srcrt)
 			/* mbuf consumed by IPsec */
 			RO_NHFREE(&ro);
 			m_freem(mcopy);
-			if (error != VOS_EINPROGRESS)
+			if (error != EINPROGRESS)
 				IPSTAT_INC(ips_cantforward);
 			return;
 		}
@@ -1068,7 +1068,7 @@ ip_forward(struct mbuf *m, int srcrt)
 
 	error = ip_output(m, NULL, &ro, IP_FORWARDING, NULL, NULL);
 
-	if (error == VOS_EMSGSIZE && ro.ro_nh)
+	if (error == EMSGSIZE && ro.ro_nh)
 		mtu = ro.ro_nh->nh_mtu;
 	RO_NHFREE(&ro);
 
@@ -1092,16 +1092,16 @@ ip_forward(struct mbuf *m, int srcrt)
 		/* type, code set above */
 		break;
 
-	case VOS_ENETUNREACH:
-	case VOS_EHOSTUNREACH:
-	case VOS_ENETDOWN:
-	case VOS_EHOSTDOWN:
+	case ENETUNREACH:
+	case EHOSTUNREACH:
+	case ENETDOWN:
+	case EHOSTDOWN:
 	default:
 		type = ICMP_UNREACH;
 		code = ICMP_UNREACH_HOST;
 		break;
 
-	case VOS_EMSGSIZE:
+	case EMSGSIZE:
 		type = ICMP_UNREACH;
 		code = ICMP_UNREACH_NEEDFRAG;
 		/*
@@ -1123,8 +1123,8 @@ ip_forward(struct mbuf *m, int srcrt)
 		IPSTAT_INC(ips_cantfrag);
 		break;
 
-	case VOS_ENOBUFS:
-	case VOS_EACCES:			/* ipfw denied packet */
+	case ENOBUFS:
+	case EACCES:			/* ipfw denied packet */
 		m_freem(mcopy);
 		return;
 	}
@@ -1144,7 +1144,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 	if ((inp->inp_socket->so_options & SO_BINTIME) ||
 	    CHECK_SO_CT(inp->inp_socket, SO_TS_BINTIME)) {
 		struct bintime boottimebin, bt;
-		struct vos_timespec ts1;
+		struct timespec ts1;
 
 		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
 		    M_TSTMP)) {
@@ -1164,7 +1164,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 	}
 	if (CHECK_SO_CT(inp->inp_socket, SO_TS_REALTIME_MICRO)) {
 		struct bintime boottimebin, bt1;
-		struct vos_timespec ts1;
+		struct timespec ts1;
 		struct timeval tv;
 
 		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
@@ -1185,7 +1185,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		}
 	} else if (CHECK_SO_CT(inp->inp_socket, SO_TS_REALTIME)) {
 		struct bintime boottimebin;
-		struct vos_timespec ts, ts1;
+		struct timespec ts, ts1;
 
 		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
 		    M_TSTMP)) {
@@ -1203,7 +1203,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 			stamped = true;
 		}
 	} else if (CHECK_SO_CT(inp->inp_socket, SO_TS_MONOTONIC)) {
-		struct vos_timespec ts;
+		struct timespec ts;
 
 		if ((m->m_flags & (M_PKTHDR | M_TSTMP)) == (M_PKTHDR |
 		    M_TSTMP))
@@ -1285,7 +1285,7 @@ ip_savecontrol(struct inpcb *inp, struct mbuf **mp, struct ip *ip,
 		} else {
 makedummy:
 			sdl2->sdl_len =
-				vos_offsetof(struct sockaddr_dl, sdl_data[0]);
+			    offsetof(struct sockaddr_dl, sdl_data[0]);
 			sdl2->sdl_family = AF_LINK;
 			sdl2->sdl_index = 0;
 			sdl2->sdl_nlen = sdl2->sdl_alen = sdl2->sdl_slen = 0;
@@ -1357,10 +1357,10 @@ ip_rsvp_init(struct socket *so)
 
 	if (so->so_type != SOCK_RAW ||
 	    so->so_proto->pr_protocol != IPPROTO_RSVP)
-		return VOS_EOPNOTSUPP;
+		return EOPNOTSUPP;
 
 	if (V_ip_rsvpd != NULL)
-		return VOS_EADDRINUSE;
+		return EADDRINUSE;
 
 	V_ip_rsvpd = so;
 	/*

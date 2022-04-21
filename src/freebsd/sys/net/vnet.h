@@ -105,10 +105,10 @@ struct __begin_aligned(CACHE_LINE_SIZE) vnet {
     COUNTER_ARRAY_FREE(VNET(name), sizeof(VNET(name)) / sizeof(counter_u64_t))
 
 #define	VNET_PCPUSTAT_ADD(type, name, f, v)	\
-    counter_u64_add(VNET(name)[vos_offsetof(type, f) / sizeof(uint64_t)], (v))
+    counter_u64_add(VNET(name)[offsetof(type, f) / sizeof(uint64_t)], (v))
 
 #define	VNET_PCPUSTAT_FETCH(type, name, f)	\
-    counter_u64_fetch(VNET(name)[vos_offsetof(type, f) / sizeof(uint64_t)])
+    counter_u64_fetch(VNET(name)[offsetof(type, f) / sizeof(uint64_t)])
 
 #define	VNET_PCPUSTAT_SYSINIT(name)	\
 static void				\

@@ -247,7 +247,7 @@ again:
 	 * entries to avoid deadlock.  The exec map is also used by some image
 	 * activators, so we leave a fixed number of pages for their use.
 	 */
-#if defined(__LP64__) || defined(_WIN64)
+#if defined(__LP64__)||defined(_WIN64)
 	exec_map_entries = 8 * mp_ncpus;
 #else
 	exec_map_entries = 2 * mp_ncpus + 4;

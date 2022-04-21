@@ -121,16 +121,16 @@ sysarch_ldt(struct thread *td, struct sysarch_args *uap, int uap_space)
 		break;
 	case I386_SET_LDT:
 		if (largs->descs != NULL && largs->num > max_ldt_segment)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		set_pcb_flags(td->td_pcb, PCB_FULL_IRET);
 		if (largs->descs != NULL) {
-			lp = vos_malloc(largs->num * sizeof(struct
+			lp = malloc(largs->num * sizeof(struct
 			    user_segment_descriptor), M_TEMP, M_WAITOK);
 			error = copyin(largs->descs, lp, largs->num *
 			    sizeof(struct user_segment_descriptor));
 			if (error == 0)
 				error = amd64_set_ldt(td, largs, lp);
-			vos_free(lp, M_TEMP);
+			free(lp, M_TEMP);
 		} else {
 			error = amd64_set_ldt(td, largs, NULL);
 		}
@@ -216,7 +216,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 			if (KTRPOINT(td, KTR_CAPFAIL))
 				ktrcapfail(CAPFAIL_SYSCALL, NULL, NULL);
 #endif
-			return (VOS_ECAPMODE);
+			return (ECAPMODE);
 		}
 	}
 #endif
@@ -323,7 +323,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 				pcb->pcb_fsbase = a64base;
 				td->td_frame->tf_fs = _ufssel;
 			} else
-				error = VOS_EINVAL;
+				error = EINVAL;
 		}
 		break;
 
@@ -341,7 +341,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 				pcb->pcb_gsbase = a64base;
 				td->td_frame->tf_gs = _ugssel;
 			} else
-				error = VOS_EINVAL;
+				error = EINVAL;
 		}
 		break;
 
@@ -349,7 +349,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 	case AMD64_GET_XFPUSTATE:
 		if (a64xfpu.len > cpu_max_ext_state_size -
 		    sizeof(struct savefpu))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		fpugetregs(td);
 		error = copyout((char *)(get_pcb_user_save_td(td) + 1),
 		    a64xfpu.addr, a64xfpu.len);
@@ -372,7 +372,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 	case I386_CLEAR_PKRU:
 	case AMD64_CLEAR_PKRU:
 		if (a64pkru.flags != 0 || a64pkru.keyidx != 0) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		map = &td->td_proc->p_vmspace->vm_map;
@@ -384,7 +384,7 @@ sysarch(struct thread *td, struct sysarch_args *uap)
 		break;
 
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 	return (error);
@@ -408,7 +408,7 @@ amd64_set_ioperm(td, uap)
 		return (error);
 	if (uap->start > uap->start + uap->length ||
 	    uap->start + uap->length > IOPAGES * PAGE_SIZE * NBBY)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * XXX
@@ -456,7 +456,7 @@ amd64_get_ioperm(td, uap)
 	char *iomap;
 
 	if (uap->start >= IOPAGES * PAGE_SIZE * NBBY)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (td->td_pcb->pcb_tssp == NULL) {
 		uap->length = 0;
 		goto done;
@@ -526,7 +526,7 @@ user_ldt_derefl(struct proc_ldt *pldt)
 		sz = max_ldt_segment * sizeof(struct user_segment_descriptor);
 		pmap_pti_remove_kva(sva, sva + sz);
 		kmem_free(sva, sz);
-		vos_free(pldt, M_SUBPROC);
+		free(pldt, M_SUBPROC);
 	}
 }
 
@@ -566,7 +566,7 @@ amd64_get_ldt(struct thread *td, struct i386_ldt_args *uap)
 	}
 	num = min(uap->num, max_ldt_segment - uap->start);
 	lp = &((struct user_segment_descriptor *)(pldt->ldt_base))[uap->start];
-	data = vos_malloc(num * sizeof(struct user_segment_descriptor), M_TEMP,
+	data = malloc(num * sizeof(struct user_segment_descriptor), M_TEMP,
 	    M_WAITOK);
 	mtx_lock(&dt_lock);
 	for (i = 0; i < num; i++)
@@ -574,7 +574,7 @@ amd64_get_ldt(struct thread *td, struct i386_ldt_args *uap)
 	mtx_unlock(&dt_lock);
 	error = copyout(data, uap->descs, num *
 	    sizeof(struct user_segment_descriptor));
-	vos_free(data, M_TEMP);
+	free(data, M_TEMP);
 	if (error == 0)
 		td->td_retval[0] = num;
 	return (error);
@@ -605,7 +605,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		if (uap->start == 0 && uap->num == 0)
 			uap->num = max_ldt_segment;
 		if (uap->num == 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if ((pldt = mdp->md_ldt) == NULL ||
 		    uap->start >= max_ldt_segment)
 			return (0);
@@ -613,7 +613,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		if (largest_ld > max_ldt_segment)
 			largest_ld = max_ldt_segment;
 		if (largest_ld < uap->start)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		mtx_lock(&dt_lock);
 		for (i = uap->start; i < largest_ld; i++)
 			((volatile uint64_t *)(pldt->ldt_base))[i] = 0;
@@ -627,7 +627,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		if (uap->start >= max_ldt_segment ||
 		    largest_ld > max_ldt_segment ||
 		    largest_ld < uap->start)
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 
 	/* Check descriptors for access violations */
@@ -653,7 +653,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		case SDT_SYSNULL4:
 		case SDT_SYSIGT:
 		case SDT_SYSTGT:
-			return (VOS_EACCES);
+			return (EACCES);
 
 		/* memory segment types */
 		case SDT_MEMEC:   /* memory execute only conforming */
@@ -662,7 +662,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		case SDT_MEMERAC: /* memory execute read accessed conforming */
 			 /* Must be "present" if executable and conforming. */
 			if (dp->sd_p == 0)
-				return (VOS_EACCES);
+				return (EACCES);
 			break;
 		case SDT_MEMRO:   /* memory read only */
 		case SDT_MEMROA:  /* memory read only accessed */
@@ -678,12 +678,12 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		case SDT_MEMERA:  /* memory execute read accessed */
 			break;
 		default:
-			return(VOS_EINVAL);
+			return(EINVAL);
 		}
 
 		/* Only user (ring-3) descriptors may be present. */
 		if ((dp->sd_p != 0) && (dp->sd_dpl != SEL_UPL))
-			return (VOS_EACCES);
+			return (EACCES);
 	}
 
 	if (uap->start == LDT_AUTO_ALLOC && uap->num == 1) {
@@ -692,7 +692,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		pldt = user_ldt_alloc(p, 0);
 		if (pldt == NULL) {
 			mtx_unlock(&dt_lock);
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		}
 
 		/*
@@ -707,7 +707,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 		}
 		if (i >= max_ldt_segment) {
 			mtx_unlock(&dt_lock);
-			return (VOS_ENOSPC);
+			return (ENOSPC);
 		}
 		uap->start = i;
 		error = amd64_set_ldt_data(td, i, 1, descs);
@@ -715,7 +715,7 @@ amd64_set_ldt(struct thread *td, struct i386_ldt_args *uap,
 	} else {
 		largest_ld = uap->start + uap->num;
 		if (largest_ld > max_ldt_segment)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		mtx_lock(&dt_lock);
 		if (user_ldt_alloc(p, 0) != NULL) {
 			error = amd64_set_ldt_data(td, uap->start, uap->num,

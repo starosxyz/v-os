@@ -738,9 +738,6 @@
     <ClCompile Include="compat\cpufunc.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="compat\atomic.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="compat\syslog.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1254,9 +1251,6 @@
     <ClCompile Include="sys\contrib\ck\src\ck_rhs.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sys\contrib\ck\src\ck_atomic.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="compat\user_kern_mutex.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1375,6 +1369,15 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="compat\user_in_cksum_machdep.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compat\win32_crt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sys\contrib\ck\src\ck_atomic.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compat\atomic.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

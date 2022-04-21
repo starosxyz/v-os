@@ -181,7 +181,7 @@ devstat_add_entry(struct devstat *ds, const void *dev_name,
 
 	ds->device_number = devstat_current_devnumber++;
 	ds->unit_number = unit_number;
-	vos_strlcpy(ds->device_name, dev_name, DEVSTAT_NAME_LEN);
+	strlcpy(ds->device_name, dev_name, DEVSTAT_NAME_LEN);
 	ds->block_size = block_size;
 	ds->flags = flags;
 	ds->device_type = device_type;
@@ -421,7 +421,7 @@ sysctl_devstat(SYSCTL_HANDLER_ARGS)
 	mtx_lock(&devstat_mutex);
 	nds = STAILQ_FIRST(&device_statq); 
 	if (mygen != devstat_generation)
-		error = VOS_EBUSY;
+		error = EBUSY;
 	mtx_unlock(&devstat_mutex);
 
 	if (error != 0)
@@ -433,7 +433,7 @@ sysctl_devstat(SYSCTL_HANDLER_ARGS)
 			return (error);
 		mtx_lock(&devstat_mutex);
 		if (mygen != devstat_generation)
-			error = VOS_EBUSY;
+			error = EBUSY;
 		else
 			nds = STAILQ_NEXT(nds, dev_links);
 		mtx_unlock(&devstat_mutex);
@@ -536,8 +536,8 @@ devstat_alloc(void)
 		if (spp != NULL)
 			break;
 		mtx_unlock(&devstat_mutex);
-		spp2 = vos_malloc(sizeof *spp, M_DEVSTAT, M_ZERO | M_WAITOK);
-		spp2->stat = vos_malloc(PAGE_SIZE, M_DEVSTAT, M_ZERO | M_WAITOK);
+		spp2 = malloc(sizeof *spp, M_DEVSTAT, M_ZERO | M_WAITOK);
+		spp2->stat = malloc(PAGE_SIZE, M_DEVSTAT, M_ZERO | M_WAITOK);
 		spp2->nfree = statsperpage;
 
 		/*
@@ -570,8 +570,8 @@ devstat_alloc(void)
 	dsp->allocated = 1;
 	mtx_unlock(&devstat_mutex);
 	if (spp2 != NULL && spp2 != spp) {
-		vos_free(spp2->stat, M_DEVSTAT);
-		vos_free(spp2, M_DEVSTAT);
+		free(spp2->stat, M_DEVSTAT);
+		free(spp2, M_DEVSTAT);
 	}
 	return (dsp);
 }

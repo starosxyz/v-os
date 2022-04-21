@@ -257,7 +257,7 @@ sysctl_hw_pagesizes(SYSCTL_HANDLER_ARGS)
 	if (req->flags & SCTL_MASK32) {
 		/*
 		 * Recreate the "pagesizes" array with 32-bit elements.
-		 * Truncate any page size greater than VOS_UINT32_MAX to zero,
+		 * Truncate any page size greater than UINT32_MAX to zero,
 		 * which assumes that page sizes are powers of two.
 		 */
 		for (i = 0; i < MAXPAGESIZES; i++)
@@ -309,7 +309,7 @@ sysctl_hw_machine_arch(SYSCTL_HANDLER_ARGS)
 		machine_arch = proc_machine_arch(curproc);
 	else
 		machine_arch = MACHINE_ARCH;
-	return (SYSCTL_OUT(req, machine_arch, vos_strlen(machine_arch) + 1));
+	return (SYSCTL_OUT(req, machine_arch, strlen(machine_arch) + 1));
 }
 SYSCTL_PROC(_hw, HW_MACHINE_ARCH, machine_arch, CTLTYPE_STRING | CTLFLAG_RD |
     CTLFLAG_MPSAFE, NULL, 0, sysctl_hw_machine_arch, "A",
@@ -362,7 +362,7 @@ sysctl_hostname(SYSCTL_HANDLER_ARGS)
 	 */
 	sx_slock(&allprison_lock);
 	if (!(pr->pr_allow & PR_ALLOW_SET_HOSTNAME))
-		error = VOS_EPERM;
+		error = EPERM;
 	else {
 		while (!(pr->pr_flags & PR_HOST))
 			pr = pr->pr_parent;
@@ -381,15 +381,15 @@ sysctl_hostname(SYSCTL_HANDLER_ARGS)
 
 SYSCTL_PROC(_kern, KERN_HOSTNAME, hostname,
     CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_PRISON | CTLFLAG_CAPRD | CTLFLAG_MPSAFE,
-    (void *)(vos_offsetof(struct prison, pr_hostname)), MAXHOSTNAMELEN,
+    (void *)(offsetof(struct prison, pr_hostname)), MAXHOSTNAMELEN,
     sysctl_hostname, "A", "Hostname");
 SYSCTL_PROC(_kern, KERN_NISDOMAINNAME, domainname,
     CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_PRISON | CTLFLAG_CAPRD | CTLFLAG_MPSAFE,
-    (void *)(vos_offsetof(struct prison, pr_domainname)), MAXHOSTNAMELEN,
+    (void *)(offsetof(struct prison, pr_domainname)), MAXHOSTNAMELEN,
     sysctl_hostname, "A", "Name of the current YP/NIS domain");
 SYSCTL_PROC(_kern, KERN_HOSTUUID, hostuuid,
     CTLTYPE_STRING | CTLFLAG_RW | CTLFLAG_PRISON | CTLFLAG_CAPRD | CTLFLAG_MPSAFE,
-    (void *)(vos_offsetof(struct prison, pr_hostuuid)), HOSTUUIDLEN,
+    (void *)(offsetof(struct prison, pr_hostuuid)), HOSTUUIDLEN,
     sysctl_hostname, "A", "Host UUID");
 
 static int	regression_securelevel_nonmonotonic = 0;
@@ -423,7 +423,7 @@ sysctl_kern_securelvl(SYSCTL_HANDLER_ARGS)
 	    level < pr->pr_securelevel) {
 		mtx_unlock(&pr->pr_mtx);
 		sx_sunlock(&allprison_lock);
-		return (VOS_EPERM);
+		return (EPERM);
 	}
 	pr->pr_securelevel = level;
 	/*
@@ -474,7 +474,7 @@ sysctl_hostid(SYSCTL_HANDLER_ARGS)
 
 	sx_slock(&allprison_lock);
 	if (!(pr->pr_allow & PR_ALLOW_SET_HOSTNAME))
-		error = VOS_EPERM;
+		error = EPERM;
 	else {
 		while (!(pr->pr_flags & PR_HOST))
 			pr = pr->pr_parent;
@@ -508,7 +508,7 @@ sysctl_bootid(SYSCTL_HANDLER_ARGS)
 	if (!initialized) {
 		if (!is_random_seeded()) {
 			mtx_unlock(&bootid_lk);
-			return (VOS_ENXIO);
+			return (ENXIO);
 		}
 		arc4random_buf(boot_id, sizeof(boot_id));
 		initialized = true;
@@ -532,7 +532,7 @@ sysctl_osrelease(SYSCTL_HANDLER_ARGS)
 	struct prison *pr;
 
 	pr = req->td->td_ucred->cr_prison;
-	return (SYSCTL_OUT(req, pr->pr_osrelease, vos_strlen(pr->pr_osrelease) + 1));
+	return (SYSCTL_OUT(req, pr->pr_osrelease, strlen(pr->pr_osrelease) + 1));
 
 }
 
@@ -594,7 +594,7 @@ sysctl_build_id(SYSCTL_HANDLER_ARGS)
 	 */
 	if (sectionlen <= BUILD_ID_HEADER_LEN ||
 	    sectionlen > (BUILD_ID_HEADER_LEN + BUILD_ID_HASH_MAXLEN)) {
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 
 	hashlen = sectionlen - BUILD_ID_HEADER_LEN;
@@ -603,7 +603,7 @@ sysctl_build_id(SYSCTL_HANDLER_ARGS)
 		snprintf(&buf[2*i], 3, "%02x", c);
 	}
 
-	return (SYSCTL_OUT(req, buf, vos_strlen(buf) + 1));
+	return (SYSCTL_OUT(req, buf, strlen(buf) + 1));
 }
 
 SYSCTL_PROC(_kern, OID_AUTO, build_id,
@@ -707,7 +707,7 @@ sysctl_kern_pid_max(SYSCTL_HANDLER_ARGS)
 	 * As a safety measure, do not allow to limit the pid_max too much.
 	 */
 	if (pm < 300 || pm > PID_MAX)
-		error = VOS_EINVAL;
+		error = EINVAL;
 	else
 		pid_max = pm;
 	sx_xunlock(&allproc_lock);

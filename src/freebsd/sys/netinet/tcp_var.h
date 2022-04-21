@@ -702,7 +702,7 @@ VNET_PCPUSTAT_DECLARE(struct tcpstat, tcpstat);	/* tcp statistics */
  */
 void	kmod_tcpstat_add(int statnum, int val);
 #define	KMOD_TCPSTAT_ADD(name, val)					\
-    kmod_tcpstat_add(vos_offsetof(struct tcpstat, name) / sizeof(uint64_t), val)
+    kmod_tcpstat_add(offsetof(struct tcpstat, name) / sizeof(uint64_t), val)
 #define	KMOD_TCPSTAT_INC(name)	KMOD_TCPSTAT_ADD(name, 1)
 
 /*

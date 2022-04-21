@@ -156,7 +156,7 @@ ttydisc_read_canonical(struct tty *tp, struct uio *uio, int ioflag)
 			if (tp->t_flags & TF_ZOMBIE)
 				return (0);
 			else if (ioflag & IO_NDELAY)
-				return (VOS_EWOULDBLOCK);
+				return (EWOULDBLOCK);
 
 			error = tty_wait(tp, &tp->t_inwait);
 			if (error)
@@ -211,7 +211,7 @@ ttydisc_read_raw_no_timer(struct tty *tp, struct uio *uio, int ioflag)
 		if (tp->t_flags & TF_ZOMBIE)
 			return (0);
 		else if (ioflag & IO_NDELAY)
-			return (VOS_EWOULDBLOCK);
+			return (EWOULDBLOCK);
 
 		error = tty_wait(tp, &tp->t_inwait);
 		if (error)
@@ -263,11 +263,11 @@ ttydisc_read_raw_read_timer(struct tty *tp, struct uio *uio, int ioflag,
 		if (tp->t_flags & TF_ZOMBIE)
 			return (0);
 		else if (ioflag & IO_NDELAY)
-			return (VOS_EWOULDBLOCK);
+			return (EWOULDBLOCK);
 
 		error = tty_timedwait(tp, &tp->t_inwait, hz);
 		if (error)
-			return (error == VOS_EWOULDBLOCK ? 0 : error);
+			return (error == EWOULDBLOCK ? 0 : error);
 	}
 
 	return (0);
@@ -312,7 +312,7 @@ ttydisc_read_raw_interbyte_timer(struct tty *tp, struct uio *uio, int ioflag)
 		if (tp->t_flags & TF_ZOMBIE)
 			return (0);
 		else if (ioflag & IO_NDELAY)
-			return (VOS_EWOULDBLOCK);
+			return (EWOULDBLOCK);
 
 		error = tty_wait(tp, &tp->t_inwait);
 		if (error)
@@ -462,7 +462,7 @@ ttydisc_write(struct tty *tp, struct uio *uio, int ioflag)
 	tty_assert_locked(tp);
 
 	if (tp->t_flags & TF_ZOMBIE)
-		return (VOS_EIO);
+		return (EIO);
 
 	/*
 	 * We don't need to check whether the process is the foreground
@@ -492,7 +492,7 @@ ttydisc_write(struct tty *tp, struct uio *uio, int ioflag)
 		oblen = nlen;
 
 		if (tty_gone(tp)) {
-			error = VOS_ENXIO;
+			error = ENXIO;
 			break;
 		}
 
@@ -546,7 +546,7 @@ ttydisc_write(struct tty *tp, struct uio *uio, int ioflag)
 			tp->t_flags |= TF_HIWAT_OUT;
 
 			if (ioflag & IO_NDELAY) {
-				error = VOS_EWOULDBLOCK;
+				error = EWOULDBLOCK;
 				goto done;
 			}
 
@@ -564,7 +564,7 @@ ttydisc_write(struct tty *tp, struct uio *uio, int ioflag)
 				goto done;
 
 			if (tp->t_flags & TF_ZOMBIE) {
-				error = VOS_EIO;
+				error = EIO;
 				goto done;
 			}
 		} while (oblen > 0);

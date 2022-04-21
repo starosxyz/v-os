@@ -82,7 +82,7 @@ sys_break(struct thread *td, struct break_args *uap)
 		td->td_retval[0] = addr;
 	return (error);
 #else /* defined(__aarch64__) || defined(__riscv) */
-	return (VOS_ENOSYS);
+	return (ENOSYS);
 #endif /* defined(__aarch64__) || defined(__riscv) */
 }
 
@@ -111,11 +111,11 @@ kern_break(struct thread *td, uintptr_t *addr)
 		 * its usage, even if it remains over the limit.
 		 */
 		if (new - base > datalim && new > old) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto done;
 		}
 		if (new > vm_map_max(map)) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto done;
 		}
 	} else if (new < base) {
@@ -134,12 +134,12 @@ kern_break(struct thread *td, uintptr_t *addr)
 		if (!old_mlock && map->flags & MAP_WIREFUTURE) {
 			if (ptoa(pmap_wired_count(map->pmap)) +
 			    (new - old) > lmemlim) {
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				goto done;
 			}
 		}
 		if (map->size + (new - old) > vmemlim) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto done;
 		}
 #ifdef RACCT
@@ -148,7 +148,7 @@ kern_break(struct thread *td, uintptr_t *addr)
 			error = racct_set(td->td_proc, RACCT_DATA, new - base);
 			if (error != 0) {
 				PROC_UNLOCK(td->td_proc);
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				goto done;
 			}
 			error = racct_set(td->td_proc, RACCT_VMEM,
@@ -157,7 +157,7 @@ kern_break(struct thread *td, uintptr_t *addr)
 				racct_set_force(td->td_proc, RACCT_DATA,
 				    old - base);
 				PROC_UNLOCK(td->td_proc);
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				goto done;
 			}
 			if (!old_mlock && map->flags & MAP_WIREFUTURE) {
@@ -170,7 +170,7 @@ kern_break(struct thread *td, uintptr_t *addr)
 					racct_set_force(td->td_proc, RACCT_VMEM,
 					    map->size);
 					PROC_UNLOCK(td->td_proc);
-					error = VOS_ENOMEM;
+					error = ENOMEM;
 					goto done;
 				}
 			}
@@ -206,14 +206,14 @@ kern_break(struct thread *td, uintptr_t *addr)
 				PROC_UNLOCK(td->td_proc);
 			}
 #endif
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto done;
 		}
 		vm->vm_dsize += btoc(new - old);
 	} else if (new < old) {
 		rv = vm_map_delete(map, new, old);
 		if (rv != KERN_SUCCESS) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto done;
 		}
 		vm->vm_dsize -= btoc(old - new);
@@ -244,6 +244,6 @@ int
 freebsd11_vadvise(struct thread *td, struct freebsd11_vadvise_args *uap)
 {
 
-	return (VOS_EINVAL);
+	return (EINVAL);
 }
 #endif

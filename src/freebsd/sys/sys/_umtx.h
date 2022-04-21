@@ -40,7 +40,7 @@ struct umutex {
 	__uint32_t		m_flags;	/* Flags of the mutex */
 	__uint32_t		m_ceilings[2];	/* Priority protect ceiling */
 	__uintptr_t		m_rb_lnk;	/* Robust linkage */
-#ifndef __LP64__
+#if !(defined(__LP64__) && defined(_WIN64))
 	__uint32_t		m_pad;
 #endif
 	__uint32_t		m_spare[2];
@@ -73,7 +73,7 @@ struct _usem2 {
 };
 
 struct _umtx_time {
-	struct vos_timespec		_timeout;
+	struct timespec		_timeout;
 	__uint32_t		_flags;
 	__uint32_t		_clockid;
 };

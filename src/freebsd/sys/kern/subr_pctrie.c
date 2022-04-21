@@ -375,7 +375,7 @@ pctrie_insert(struct pctrie *ptree, uint64_t *val, pctrie_alloc_t allocfn)
 			tmp = pctrie_node_get(ptree, allocfn,
 			    pctrie_trimkey(index, clev + 1), 2, clev);
 			if (tmp == NULL)
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			/* These writes are not yet visible due to ordering. */
 			pctrie_addval(tmp, index, clev, val,
 			    PCTRIE_UNSERIALIZED);
@@ -407,7 +407,7 @@ pctrie_insert(struct pctrie *ptree, uint64_t *val, pctrie_alloc_t allocfn)
 	tmp = pctrie_node_get(ptree, allocfn,
 	    pctrie_trimkey(index, clev + 1), 2, clev);
 	if (tmp == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	slot = pctrie_slot(newind, clev);
 	/* These writes are not yet visible due to ordering. */
 	pctrie_addval(tmp, index, clev, val, PCTRIE_UNSERIALIZED);

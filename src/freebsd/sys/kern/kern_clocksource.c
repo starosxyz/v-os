@@ -924,7 +924,7 @@ sysctl_kern_eventtimer_timer(SYSCTL_HANDLER_ARGS)
 	et = et_find(buf, 0, 0);
 	if (et == NULL) {
 		ET_UNLOCK();
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 	configtimer(0);
 	et_free(timer);

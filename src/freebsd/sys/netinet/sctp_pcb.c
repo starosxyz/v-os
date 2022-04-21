@@ -326,7 +326,7 @@ sctp_mark_ifa_addr_down(uint32_t vrf_id, struct sockaddr *addr,
 		goto out;
 	}
 	if (if_name) {
-		if (vos_strncmp(if_name, sctp_ifap->ifn_p->ifn_name, SCTP_IFNAMSIZ) != 0) {
+		if (strncmp(if_name, sctp_ifap->ifn_p->ifn_name, SCTP_IFNAMSIZ) != 0) {
 			SCTPDBG(SCTP_DEBUG_PCB4, "IFN %s of IFA not the same as %s\n",
 			    sctp_ifap->ifn_p->ifn_name, if_name);
 			goto out;
@@ -368,7 +368,7 @@ sctp_mark_ifa_addr_up(uint32_t vrf_id, struct sockaddr *addr,
 		goto out;
 	}
 	if (if_name) {
-		if (vos_strncmp(if_name, sctp_ifap->ifn_p->ifn_name, SCTP_IFNAMSIZ) != 0) {
+		if (strncmp(if_name, sctp_ifap->ifn_p->ifn_name, SCTP_IFNAMSIZ) != 0) {
 			SCTPDBG(SCTP_DEBUG_PCB4, "IFN %s of IFA not the same as %s\n",
 			    sctp_ifap->ifn_p->ifn_name, if_name);
 			goto out;
@@ -743,7 +743,7 @@ sctp_del_addr_from_vrf(uint32_t vrf_id, struct sockaddr *addr,
 			 * if its given.
 			 */
 			if (if_name) {
-				if (vos_strncmp(if_name, sctp_ifap->ifn_p->ifn_name, SCTP_IFNAMSIZ) == 0) {
+				if (strncmp(if_name, sctp_ifap->ifn_p->ifn_name, SCTP_IFNAMSIZ) == 0) {
 					/* They match its a correct delete */
 					valid = 1;
 				}
@@ -2404,8 +2404,8 @@ sctp_inpcb_alloc(struct socket *so, uint32_t vrf_id)
 	if (inp == NULL) {
 		SCTP_PRINTF("Out of SCTP-INPCB structures - no resources\n");
 		SCTP_INP_INFO_WUNLOCK();
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_ENOBUFS);
-		return (VOS_ENOBUFS);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOBUFS);
+		return (ENOBUFS);
 	}
 	/* zap it */
 	memset(inp, 0, sizeof(*inp));
@@ -2446,7 +2446,7 @@ sctp_inpcb_alloc(struct socket *so, uint32_t vrf_id)
 		crfree(inp->ip_inp.inp.inp_cred);
 		SCTP_ZONE_FREE(SCTP_BASE_INFO(ipi_zone_ep), inp);
 		SCTP_INP_INFO_WUNLOCK();
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 	}
 	SCTP_INCR_EP_COUNT();
 	inp->ip_inp.inp.inp_ip_ttl = MODULE_GLOBAL(ip_defttl);
@@ -2473,11 +2473,11 @@ sctp_inpcb_alloc(struct socket *so, uint32_t vrf_id)
 		 * unsupported socket type (RAW, etc)- in case we missed it
 		 * in protosw
 		 */
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EOPNOTSUPP);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EOPNOTSUPP);
 		so->so_pcb = NULL;
 		crfree(inp->ip_inp.inp.inp_cred);
 		SCTP_ZONE_FREE(SCTP_BASE_INFO(ipi_zone_ep), inp);
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	if (SCTP_BASE_SYSCTL(sctp_default_frag_interleave) == SCTP_FRAG_LEVEL_1) {
 		sctp_feature_on(inp, SCTP_PCB_FLAGS_FRAG_INTERLEAVE);
@@ -2493,11 +2493,11 @@ sctp_inpcb_alloc(struct socket *so, uint32_t vrf_id)
 	    &inp->sctp_hashmark);
 	if (inp->sctp_tcbhash == NULL) {
 		SCTP_PRINTF("Out of SCTP-INPCB->hashinit - no resources\n");
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_ENOBUFS);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOBUFS);
 		so->so_pcb = NULL;
 		crfree(inp->ip_inp.inp.inp_cred);
 		SCTP_ZONE_FREE(SCTP_BASE_INFO(ipi_zone_ep), inp);
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 	}
 	inp->def_vrf_id = vrf_id;
 
@@ -2772,8 +2772,8 @@ sctp_insert_laddr(struct sctpladdr *list, struct sctp_ifa *ifa, uint32_t act)
 	laddr = SCTP_ZONE_GET(SCTP_BASE_INFO(ipi_zone_laddr), struct sctp_laddr);
 	if (laddr == NULL) {
 		/* out of memory? */
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		return (EINVAL);
 	}
 	SCTP_INCR_LADDR_COUNT();
 	memset(laddr, 0, sizeof(*laddr));
@@ -2830,8 +2830,8 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 #endif
 	if ((inp->sctp_flags & SCTP_PCB_FLAGS_UNBOUND) == 0) {
 		/* already did a bind, subsequent binds NOT allowed ! */
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		return (EINVAL);
 	}
 #ifdef INVARIANTS
 	if (p == NULL)
@@ -2846,12 +2846,12 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 
 				/* IPV6_V6ONLY socket? */
 				if (SCTP_IPV6_V6ONLY(inp)) {
-					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-					return (VOS_EINVAL);
+					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+					return (EINVAL);
 				}
 				if (addr->sa_len != sizeof(*sin)) {
-					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-					return (VOS_EINVAL);
+					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+					return (EINVAL);
 				}
 
 				sin = (struct sockaddr_in *)addr;
@@ -2883,8 +2883,8 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 				sin6 = (struct sockaddr_in6 *)addr;
 
 				if (addr->sa_len != sizeof(*sin6)) {
-					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-					return (VOS_EINVAL);
+					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+					return (EINVAL);
 				}
 				lport = sin6->sin6_port;
 				/*
@@ -2901,8 +2901,8 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 					bindall = 0;
 					/* KAME hack: embed scopeid */
 					if (sa6_embedscope(sin6, MODULE_GLOBAL(ip6_use_defzone)) != 0) {
-						SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-						return (VOS_EINVAL);
+						SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+						return (EINVAL);
 					}
 				}
 				/* this must be cleared for ifa_ifwithaddr() */
@@ -2911,8 +2911,8 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 			}
 #endif
 		default:
-			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EAFNOSUPPORT);
-			return (VOS_EAFNOSUPPORT);
+			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EAFNOSUPPORT);
+			return (EAFNOSUPPORT);
 		}
 	}
 	SCTP_INP_INFO_WLOCK();
@@ -2963,8 +2963,8 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 				}
 				SCTP_INP_DECR_REF(inp);
 				SCTP_INP_INFO_WUNLOCK();
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EADDRINUSE);
-				return (VOS_EADDRINUSE);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EADDRINUSE);
+				return (EADDRINUSE);
 			}
 		} else {
 			inp_tmp = sctp_pcb_findep(addr, 0, 1, vrf_id);
@@ -2989,8 +2989,8 @@ sctp_inpcb_bind(struct socket *so, struct sockaddr *addr,
 				}
 				SCTP_INP_DECR_REF(inp);
 				SCTP_INP_INFO_WUNLOCK();
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EADDRINUSE);
-				return (VOS_EADDRINUSE);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EADDRINUSE);
+				return (EADDRINUSE);
 			}
 		}
 continue_anyway:
@@ -3007,8 +3007,8 @@ continue_anyway:
 					SCTP_INP_DECR_REF(inp);
 					SCTP_INP_WUNLOCK(inp);
 					SCTP_INP_INFO_WUNLOCK();
-					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EADDRINUSE);
-					return (VOS_EADDRINUSE);
+					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EADDRINUSE);
+					return (EADDRINUSE);
 				}
 			}
 		}
@@ -3056,8 +3056,8 @@ continue_anyway:
 					SCTP_INP_DECR_REF(inp);
 					SCTP_INP_WUNLOCK(inp);
 					SCTP_INP_INFO_WUNLOCK();
-					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EADDRINUSE);
-					return (VOS_EADDRINUSE);
+					SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EADDRINUSE);
+					return (EADDRINUSE);
 				}
 				if (candidate == last)
 					candidate = first;
@@ -3076,8 +3076,8 @@ continue_anyway:
 		 */
 		SCTP_INP_WUNLOCK(inp);
 		SCTP_INP_INFO_WUNLOCK();
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		return (EINVAL);
 	}
 	/* ok we look clear to give out this port, so lets setup the binding */
 	if (bindall) {
@@ -3168,8 +3168,8 @@ continue_anyway:
 			/* Can't find an interface with that address */
 			SCTP_INP_WUNLOCK(inp);
 			SCTP_INP_INFO_WUNLOCK();
-			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EADDRNOTAVAIL);
-			return (VOS_EADDRNOTAVAIL);
+			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EADDRNOTAVAIL);
+			return (EADDRNOTAVAIL);
 		}
 #ifdef INET6
 		if (addr->sa_family == AF_INET6) {
@@ -3178,8 +3178,8 @@ continue_anyway:
 				/* Can't bind a non-existent addr. */
 				SCTP_INP_WUNLOCK(inp);
 				SCTP_INP_INFO_WUNLOCK();
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-				return (VOS_EINVAL);
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+				return (EINVAL);
 			}
 		}
 #endif
@@ -4174,13 +4174,13 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 	 */
 	if (SCTP_BASE_INFO(ipi_count_asoc) >= SCTP_MAX_NUM_OF_ASOC) {
 		/* Hit max assoc, sorry no more */
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_ENOBUFS);
-		*error = VOS_ENOBUFS;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOBUFS);
+		*error = ENOBUFS;
 		return (NULL);
 	}
 	if (firstaddr == NULL) {
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		*error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		*error = EINVAL;
 		return (NULL);
 	}
 	SCTP_INP_RLOCK(inp);
@@ -4194,8 +4194,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 		 * off, or connected one does this.. its an error.
 		 */
 		SCTP_INP_RUNLOCK(inp);
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		*error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		*error = EINVAL;
 		return (NULL);
 	}
 	if ((inp->sctp_flags & SCTP_PCB_FLAGS_IN_TCPPOOL) ||
@@ -4203,8 +4203,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 		if ((inp->sctp_flags & SCTP_PCB_FLAGS_WAS_CONNECTED) ||
 		    (inp->sctp_flags & SCTP_PCB_FLAGS_WAS_ABORTED)) {
 			SCTP_INP_RUNLOCK(inp);
-			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-			*error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+			*error = EINVAL;
 			return (NULL);
 		}
 	}
@@ -4247,8 +4247,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 			    (SCTP_IPV6_V6ONLY(inp) != 0))) {
 				/* Invalid address */
 				SCTP_INP_RUNLOCK(inp);
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-				*error = VOS_EINVAL;
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+				*error = EINVAL;
 				return (NULL);
 			}
 			rport = sin->sin_port;
@@ -4267,8 +4267,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 			    ((inp->sctp_flags & SCTP_PCB_FLAGS_BOUND_V6) == 0)) {
 				/* Invalid address */
 				SCTP_INP_RUNLOCK(inp);
-				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-				*error = VOS_EINVAL;
+				SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+				*error = EINVAL;
 				return (NULL);
 			}
 			rport = sin6->sin6_port;
@@ -4278,8 +4278,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 	default:
 		/* not supported family type */
 		SCTP_INP_RUNLOCK(inp);
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		*error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		*error = EINVAL;
 		return (NULL);
 	}
 	SCTP_INP_RUNLOCK(inp);
@@ -4297,8 +4297,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 	stcb = SCTP_ZONE_GET(SCTP_BASE_INFO(ipi_zone_asoc), struct sctp_tcb);
 	if (stcb == NULL) {
 		/* out of memory? */
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_ENOMEM);
-		*error = VOS_ENOMEM;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOMEM);
+		*error = ENOMEM;
 		return (NULL);
 	}
 	SCTP_INCR_ASOC_COUNT();
@@ -4332,8 +4332,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 		SCTP_INP_WUNLOCK(inp);
 		SCTP_INP_INFO_WUNLOCK();
 		SCTP_DECR_ASOC_COUNT();
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_EINVAL);
-		*error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, EINVAL);
+		*error = EINVAL;
 		return (NULL);
 	}
 	SCTP_TCB_LOCK(stcb);
@@ -4366,8 +4366,8 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 		LIST_REMOVE(stcb, sctp_tcbasocidhash);
 		SCTP_ZONE_FREE(SCTP_BASE_INFO(ipi_zone_asoc), stcb);
 		SCTP_INP_WUNLOCK(inp);
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_ENOBUFS);
-		*error = VOS_ENOBUFS;
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOBUFS);
+		*error = ENOBUFS;
 		return (NULL);
 	}
 	/* Init all the timers */
@@ -4783,8 +4783,8 @@ sctp_free_assoc(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int from_inpcbfre
 		}
 		SCTP_INP_READ_UNLOCK(inp);
 		if (stcb->block_entry) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PCB, VOS_ECONNRESET);
-			stcb->block_entry->error = VOS_ECONNRESET;
+			SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_PCB, ECONNRESET);
+			stcb->block_entry->error = ECONNRESET;
 			stcb->block_entry = NULL;
 		}
 	}
@@ -7043,7 +7043,7 @@ sctp_initiate_iterator(inp_func inpf,
 	SCTP_MALLOC(it, struct sctp_iterator *, sizeof(struct sctp_iterator),
 	    SCTP_M_ITER);
 	if (it == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PCB, VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOMEM);
 		return (-1);
 	}
 	memset(it, 0, sizeof(*it));

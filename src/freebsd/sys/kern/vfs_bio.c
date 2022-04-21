@@ -413,14 +413,14 @@ sysctl_runningspace(SYSCTL_HANDLER_ARGS)
 	mtx_lock(&rbreqlock);
 	if (arg1 == &hirunningspace) {
 		if (value < lorunningspace)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			hirunningspace = value;
 	} else {
 		KASSERT(arg1 == &lorunningspace,
 		    ("%s: unknown arg1", __func__));
 		if (value > hirunningspace)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			lorunningspace = value;
 	}
@@ -481,7 +481,7 @@ sysctl_bufspace(SYSCTL_HANDLER_ARGS)
 	if (sizeof(int) == sizeof(long long) || req->oldlen >= sizeof(long long))
 		return (sysctl_handle_long(oidp, &lvalue, 0, req));
 	if (lvalue > INT_MAX)
-		/* On overflow, still write out a long to trigger VOS_ENOMEM. */
+		/* On overflow, still write out a long to trigger ENOMEM. */
 		return (sysctl_handle_long(oidp, &lvalue, 0, req));
 	ivalue = lvalue;
 	return (sysctl_handle_int(oidp, &ivalue, 0, req));
@@ -704,7 +704,7 @@ bufspace_reserve(struct bufdomain *bd, int size, bool metadata)
 	new = space + size;
 	if (new > limit) {
 		atomic_subtract_long(&bd->bd_bufspace, size);
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 	}
 
 	/* Wake up the daemon on the transition. */
@@ -1806,7 +1806,7 @@ buf_recycle(struct bufdomain *bd, bool kva)
 	bd->bd_wanted = 1;
 	BQ_UNLOCK(bq);
 
-	return (VOS_ENOBUFS);
+	return (ENOBUFS);
 }
 
 /*
@@ -2245,7 +2245,7 @@ bufwrite(struct buf *bp)
 		bp->b_flags |= B_INVAL | B_RELBUF;
 		bp->b_flags &= ~B_CACHE;
 		brelse(bp);
-		return (VOS_ENXIO);
+		return (ENXIO);
 	}
 	if (bp->b_flags & B_INVAL) {
 		brelse(bp);
@@ -2666,24 +2666,24 @@ brelse(struct buf *bp)
 	}
 
 	if (bp->b_iocmd == BIO_WRITE && (bp->b_ioflags & BIO_ERROR) &&
-	    (bp->b_error != VOS_ENXIO || !LIST_EMPTY(&bp->b_dep)) &&
+	    (bp->b_error != ENXIO || !LIST_EMPTY(&bp->b_dep)) &&
 	    !(bp->b_flags & B_INVAL)) {
 		/*
-		 * Failed write, redirty.  All errors except VOS_ENXIO (which
+		 * Failed write, redirty.  All errors except ENXIO (which
 		 * means the device is gone) are treated as being
 		 * transient.
 		 *
-		 * XXX Treating VOS_EIO as transient is not correct; the
+		 * XXX Treating EIO as transient is not correct; the
 		 * contract with the local storage device drivers is that
-		 * they will only return VOS_EIO once the I/O is no longer
+		 * they will only return EIO once the I/O is no longer
 		 * retriable.  Network I/O also respects this through the
 		 * guarantees of TCP and/or the internal retries of NFS.
-		 * VOS_ENOMEM might be transient, but we also have no way of
+		 * ENOMEM might be transient, but we also have no way of
 		 * knowing when its ok to retry/reschedule.  In general,
 		 * this entire case should be made obsolete through better
 		 * error handling/recovery and resource scheduling.
 		 *
-		 * Do this also for buffers that failed with VOS_ENXIO, but have
+		 * Do this also for buffers that failed with ENXIO, but have
 		 * non-empty dependencies - the soft updates code might need
 		 * to access the buffer to untangle them.
 		 *
@@ -3253,7 +3253,7 @@ getnewbuf_kva(struct buf *bp, int gbflags, int maxsize)
 
 		if (maxsize != bp->b_kvasize &&
 		    bufkva_alloc(bp, maxsize, gbflags))
-			return (VOS_ENOSPC);
+			return (ENOSPC);
 	}
 	return (0);
 }
@@ -3393,7 +3393,7 @@ flushbufqueues(struct vnode *lvp, struct bufdomain *bd, int target,
 	flushed = 0;
 	bq = &bd->bd_dirtyq;
 	bp = NULL;
-	sentinel = vos_malloc(sizeof(struct buf), M_TEMP, M_WAITOK | M_ZERO);
+	sentinel = malloc(sizeof(struct buf), M_TEMP, M_WAITOK | M_ZERO);
 	sentinel->b_qindex = QUEUE_SENTINEL;
 	BQ_LOCK(bq);
 	TAILQ_INSERT_HEAD(&bq->bq_queue, sentinel, b_freelist);
@@ -3506,7 +3506,7 @@ flushbufqueues(struct vnode *lvp, struct bufdomain *bd, int target,
 	BQ_LOCK(bq);
 	TAILQ_REMOVE(&bq->bq_queue, sentinel, b_freelist);
 	BQ_UNLOCK(bq);
-	vos_free(sentinel, M_TEMP);
+	free(sentinel, M_TEMP);
 	return (flushed);
 }
 
@@ -3843,7 +3843,7 @@ loop:
 		 * If we slept and got the lock we have to restart in case
 		 * the buffer changed identities.
 		 */
-		if (error == VOS_ENOLCK)
+		if (error == ENOLCK)
 			goto loop;
 		/* We timed out or were interrupted. */
 		else if (error != 0)
@@ -3955,7 +3955,7 @@ newbuf_unlocked:
 		 * here.
 		 */
 		if (flags & GB_NOCREAT)
-			return (VOS_EEXIST);
+			return (EEXIST);
 
 		bsize = vn_isdisk(vp) ? DEV_BSIZE : bo->bo_bsize;
 		KASSERT(bsize != 0, ("bsize == 0, check bo->bo_bsize"));
@@ -3972,19 +3972,19 @@ newbuf_unlocked:
 		if ((flags & GB_NOSPARSE) != 0 && vmio &&
 		    !vn_isdisk(vp)) {
 			error = VOP_BMAP(vp, blkno, NULL, &d_blkno, 0, 0);
-			KASSERT(error != VOS_EOPNOTSUPP,
+			KASSERT(error != EOPNOTSUPP,
 			    ("GB_NOSPARSE from fs not supporting bmap, vp %p",
 			    vp));
 			if (error != 0)
 				return (error);
 			if (d_blkno == -1)
-				return (VOS_EJUSTRETURN);
+				return (EJUSTRETURN);
 		}
 
 		bp = getnewbuf(vp, slpflag, slptimeo, maxsize, flags);
 		if (bp == NULL) {
 			if (slpflag || slptimeo)
-				return (VOS_ETIMEDOUT);
+				return (ETIMEDOUT);
 			/*
 			 * XXX This is here until the sleep path is diagnosed
 			 * enough to work under very low memory conditions.
@@ -4104,7 +4104,7 @@ vfs_nonvmio_truncate(struct buf *bp, int newbsize)
 		 */
 		if (newbsize == 0) {
 			bufmallocadjust(bp, 0);
-			vos_free(bp->b_data, M_BIOBUF);
+			free(bp->b_data, M_BIOBUF);
 			bp->b_data = bp->b_kvabase;
 			bp->b_flags &= ~B_MALLOC;
 		}
@@ -4135,7 +4135,7 @@ vfs_nonvmio_extend(struct buf *bp, int newbsize)
 	 */
 	if (bp->b_bufsize == 0 && newbsize <= PAGE_SIZE/2 &&
 	    bufmallocspace < maxbufmallocspace) {
-		bp->b_data = vos_malloc(newbsize, M_BIOBUF, M_WAITOK);
+		bp->b_data = malloc(newbsize, M_BIOBUF, M_WAITOK);
 		bp->b_flags |= B_MALLOC;
 		bufmallocadjust(bp, newbsize);
 		return;
@@ -4160,7 +4160,7 @@ vfs_nonvmio_extend(struct buf *bp, int newbsize)
 	    (vm_offset_t) bp->b_data + newbsize);
 	if (origbuf != NULL) {
 		bcopy(origbuf, bp->b_data, origbufsize);
-		vos_free(origbuf, M_BIOBUF);
+		free(origbuf, M_BIOBUF);
 	}
 	bufspace_adjust(bp, newbsize);
 }
@@ -4289,7 +4289,7 @@ biowait(struct bio *bp, const char *wchan)
 		return (bp->bio_error);
 	if (!(bp->bio_flags & BIO_ERROR))
 		return (0);
-	return (VOS_EIO);
+	return (EIO);
 }
 
 void
@@ -4318,7 +4318,7 @@ biotrack_buf(struct bio *bp, const char *location)
  *	bufwait:
  *
  *	Wait for buffer I/O completion, returning error status.  The buffer
- *	is left locked and B_DONE on return.  B_EINTR is converted into an VOS_EINTR
+ *	is left locked and B_DONE on return.  B_EINTR is converted into an EINTR
  *	error and cleared.
  */
 int
@@ -4330,10 +4330,10 @@ bufwait(struct buf *bp)
 		bwait(bp, PRIBIO, "biowr");
 	if (bp->b_flags & B_EINTR) {
 		bp->b_flags &= ~B_EINTR;
-		return (VOS_EINTR);
+		return (EINTR);
 	}
 	if (bp->b_ioflags & BIO_ERROR) {
-		return (bp->b_error ? bp->b_error : VOS_EIO);
+		return (bp->b_error ? bp->b_error : EIO);
 	} else {
 		return (0);
 	}

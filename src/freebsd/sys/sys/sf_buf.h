@@ -189,7 +189,7 @@ sf_buf_ref(struct sf_buf *sf)
 
 extern counter_u64_t sfstat[sizeof(struct sfstat) / sizeof(uint64_t)];
 #define	SFSTAT_ADD(name, val)	\
-    counter_u64_add(sfstat[vos_offsetof(struct sfstat, name) / sizeof(uint64_t)],\
+    counter_u64_add(sfstat[offsetof(struct sfstat, name) / sizeof(uint64_t)],\
 	(val))
 #define	SFSTAT_INC(name)	SFSTAT_ADD(name, 1)
 #endif /* _KERNEL */

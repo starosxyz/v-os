@@ -659,9 +659,9 @@ udp6_getcred(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (req->newlen != sizeof(addrs))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (req->oldlen != sizeof(struct xucred))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	error = SYSCTL_IN(req, addrs, sizeof(addrs));
 	if (error)
 		return (error);
@@ -677,7 +677,7 @@ udp6_getcred(SYSCTL_HANDLER_ARGS)
 	if (inp != NULL) {
 		INP_RLOCK_ASSERT(inp);
 		if (inp->inp_socket == NULL)
-			error = VOS_ENOENT;
+			error = ENOENT;
 		if (error == 0)
 			error = cr_canseesocket(req->td->td_ucred,
 			    inp->inp_socket);
@@ -685,7 +685,7 @@ udp6_getcred(SYSCTL_HANDLER_ARGS)
 			cru2x(inp->inp_cred, &xuc);
 		INP_RUNLOCK(inp);
 	} else
-		error = VOS_ENOENT;
+		error = ENOENT;
 	if (error == 0)
 		error = SYSCTL_OUT(req, &xuc, sizeof(struct xucred));
 	return (error);
@@ -807,7 +807,7 @@ udp6_output(struct socket *so, int flags_arg, struct mbuf *m,
 		 * XXXGL: do we leak m and control?
 		 */
 		INP_UNLOCK(inp);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	if (control) {
@@ -833,13 +833,13 @@ udp6_output(struct socket *so, int flags_arg, struct mbuf *m,
 		 * and the local port.
 		 */
 		if (sin6->sin6_port == 0) {
-			error = VOS_EADDRNOTAVAIL;
+			error = EADDRNOTAVAIL;
 			goto release;
 		}
 
 		if (!IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_faddr)) {
 			/* how about ::ffff:0.0.0.0 case? */
-			error = VOS_EISCONN;
+			error = EISCONN;
 			goto release;
 		}
 
@@ -878,7 +878,7 @@ udp6_output(struct socket *so, int flags_arg, struct mbuf *m,
 
 	} else {
 		if (IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_faddr)) {
-			error = VOS_ENOTCONN;
+			error = ENOTCONN;
 			goto release;
 		}
 		laddr = &inp->in6p_laddr;
@@ -896,7 +896,7 @@ udp6_output(struct socket *so, int flags_arg, struct mbuf *m,
 	 */
 	M_PREPEND(m, hlen + sizeof(struct udphdr), M_NOWAIT);
 	if (m == NULL) {
-		error = VOS_ENOBUFS;
+		error = ENOBUFS;
 		goto release;
 	}
 
@@ -947,7 +947,7 @@ udp6_output(struct socket *so, int flags_arg, struct mbuf *m,
 	} else {
 		udp6->uh_sum = in6_cksum_pseudo(ip6, plen, nxt, 0);
 		m->m_pkthdr.csum_flags = CSUM_UDP_IPV6;
-		m->m_pkthdr.csum_data = vos_offsetof(struct udphdr, uh_sum);
+		m->m_pkthdr.csum_data = offsetof(struct udphdr, uh_sum);
 	}
 
 	flags = 0;
@@ -1188,15 +1188,15 @@ udp6_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 		struct sockaddr_in sin;
 
 		if ((inp->inp_flags & IN6P_IPV6_V6ONLY) != 0) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto out;
 		}
 		if ((inp->inp_vflag & INP_IPV4) == 0) {
-			error = VOS_EAFNOSUPPORT;
+			error = EAFNOSUPPORT;
 			goto out;
 		}
 		if (inp->inp_faddr.s_addr != INADDR_ANY) {
-			error = VOS_EISCONN;
+			error = EISCONN;
 			goto out;
 		}
 		in6_sin6_2_sin(&sin, sin6);
@@ -1225,13 +1225,13 @@ udp6_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 		goto out;
 	} else {
 		if ((inp->inp_vflag & INP_IPV6) == 0) {
-			error = VOS_EAFNOSUPPORT;
+			error = EAFNOSUPPORT;
 			goto out;
 		}
 	}
 #endif
 	if (!IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_faddr)) {
-		error = VOS_EISCONN;
+		error = EISCONN;
 		goto out;
 	}
 	error = prison_remote_ip6(td->td_ucred, &sin6->sin6_addr);
@@ -1306,7 +1306,7 @@ udp6_disconnect(struct socket *so)
 
 	if (IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_faddr)) {
 		INP_WUNLOCK(inp);
-		return (VOS_ENOTCONN);
+		return (ENOTCONN);
 	}
 
 	INP_HASH_WLOCK(pcbinfo);
@@ -1328,11 +1328,11 @@ udp6_send(struct socket *so, int flags, struct mbuf *m,
 
 	if (addr) {
 		if (addr->sa_len != sizeof(struct sockaddr_in6)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto bad;
 		}
 		if (addr->sa_family != AF_INET6) {
-			error = VOS_EAFNOSUPPORT;
+			error = EAFNOSUPPORT;
 			goto bad;
 		}
 	}

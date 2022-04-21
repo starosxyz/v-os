@@ -39,7 +39,7 @@
 
 #define	AUXARGS_ENTRY(pos, id, val) \
     {(pos)->a_type = (id); (pos)->a_un.a_val = (val); (pos)++;}
-#if (defined(__LP64__) && __ELF_WORD_SIZE == 32)
+#if ((defined(__LP64__)||defined(_WIN64)) && __ELF_WORD_SIZE == 32)
 #define	AUXARGS_ENTRY_PTR(pos, id, ptr) \
     {(pos)->a_type = (id); (pos)->a_un.a_val = (uintptr_t)(ptr); (pos)++;}
 #else

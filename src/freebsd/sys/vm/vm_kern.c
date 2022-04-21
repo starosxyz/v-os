@@ -690,7 +690,7 @@ kva_import(void* unused, vmem_size_t size, int flags, vmem_addr_t* addrp)
 	result = vm_map_find(kernel_map, NULL, 0, &addr, size, 0,
 		VMFS_SUPER_SPACE, VM_PROT_ALL, VM_PROT_ALL, MAP_NOFAULT);
 	if (result != KERN_SUCCESS)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	*addrp = addr;
 
@@ -867,7 +867,7 @@ debug_vm_lowmem(SYSCTL_HANDLER_ARGS)
 	if (error != 0)
 		return (error);
 	if ((i & ~(VM_LOW_KMEM | VM_LOW_PAGES)) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (i != 0)
 		EVENTHANDLER_INVOKE(vm_lowmem, i);
 	return (0);
@@ -887,7 +887,7 @@ debug_uma_reclaim(SYSCTL_HANDLER_ARGS)
 		return (error);
 	if (i != UMA_RECLAIM_TRIM && i != UMA_RECLAIM_DRAIN &&
 		i != UMA_RECLAIM_DRAIN_CPU)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	uma_reclaim(i);
 	return (0);
 }
@@ -909,9 +909,9 @@ debug_uma_reclaim_domain(SYSCTL_HANDLER_ARGS)
 	request &= 0xf;
 	if (request != UMA_RECLAIM_TRIM && request != UMA_RECLAIM_DRAIN &&
 		request != UMA_RECLAIM_DRAIN_CPU)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (domain < 0 || domain >= vm_ndomains)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	uma_reclaim_domain(request, domain);
 	return (0);
 }

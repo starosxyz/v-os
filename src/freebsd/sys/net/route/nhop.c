@@ -76,7 +76,7 @@ nhops_init_rib(struct rib_head *rh)
 	uint32_t num_buckets, num_items;
 	void *ptr;
 
-	ctl = vos_malloc(sizeof(struct nh_control), M_NHOP, M_WAITOK | M_ZERO);
+	ctl = malloc(sizeof(struct nh_control), M_NHOP, M_WAITOK | M_ZERO);
 
 	/*
 	 * Allocate nexthop hash. Start with 16 items by default (128 bytes).
@@ -84,14 +84,14 @@ nhops_init_rib(struct rib_head *rh)
 	 */
 	num_buckets = 16;
 	alloc_size = CHT_SLIST_GET_RESIZE_SIZE(num_buckets);
-	ptr = vos_malloc(alloc_size, M_NHOP, M_WAITOK | M_ZERO);
+	ptr = malloc(alloc_size, M_NHOP, M_WAITOK | M_ZERO);
 	CHT_SLIST_INIT(&ctl->nh_head, ptr, num_buckets);
 
 	/*
 	 * Allocate nexthop index bitmask.
 	 */
 	num_items = 128 * 8; /* 128 bytes */
-	ptr = vos_malloc(bitmask_get_size(num_items), M_NHOP, M_WAITOK | M_ZERO);
+	ptr = malloc(bitmask_get_size(num_items), M_NHOP, M_WAITOK | M_ZERO);
 	bitmask_init(&ctl->nh_idx_head, ptr, num_items);
 
 	NHOPS_LOCK_INIT(ctl);
@@ -110,12 +110,12 @@ destroy_ctl(struct nh_control *ctl)
 {
 
 	NHOPS_LOCK_DESTROY(ctl);
-	vos_free(ctl->nh_head.ptr, M_NHOP);
-	vos_free(ctl->nh_idx_head.idx, M_NHOP);
+	free(ctl->nh_head.ptr, M_NHOP);
+	free(ctl->nh_idx_head.idx, M_NHOP);
 #ifdef ROUTE_MPATH
 	nhgrp_ctl_free(ctl);
 #endif
-	vos_free(ctl, M_NHOP);
+	free(ctl, M_NHOP);
 }
 
 /*
@@ -243,13 +243,13 @@ consider_resize(struct nh_control *ctl, uint32_t new_nh_buckets, uint32_t new_id
 	nh_ptr = NULL;
 	if (new_nh_buckets != 0) {
 		alloc_size = CHT_SLIST_GET_RESIZE_SIZE(new_nh_buckets);
-		nh_ptr = vos_malloc(alloc_size, M_NHOP, M_NOWAIT | M_ZERO);
+		nh_ptr = malloc(alloc_size, M_NHOP, M_NOWAIT | M_ZERO);
 	}
 
 	nh_idx_ptr = NULL;
 	if (new_idx_items != 0) {
 		alloc_size = bitmask_get_size(new_idx_items);
-		nh_idx_ptr = vos_malloc(alloc_size, M_NHOP, M_NOWAIT | M_ZERO);
+		nh_idx_ptr = malloc(alloc_size, M_NHOP, M_NOWAIT | M_ZERO);
 	}
 
 	if (nh_ptr == NULL && nh_idx_ptr == NULL) {
@@ -273,9 +273,9 @@ consider_resize(struct nh_control *ctl, uint32_t new_nh_buckets, uint32_t new_id
 	NHOPS_WUNLOCK(ctl);
 
 	if (nh_ptr != NULL)
-		vos_free(nh_ptr, M_NHOP);
+		free(nh_ptr, M_NHOP);
 	if (old_idx_ptr != NULL)
-		vos_free(old_idx_ptr, M_NHOP);
+		free(old_idx_ptr, M_NHOP);
 }
 
 /*

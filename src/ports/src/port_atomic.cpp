@@ -9,6 +9,7 @@
 #include <stddef.h>
 #include <stdint.h>
 #include <windows.h>
+#include <intrin.h>
 #endif
 
 void atomic_set_int(u_int* P, u_int V)

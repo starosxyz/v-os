@@ -250,7 +250,7 @@ cubic_after_idle(struct cc_var *ccv)
 static void
 cubic_cb_destroy(struct cc_var *ccv)
 {
-	vos_free(ccv->cc_data, M_CUBIC);
+	free(ccv->cc_data, M_CUBIC);
 }
 
 static int
@@ -258,10 +258,10 @@ cubic_cb_init(struct cc_var *ccv)
 {
 	struct cubic *cubic_data;
 
-	cubic_data = vos_malloc(sizeof(struct cubic), M_CUBIC, M_NOWAIT|M_ZERO);
+	cubic_data = malloc(sizeof(struct cubic), M_CUBIC, M_NOWAIT|M_ZERO);
 
 	if (cubic_data == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/* Init some key variables with sensible defaults. */
 	cubic_data->t_last_cong = ticks;

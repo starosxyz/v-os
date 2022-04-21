@@ -140,7 +140,7 @@ gif_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 {
 	struct gif_softc *sc;
 
-	sc = vos_malloc(sizeof(struct gif_softc), M_GIF, M_WAITOK | M_ZERO);
+	sc = malloc(sizeof(struct gif_softc), M_GIF, M_WAITOK | M_ZERO);
 	sc->gif_fibnum = curthread->td_proc->p_fibnum;
 	GIF2IFP(sc) = if_alloc(IFT_GIF);
 	GIF2IFP(sc)->if_softc = sc;
@@ -198,7 +198,7 @@ gif_clone_destroy(struct ifnet *ifp)
 
 	GIF_WAIT();
 	if_free(ifp);
-	vos_free(sc, M_GIF);
+	free(sc, M_GIF);
 }
 
 static void
@@ -241,7 +241,7 @@ gifmodevent(module_t mod, int type, void *data)
 	case MOD_UNLOAD:
 		break;
 	default:
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	return (0);
 }
@@ -261,7 +261,7 @@ gif_hashinit(void)
 	struct gif_list *hash;
 	int i;
 
-	hash = vos_malloc(sizeof(struct gif_list) * GIF_HASH_SIZE,
+	hash = malloc(sizeof(struct gif_list) * GIF_HASH_SIZE,
 	    M_GIF, M_WAITOK);
 	for (i = 0; i < GIF_HASH_SIZE; i++)
 		CK_LIST_INIT(&hash[i]);
@@ -273,7 +273,7 @@ void
 gif_hashdestroy(struct gif_list *hash)
 {
 
-	vos_free(hash, M_GIF);
+	free(hash, M_GIF);
 }
 
 #define	MTAG_GIF	1080679712
@@ -301,7 +301,7 @@ gif_transmit(struct ifnet *ifp, struct mbuf *m)
 		goto err;
 	}
 #endif
-	error = VOS_ENETDOWN;
+	error = ENETDOWN;
 	sc = ifp->if_softc;
 	if ((ifp->if_flags & IFF_MONITOR) != 0 ||
 	    (ifp->if_flags & IFF_UP) == 0 ||
@@ -331,7 +331,7 @@ gif_transmit(struct ifnet *ifp, struct mbuf *m)
 		if (m->m_len < sizeof(struct ip))
 			m = m_pullup(m, sizeof(struct ip));
 		if (m == NULL) {
-			error = VOS_ENOBUFS;
+			error = ENOBUFS;
 			goto err;
 		}
 		ip = mtod(m, struct ip *);
@@ -345,7 +345,7 @@ gif_transmit(struct ifnet *ifp, struct mbuf *m)
 		if (m->m_len < sizeof(struct ip6_hdr))
 			m = m_pullup(m, sizeof(struct ip6_hdr));
 		if (m == NULL) {
-			error = VOS_ENOBUFS;
+			error = ENOBUFS;
 			goto err;
 		}
 		t = 0;
@@ -359,7 +359,7 @@ gif_transmit(struct ifnet *ifp, struct mbuf *m)
 		proto = IPPROTO_ETHERIP;
 		M_PREPEND(m, sizeof(struct etherip_header), M_NOWAIT);
 		if (m == NULL) {
-			error = VOS_ENOBUFS;
+			error = ENOBUFS;
 			goto err;
 		}
 		eth = mtod(m, struct etherip_header *);
@@ -368,7 +368,7 @@ gif_transmit(struct ifnet *ifp, struct mbuf *m)
 		eth->eip_resvl = 0;
 		break;
 	default:
-		error = VOS_EAFNOSUPPORT;
+		error = EAFNOSUPPORT;
 		m_freem(m);
 		goto err;
 	}
@@ -606,7 +606,7 @@ gif_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	case SIOCSIFMTU:
 		if (ifr->ifr_mtu < GIF_MTU_MIN ||
 		    ifr->ifr_mtu > GIF_MTU_MAX)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		else
 			ifp->if_mtu = ifr->ifr_mtu;
 		return (0);
@@ -614,7 +614,7 @@ gif_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	sx_xlock(&gif_ioctl_sx);
 	sc = ifp->if_softc;
 	if (sc == NULL) {
-		error = VOS_ENXIO;
+		error = ENXIO;
 		goto bad;
 	}
 	error = 0;
@@ -645,7 +645,7 @@ gif_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		if ((error = priv_check(curthread, PRIV_NET_GIF)) != 0)
 			break;
 		if (ifr->ifr_fib >= rt_numfibs)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			sc->gif_fibnum = ifr->ifr_fib;
 		break;
@@ -662,7 +662,7 @@ gif_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		if (error)
 			break;
 		if (options & ~GIF_OPTMASK) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		if (sc->gif_options != options) {
@@ -684,7 +684,7 @@ gif_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		}
 		break;
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 	if (error == 0 && sc->gif_family != 0) {
@@ -714,7 +714,7 @@ gif_delete_tunnel(struct gif_softc *sc)
 		CK_LIST_REMOVE(sc, chain);
 		/* Wait until it become safe to free gif_hdr */
 		GIF_WAIT();
-		vos_free(sc->gif_hdr, M_GIF);
+		free(sc->gif_hdr, M_GIF);
 	}
 	sc->gif_family = 0;
 	GIF2IFP(sc)->if_drv_flags &= ~IFF_DRV_RUNNING;

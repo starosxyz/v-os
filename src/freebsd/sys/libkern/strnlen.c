@@ -32,7 +32,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/libkern.h>
 
 size_t
-vos_strnlen(const char *s, size_t maxlen)
+strnlen(const char *s, size_t maxlen)
 {
 	size_t len;
 

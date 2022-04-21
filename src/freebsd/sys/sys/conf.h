@@ -65,9 +65,9 @@ struct cdev {
 #define	SI_CLONELIST	0x0200	/* on a clone list */
 #define	SI_UNMAPPED	0x0400	/* can handle unmapped I/O */
 #define	SI_NOSPLIT	0x0800	/* I/O should not be split up */
-	struct vos_timespec	si_atime;
-	struct vos_timespec	si_ctime;
-	struct vos_timespec	si_mtime;
+	struct timespec	si_atime;
+	struct timespec	si_ctime;
+	struct timespec	si_mtime;
 	uid_t		si_uid;
 	gid_t		si_gid;
 	mode_t		si_mode;

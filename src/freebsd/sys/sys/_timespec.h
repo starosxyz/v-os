@@ -43,7 +43,7 @@ typedef	__time_t	time_t;
 #define	_TIME_T_DECLARED
 #endif
 
-struct vos_timespec {
+struct timespec {
 	time_t	tv_sec;		/* seconds */
 	long long	tv_nsec;	/* and nanoseconds */
 };

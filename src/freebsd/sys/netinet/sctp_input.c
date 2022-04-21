@@ -2481,15 +2481,15 @@ sctp_handle_cookie_echo(struct mbuf *m, int iphlen, int offset,
 		cause->cause.length = htons(sizeof(struct sctp_error_stale_cookie));
 		diff = now;
 		timevalsub(&diff, &time_expires);
-		if ((uint32_t)diff.tv_sec > VOS_UINT32_MAX / 1000000) {
-			staleness = VOS_UINT32_MAX;
+		if ((uint32_t)diff.tv_sec > UINT32_MAX / 1000000) {
+			staleness = UINT32_MAX;
 		} else {
 			staleness = diff.tv_sec * 1000000;
 		}
-		if (VOS_UINT32_MAX - staleness >= (uint32_t)diff.tv_usec) {
+		if (UINT32_MAX - staleness >= (uint32_t)diff.tv_usec) {
 			staleness += diff.tv_usec;
 		} else {
-			staleness = VOS_UINT32_MAX;
+			staleness = UINT32_MAX;
 		}
 		cause->stale_time = htonl(staleness);
 		sctp_send_operr_to(src, dst, sh, cookie->peers_vtag, op_err,

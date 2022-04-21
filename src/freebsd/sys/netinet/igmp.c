@@ -353,7 +353,7 @@ sysctl_igmp_stat(SYSCTL_HANDLER_ARGS)
 
 	if (req->oldptr != NULL) {
 		if (req->oldlen < sizeof(struct igmpstat))
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 		else {
 			/*
 			 * Copy the counters, and explicitly set the struct's
@@ -372,7 +372,7 @@ sysctl_igmp_stat(SYSCTL_HANDLER_ARGS)
 		goto out;
 	if (req->newptr != NULL) {
 		if (req->newlen < sizeof(struct igmpstat))
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 		else
 			error = SYSCTL_IN(req, &igps0,
 			    sizeof(igps0));
@@ -385,7 +385,7 @@ sysctl_igmp_stat(SYSCTL_HANDLER_ARGS)
 		while (*p == '\0' && p < (char *)&igps0 + sizeof(igps0))
 			p++;
 		if (p != (char *)&igps0 + sizeof(igps0)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto out;
 		}
 		COUNTER_ARRAY_ZERO(VNET(igmpstat),
@@ -420,7 +420,7 @@ sysctl_igmp_default_version(SYSCTL_HANDLER_ARGS)
 		goto out_locked;
 
 	if (new < IGMP_VERSION_1 || new > IGMP_VERSION_3) {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto out_locked;
 	}
 
@@ -459,7 +459,7 @@ sysctl_igmp_gsr(SYSCTL_HANDLER_ARGS)
 		goto out_locked;
 
 	if (i < -1 || i >= 60) {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto out_locked;
 	}
 
@@ -493,10 +493,10 @@ sysctl_igmp_ifinfo(SYSCTL_HANDLER_ARGS)
 	namelen = arg2;
 
 	if (req->newptr != NULL)
-		return (VOS_EPERM);
+		return (EPERM);
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = sysctl_wire_old_buffer(req, sizeof(struct igmp_ifinfo));
 	if (error)
@@ -506,11 +506,11 @@ sysctl_igmp_ifinfo(SYSCTL_HANDLER_ARGS)
 	IGMP_LOCK();
 
 	if (name[0] <= 0 || name[0] > V_if_index) {
-		error = VOS_ENOENT;
+		error = ENOENT;
 		goto out_locked;
 	}
 
-	error = VOS_ENOENT;
+	error = ENOENT;
 
 	ifp = ifnet_byindex(name[0]);
 	if (ifp == NULL)
@@ -639,7 +639,7 @@ igi_alloc_locked(/*const*/ struct ifnet *ifp)
 
 	IGMP_LOCK_ASSERT();
 
-	igi = vos_malloc(sizeof(struct igmp_ifsoftc), M_IGMP, M_NOWAIT|M_ZERO);
+	igi = malloc(sizeof(struct igmp_ifsoftc), M_IGMP, M_NOWAIT|M_ZERO);
 	if (igi == NULL)
 		goto out;
 
@@ -740,7 +740,7 @@ igi_delete_locked(const struct ifnet *ifp)
 			mbufq_drain(&igi->igi_gq);
 
 			LIST_REMOVE(igi, igi_link);
-			vos_free(igi, M_IGMP);
+			free(igi, M_IGMP);
 			return;
 		}
 	}
@@ -1271,7 +1271,7 @@ igmp_input_v1_report(struct ifnet *ifp, /*const*/ struct ip *ip,
 	if (!IN_MULTICAST(ntohl(igmp->igmp_group.s_addr)) ||
 	    !in_hosteq(igmp->igmp_group, ip->ip_dst)) {
 		IGMPSTAT_INC(igps_rcv_badreports);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	/*
@@ -1391,7 +1391,7 @@ igmp_input_v2_report(struct ifnet *ifp, /*const*/ struct ip *ip,
 	if (!IN_MULTICAST(ntohl(igmp->igmp_group.s_addr)) ||
 	    !in_hosteq(igmp->igmp_group, ip->ip_dst)) {
 		IGMPSTAT_INC(igps_rcv_badreports);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	/*
@@ -1587,7 +1587,7 @@ igmp_input(struct mbuf **mp, int *offp, int proto)
 				 */
 				nsrc = ntohs(igmpv3->igmp_numsrc);
 				if (nsrc * sizeof(in_addr_t) >
-				    VOS_UINT16_MAX - iphlen - IGMP_V3_QUERY_MINLEN) {
+				    UINT16_MAX - iphlen - IGMP_V3_QUERY_MINLEN) {
 					IGMPSTAT_INC(igps_rcv_tooshort);
 					m_freem(m);
 					return (IPPROTO_DONE);
@@ -2249,7 +2249,7 @@ igmp_v1v2_queue_report(struct in_multi *inm, const int type)
 
 	m = m_gethdr(M_NOWAIT, MT_DATA);
 	if (m == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	M_ALIGN(m, sizeof(struct ip) + sizeof(struct igmp));
 
 	m->m_pkthdr.len = sizeof(struct ip) + sizeof(struct igmp);
@@ -2816,7 +2816,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 	} else {
 		if (mbufq_full(mq)) {
 			CTR1(KTR_IGMPV3, "%s: outbound queue full", __func__);
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		}
 		m = NULL;
 		m0srcs = (ifp->if_mtu - IGMP_LEADINGSPACE -
@@ -2832,7 +2832,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 				M_ALIGN(m, IGMP_LEADINGSPACE);
 		}
 		if (m == NULL)
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 
 		igmp_save_context(m, ifp);
 
@@ -2851,7 +2851,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 		if (m != m0)
 			m_freem(m);
 		CTR1(KTR_IGMPV3, "%s: m_append() failed.", __func__);
-		return (-VOS_ENOMEM);
+		return (-ENOMEM);
 	}
 	nbytes += sizeof(struct igmp_grouprec);
 
@@ -2901,7 +2901,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 					m_freem(m);
 				CTR1(KTR_IGMPV3, "%s: m_append() failed.",
 				    __func__);
-				return (-VOS_ENOMEM);
+				return (-ENOMEM);
 			}
 			nbytes += sizeof(in_addr_t);
 			++msrcs;
@@ -2945,7 +2945,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 	while (nims != NULL) {
 		if (mbufq_full(mq)) {
 			CTR1(KTR_IGMPV3, "%s: outbound queue full", __func__);
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		}
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m)
@@ -2956,7 +2956,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 				M_ALIGN(m, IGMP_LEADINGSPACE);
 		}
 		if (m == NULL)
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		igmp_save_context(m, ifp);
 		md = m_getptr(m, 0, &off);
 		pig = (struct igmp_grouprec *)(mtod(md, uint8_t *) + off);
@@ -2966,7 +2966,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 			if (m != m0)
 				m_freem(m);
 			CTR1(KTR_IGMPV3, "%s: m_append() failed.", __func__);
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		}
 		m->m_pkthdr.PH_vt.vt_nrecs = 1;
 		nbytes += sizeof(struct igmp_grouprec);
@@ -2996,7 +2996,7 @@ igmp_v3_enqueue_group_record(struct mbufq *mq, struct in_multi *inm,
 					m_freem(m);
 				CTR1(KTR_IGMPV3, "%s: m_append() failed.",
 				    __func__);
-				return (-VOS_ENOMEM);
+				return (-ENOMEM);
 			}
 			++msrcs;
 			if (msrcs == m0srcs)
@@ -3114,7 +3114,7 @@ igmp_v3_enqueue_filter_change(struct mbufq *mq, struct in_multi *inm)
 				if (m == NULL) {
 					CTR1(KTR_IGMPV3,
 					    "%s: m_get*() failed", __func__);
-					return (-VOS_ENOMEM);
+					return (-ENOMEM);
 				}
 				m->m_pkthdr.PH_vt.vt_nrecs = 0;
 				igmp_save_context(m, ifp);
@@ -3139,7 +3139,7 @@ igmp_v3_enqueue_filter_change(struct mbufq *mq, struct in_multi *inm)
 					m_freem(m);
 				CTR1(KTR_IGMPV3,
 				    "%s: m_append() failed", __func__);
-				return (-VOS_ENOMEM);
+				return (-ENOMEM);
 			}
 			npbytes += sizeof(struct igmp_grouprec);
 			if (m != m0) {
@@ -3200,7 +3200,7 @@ igmp_v3_enqueue_filter_change(struct mbufq *mq, struct in_multi *inm)
 						m_freem(m);
 					CTR1(KTR_IGMPV3,
 					    "%s: m_append() failed", __func__);
-					return (-VOS_ENOMEM);
+					return (-ENOMEM);
 				}
 				nallow += !!(crt == REC_ALLOW);
 				nblock += !!(crt == REC_BLOCK);
@@ -3324,7 +3324,7 @@ igmp_v3_merge_state_changes(struct in_multi *inm, struct mbufq *scq)
 			CTR2(KTR_IGMPV3, "%s: copying %p", __func__, m);
 			m0 = m_dup(m, M_NOWAIT);
 			if (m0 == NULL)
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			m0->m_nextpkt = NULL;
 			m = m->m_nextpkt;
 		}
@@ -3697,7 +3697,7 @@ igmp_modevent(module_t mod, int type, void *unused __unused)
 		IGMP_LOCK_DESTROY();
 		break;
 	default:
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	return (0);
 }

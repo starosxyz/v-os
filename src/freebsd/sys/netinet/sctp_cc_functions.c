@@ -1443,7 +1443,7 @@ sctp_cwnd_rtcc_socket_option(struct sctp_tcb *stcb, int setorget,
 		if (cc_opt->option == SCTP_CC_OPT_RTCC_SETMODE) {
 			if ((cc_opt->aid_value.assoc_value != 0) &&
 			    (cc_opt->aid_value.assoc_value != 1)) {
-				return (VOS_EINVAL);
+				return (EINVAL);
 			}
 			TAILQ_FOREACH(net, &stcb->asoc.nets, sctp_next) {
 				net->cc_mod.rtcc.ret_from_eq = cc_opt->aid_value.assoc_value;
@@ -1451,7 +1451,7 @@ sctp_cwnd_rtcc_socket_option(struct sctp_tcb *stcb, int setorget,
 		} else if (cc_opt->option == SCTP_CC_OPT_USE_DCCC_ECN) {
 			if ((cc_opt->aid_value.assoc_value != 0) &&
 			    (cc_opt->aid_value.assoc_value != 1)) {
-				return (VOS_EINVAL);
+				return (EINVAL);
 			}
 			TAILQ_FOREACH(net, &stcb->asoc.nets, sctp_next) {
 				net->cc_mod.rtcc.use_dccc_ecn = cc_opt->aid_value.assoc_value;
@@ -1461,30 +1461,30 @@ sctp_cwnd_rtcc_socket_option(struct sctp_tcb *stcb, int setorget,
 				net->cc_mod.rtcc.steady_step = cc_opt->aid_value.assoc_value;
 			}
 		} else {
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 	} else {
 		/* a get */
 		if (cc_opt->option == SCTP_CC_OPT_RTCC_SETMODE) {
 			net = TAILQ_FIRST(&stcb->asoc.nets);
 			if (net == NULL) {
-				return (VOS_EFAULT);
+				return (EFAULT);
 			}
 			cc_opt->aid_value.assoc_value = net->cc_mod.rtcc.ret_from_eq;
 		} else if (cc_opt->option == SCTP_CC_OPT_USE_DCCC_ECN) {
 			net = TAILQ_FIRST(&stcb->asoc.nets);
 			if (net == NULL) {
-				return (VOS_EFAULT);
+				return (EFAULT);
 			}
 			cc_opt->aid_value.assoc_value = net->cc_mod.rtcc.use_dccc_ecn;
 		} else if (cc_opt->option == SCTP_CC_OPT_STEADY_STEP) {
 			net = TAILQ_FIRST(&stcb->asoc.nets);
 			if (net == NULL) {
-				return (VOS_EFAULT);
+				return (EFAULT);
 			}
 			cc_opt->aid_value.assoc_value = net->cc_mod.rtcc.steady_step;
 		} else {
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 	}
 	return (0);

@@ -206,7 +206,7 @@ elf_set_add(struct elf_set_head *list, Elf_Addr start, Elf_Addr stop, Elf_Addr b
 {
 	struct elf_set *set, *iter;
 
-	set = vos_malloc(sizeof(*set), M_LINKER, M_WAITOK);
+	set = malloc(sizeof(*set), M_LINKER, M_WAITOK);
 	set->es_start = start;
 	set->es_stop = stop;
 	set->es_base = base;
@@ -256,7 +256,7 @@ elf_set_delete(struct elf_set_head *list, Elf_Addr start)
 			break;
 		if (start == set->es_start) {
 			TAILQ_REMOVE(list, set, es_link);
-			vos_free(set, M_LINKER);
+			free(set, M_LINKER);
 			return;
 		}
 	}
@@ -373,8 +373,8 @@ link_elf_link_common_finish(linker_file_t lf)
 #ifdef GDB
 	GDB_STATE(RT_ADD);
 	ef->gdb.l_addr = lf->address;
-	newfilename = vos_malloc(vos_strlen(lf->filename) + 1, M_LINKER, M_WAITOK);
-	vos_strcpy(newfilename, lf->filename);
+	newfilename = malloc(strlen(lf->filename) + 1, M_LINKER, M_WAITOK);
+	strcpy(newfilename, lf->filename);
 	ef->gdb.l_name = newfilename;
 	ef->gdb.l_ld = ef->dynamic;
 	link_elf_add_gdb(&ef->gdb);
@@ -529,7 +529,7 @@ link_elf_preload_parse_symbols(elf_file_t ef)
 
 	if (base > esym || base < ssym) {
 		printf("Symbols are corrupt!\n");
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	strcnt = *(long long*)base;
@@ -539,7 +539,7 @@ link_elf_preload_parse_symbols(elf_file_t ef)
 
 	if (base > esym || base < ssym) {
 		printf("Symbols are corrupt!\n");
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	ef->ddbsymtab = symtab;
@@ -580,7 +580,7 @@ parse_dynamic(elf_file_t ef)
 			break;
 		case DT_SYMENT:
 			if (dp->d_un.d_val != sizeof(Elf_Sym))
-				return (VOS_ENOEXEC);
+				return (ENOEXEC);
 			break;
 		case DT_PLTGOT:
 			ef->got = (Elf_Addr *) (ef->address + dp->d_un.d_ptr);
@@ -593,7 +593,7 @@ parse_dynamic(elf_file_t ef)
 			break;
 		case DT_RELENT:
 			if (dp->d_un.d_val != sizeof(Elf_Rel))
-				return (VOS_ENOEXEC);
+				return (ENOEXEC);
 			break;
 		case DT_JMPREL:
 			ef->pltrel = (const Elf_Rel *) (ef->address + dp->d_un.d_ptr);
@@ -609,12 +609,12 @@ parse_dynamic(elf_file_t ef)
 			break;
 		case DT_RELAENT:
 			if (dp->d_un.d_val != sizeof(Elf_Rela))
-				return (VOS_ENOEXEC);
+				return (ENOEXEC);
 			break;
 		case DT_PLTREL:
 			plttype = dp->d_un.d_val;
 			if (plttype != DT_REL && plttype != DT_RELA)
-				return (VOS_ENOEXEC);
+				return (ENOEXEC);
 			break;
 #ifdef GDB
 		case DT_DEBUG:
@@ -668,7 +668,7 @@ parse_dpcpu(elf_file_t ef)
 	if (size < 4) {
 		uprintf("Kernel module '%s' must be recompiled with "
 		    "linker script\n", ef->lf.pathname);
-		return (VOS_ENOEXEC);
+		return (ENOEXEC);
 	}
 
 	/* Padding from linker-script correct? */
@@ -677,7 +677,7 @@ parse_dpcpu(elf_file_t ef)
 		uprintf("Kernel module '%s' must be recompiled with "
 		    "linker script, invalid padding %#04x (%#04x)\n",
 		    ef->lf.pathname, pad, LS_PADDING);
-		return (VOS_ENOEXEC);
+		return (ENOEXEC);
 	}
 	/* If we only have valid padding, nothing to do. */
 	if (size == 4)
@@ -693,7 +693,7 @@ parse_dpcpu(elf_file_t ef)
 		printf("%s: pcpu module space is out of space; "
 		    "cannot allocate %d for %s\n",
 		    __func__, size, ef->lf.pathname);
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 	}
 	memcpy((void *)ef->pcpu_base, (void *)ef->pcpu_start, size);
 	dpcpu_copy((void *)ef->pcpu_base, size);
@@ -728,7 +728,7 @@ parse_vnet(elf_file_t ef)
 	if (size < 4) {
 		uprintf("Kernel module '%s' must be recompiled with "
 		    "linker script\n", ef->lf.pathname);
-		return (VOS_ENOEXEC);
+		return (ENOEXEC);
 	}
 
 	/* Padding from linker-script correct? */
@@ -737,7 +737,7 @@ parse_vnet(elf_file_t ef)
 		uprintf("Kernel module '%s' must be recompiled with "
 		    "linker script, invalid padding %#04x (%#04x)\n",
 		    ef->lf.pathname, pad, LS_PADDING);
-		return (VOS_ENOEXEC);
+		return (ENOEXEC);
 	}
 	/* If we only have valid padding, nothing to do. */
 	if (size == 4)
@@ -753,7 +753,7 @@ parse_vnet(elf_file_t ef)
 		printf("%s: vnet module space is out of space; "
 		    "cannot allocate %d for %s\n",
 		    __func__, size, ef->lf.pathname);
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 	}
 	memcpy((void *)ef->vnet_base, (void *)ef->vnet_start, size);
 	vnet_data_copy((void *)ef->vnet_base, size);
@@ -862,7 +862,7 @@ link_elf_link_preload(linker_class_t cls, const char *filename,
 	/* Look to see if we have the file preloaded */
 	modptr = preload_search_by_name(filename);
 	if (modptr == NULL)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	type = (char *)preload_search_info(modptr, MODINFO_TYPE);
 	baseptr = preload_search_info(modptr, MODINFO_ADDR);
@@ -872,13 +872,13 @@ link_elf_link_preload(linker_class_t cls, const char *filename,
 	if (type == NULL ||
 	    (strcmp(type, "elf" __XSTRING(__ELF_WORD_SIZE) " module") != 0 &&
 	     strcmp(type, "elf module") != 0))
-		return (VOS_EFTYPE);
+		return (EFTYPE);
 	if (baseptr == NULL || sizeptr == NULL || dynptr == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	lf = linker_make_file(filename, &link_elf_class);
 	if (lf == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	ef = (elf_file_t) lf;
 	ef->preloaded = 1;
@@ -982,7 +982,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		return (error);
 	NDFREE(&nd, NDF_ONLY_PNBUF);
 	if (nd.ni_vp->v_type != VREG) {
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		firstpage = NULL;
 		goto out;
 	}
@@ -997,7 +997,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 	/*
 	 * Read the elf header from the file.
 	 */
-	firstpage = vos_malloc(PAGE_SIZE, M_LINKER, M_WAITOK);
+	firstpage = malloc(PAGE_SIZE, M_LINKER, M_WAITOK);
 	hdr = (Elf_Ehdr *)firstpage;
 	error = vn_rdwr(UIO_READ, nd.ni_vp, firstpage, PAGE_SIZE, 0,
 	    UIO_SYSSPACE, IO_NODELOCKED, td->td_ucred, NOCRED,
@@ -1007,29 +1007,29 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		goto out;
 
 	if (!IS_ELF(*hdr)) {
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		goto out;
 	}
 
 	if (hdr->e_ident[EI_CLASS] != ELF_TARG_CLASS ||
 	    hdr->e_ident[EI_DATA] != ELF_TARG_DATA) {
 		link_elf_error(filename, "Unsupported file layout");
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		goto out;
 	}
 	if (hdr->e_ident[EI_VERSION] != EV_CURRENT ||
 	    hdr->e_version != EV_CURRENT) {
 		link_elf_error(filename, "Unsupported file version");
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		goto out;
 	}
 	if (hdr->e_type != ET_EXEC && hdr->e_type != ET_DYN) {
-		error = VOS_ENOSYS;
+		error = ENOSYS;
 		goto out;
 	}
 	if (hdr->e_machine != ELF_TARG_MACH) {
 		link_elf_error(filename, "Unsupported machine");
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		goto out;
 	}
 
@@ -1059,7 +1059,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		case PT_LOAD:
 			if (nsegs == MAXSEGS) {
 				link_elf_error(filename, "Too many sections");
-				error = VOS_ENOEXEC;
+				error = ENOEXEC;
 				goto out;
 			}
 			/*
@@ -1074,7 +1074,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 			break;
 
 		case PT_INTERP:
-			error = VOS_ENOSYS;
+			error = ENOSYS;
 			goto out;
 		}
 
@@ -1082,12 +1082,12 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 	}
 	if (phdyn == NULL) {
 		link_elf_error(filename, "Object is not dynamically-linked");
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		goto out;
 	}
 	if (nsegs == 0) {
 		link_elf_error(filename, "No sections");
-		error = VOS_ENOEXEC;
+		error = ENOEXEC;
 		goto out;
 	}
 
@@ -1103,7 +1103,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 
 	lf = linker_make_file(filename, &link_elf_class);
 	if (lf == NULL) {
-		error = VOS_ENOMEM;
+		error = ENOMEM;
 		goto out;
 	}
 
@@ -1112,7 +1112,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 	ef->object = vm_pager_allocate(OBJT_PHYS, NULL, mapsize, VM_PROT_ALL,
 	    0, thread0.td_ucred);
 	if (ef->object == NULL) {
-		error = VOS_ENOMEM;
+		error = ENOMEM;
 		goto out;
 	}
 #ifdef __amd64__
@@ -1148,7 +1148,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		 * so be strict and verify that their mappings do not overlap.
 		 */
 		if (((vm_offset_t)segbase & PAGE_MASK) != 0) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto out;
 		}
 
@@ -1157,7 +1157,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		    (vm_offset_t)segbase + round_page(segs[i]->p_memsz),
 		    VM_MAP_WIRE_SYSTEM | VM_MAP_WIRE_NOHOLES);
 		if (error != KERN_SUCCESS) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto out;
 		}
 #endif
@@ -1229,7 +1229,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		    (vm_offset_t)segbase + round_page(segs[i]->p_memsz),
 		    prot, 0, VM_MAP_PROTECT_SET_PROT);
 		if (error != KERN_SUCCESS) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto out;
 		}
 	}
@@ -1242,7 +1242,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 	nbytes = hdr->e_shnum * hdr->e_shentsize;
 	if (nbytes == 0 || hdr->e_shoff == 0)
 		goto nosyms;
-	shdr = vos_malloc(nbytes, M_LINKER, M_WAITOK | M_ZERO);
+	shdr = malloc(nbytes, M_LINKER, M_WAITOK | M_ZERO);
 	error = vn_rdwr(UIO_READ, nd.ni_vp,
 	    (caddr_t)shdr, nbytes, hdr->e_shoff,
 	    UIO_SYSSPACE, IO_NODELOCKED, td->td_ucred, NOCRED,
@@ -1255,7 +1255,7 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 	if (shstrindex != 0 && shdr[shstrindex].sh_type == SHT_STRTAB &&
 	    shdr[shstrindex].sh_size != 0) {
 		nbytes = shdr[shstrindex].sh_size;
-		shstrs = vos_malloc(nbytes, M_LINKER, M_WAITOK | M_ZERO);
+		shstrs = malloc(nbytes, M_LINKER, M_WAITOK | M_ZERO);
 		error = vn_rdwr(UIO_READ, nd.ni_vp, (caddr_t)shstrs, nbytes,
 		    shdr[shstrindex].sh_offset, UIO_SYSSPACE, IO_NODELOCKED,
 		    td->td_ucred, NOCRED, &resid, td);
@@ -1280,9 +1280,9 @@ link_elf_load_file(linker_class_t cls, const char* filename,
 		goto nosyms;
 
 	symcnt = shdr[symtabindex].sh_size;
-	ef->symbase = vos_malloc(symcnt, M_LINKER, M_WAITOK);
+	ef->symbase = malloc(symcnt, M_LINKER, M_WAITOK);
 	strcnt = shdr[symstrindex].sh_size;
-	ef->strbase = vos_malloc(strcnt, M_LINKER, M_WAITOK);
+	ef->strbase = malloc(strcnt, M_LINKER, M_WAITOK);
 
 	error = vn_rdwr(UIO_READ, nd.ni_vp,
 	    ef->symbase, symcnt, shdr[symtabindex].sh_offset,
@@ -1319,9 +1319,9 @@ out:
 	vn_close(nd.ni_vp, FREAD, td->td_ucred, td);
 	if (error != 0 && lf != NULL)
 		linker_file_unload(lf, LINKER_UNLOAD_FORCE);
-	vos_free(shdr, M_LINKER);
-	vos_free(firstpage, M_LINKER);
-	vos_free(shstrs, M_LINKER);
+	free(shdr, M_LINKER);
+	free(firstpage, M_LINKER);
+	free(shstrs, M_LINKER);
 
 	return (error);
 }
@@ -1364,7 +1364,7 @@ link_elf_unload_file(linker_file_t file)
 #ifdef GDB
 	if (ef->gdb.l_ld != NULL) {
 		GDB_STATE(RT_DELETE);
-		vos_free((void *)(uintptr_t)ef->gdb.l_name, M_LINKER);
+		free((void *)(uintptr_t)ef->gdb.l_name, M_LINKER);
 		link_elf_delete_gdb(&ef->gdb);
 		GDB_STATE(RT_CONSISTENT);
 	}
@@ -1385,13 +1385,13 @@ link_elf_unload_file(linker_file_t file)
 		    + (ef->object->size << PAGE_SHIFT));
 	}
 #else
-	vos_free(ef->address, M_LINKER);
+	free(ef->address, M_LINKER);
 #endif
-	vos_free(ef->symbase, M_LINKER);
-	vos_free(ef->strbase, M_LINKER);
-	vos_free(ef->ctftab, M_LINKER);
-	vos_free(ef->ctfoff, M_LINKER);
-	vos_free(ef->typoff, M_LINKER);
+	free(ef->symbase, M_LINKER);
+	free(ef->strbase, M_LINKER);
+	free(ef->ctftab, M_LINKER);
+	free(ef->ctfoff, M_LINKER);
+	free(ef->typoff, M_LINKER);
 }
 
 static void
@@ -1446,7 +1446,7 @@ relocate_file1(elf_file_t ef, elf_lookup_fn lookup, elf_reloc_fn reloc,
 			symname = symbol_name(ef, (iter)->r_info);	\
 			printf("link_elf: symbol %s undefined\n",	\
 			    symname);					\
-			return (VOS_ENOENT);				\
+			return (ENOENT);				\
 		}							\
 	}								\
 } while (0)
@@ -1505,7 +1505,7 @@ link_elf_lookup_symbol(linker_file_t lf, const char *name, c_linker_sym_t *sym)
 	/* If we don't have a hash, bail. */
 	if (ef->buckets == NULL || ef->nbuckets == 0) {
 		printf("link_elf_lookup_symbol: missing symbol hash table\n");
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 
 	/* First, search hashed global symbols */
@@ -1515,13 +1515,13 @@ link_elf_lookup_symbol(linker_file_t lf, const char *name, c_linker_sym_t *sym)
 	while (symnum != STN_UNDEF) {
 		if (symnum >= ef->nchains) {
 			printf("%s: corrupt symbol table\n", __func__);
-			return (VOS_ENOENT);
+			return (ENOENT);
 		}
 
 		symp = ef->symtab + symnum;
 		if (symp->st_name == 0) {
 			printf("%s: corrupt symbol table\n", __func__);
-			return (VOS_ENOENT);
+			return (ENOENT);
 		}
 
 		strp = ef->strtab + symp->st_name;
@@ -1534,7 +1534,7 @@ link_elf_lookup_symbol(linker_file_t lf, const char *name, c_linker_sym_t *sym)
 				*sym = (c_linker_sym_t) symp;
 				return (0);
 			}
-			return (VOS_ENOENT);
+			return (ENOENT);
 		}
 
 		symnum = ef->chains[symnum];
@@ -1542,7 +1542,7 @@ link_elf_lookup_symbol(linker_file_t lf, const char *name, c_linker_sym_t *sym)
 
 	/* If we have not found it, look at the full table (if loaded) */
 	if (ef->symtab == ef->ddbsymtab)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	/* Exhaustive search */
 	for (i = 0, symp = ef->ddbsymtab; i < ef->ddbsymcnt; i++, symp++) {
@@ -1555,11 +1555,11 @@ link_elf_lookup_symbol(linker_file_t lf, const char *name, c_linker_sym_t *sym)
 				*sym = (c_linker_sym_t) symp;
 				return (0);
 			}
-			return (VOS_ENOENT);
+			return (ENOENT);
 		}
 	}
 
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 static int
@@ -1582,7 +1582,7 @@ link_elf_symbol_values(linker_file_t lf, c_linker_sym_t sym,
 		return (0);
 	}
 	if (ef->symtab == ef->ddbsymtab)
-		return (VOS_ENOENT);
+		return (ENOENT);
 	if (es >= ef->ddbsymtab && es < (ef->ddbsymtab + ef->ddbsymcnt)) {
 		symval->name = ef->ddbstrtab + es->st_name;
 		val = (caddr_t)ef->address + es->st_value;
@@ -1592,7 +1592,7 @@ link_elf_symbol_values(linker_file_t lf, c_linker_sym_t sym,
 		symval->size = es->st_size;
 		return (0);
 	}
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 static int
@@ -1644,8 +1644,8 @@ link_elf_lookup_set(linker_file_t lf, const char *name,
 	void **start, **stop;
 	int len, error = 0, count;
 
-	len = vos_strlen(name) + sizeof("__start_set_"); /* sizeof includes \0 */
-	setsym = vos_malloc(len, M_LINKER, M_WAITOK);
+	len = strlen(name) + sizeof("__start_set_"); /* sizeof includes \0 */
+	setsym = malloc(len, M_LINKER, M_WAITOK);
 
 	/* get address of first entry */
 	snprintf(setsym, len, "%s%s", "__start_set_", name);
@@ -1654,7 +1654,7 @@ link_elf_lookup_set(linker_file_t lf, const char *name,
 		goto out;
 	link_elf_symbol_values(lf, sym, &symval);
 	if (symval.value == 0) {
-		error = VOS_ESRCH;
+		error = ESRCH;
 		goto out;
 	}
 	start = (void **)symval.value;
@@ -1666,7 +1666,7 @@ link_elf_lookup_set(linker_file_t lf, const char *name,
 		goto out;
 	link_elf_symbol_values(lf, sym, &symval);
 	if (symval.value == 0) {
-		error = VOS_ESRCH;
+		error = ESRCH;
 		goto out;
 	}
 	stop = (void **)symval.value;
@@ -1683,7 +1683,7 @@ link_elf_lookup_set(linker_file_t lf, const char *name,
 		*countp = count;
 
 out:
-	vos_free(setsym, M_LINKER);
+	free(setsym, M_LINKER);
 	return (error);
 }
 
@@ -1774,7 +1774,7 @@ elf_lookup(linker_file_t lf, Elf_Size symidx, int deps, Elf_Addr *res)
 	/* Don't even try to lookup the symbol if the index is bogus. */
 	if (symidx >= ef->nchains) {
 		*res = 0;
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	sym = ef->symtab + symidx;
@@ -1787,7 +1787,7 @@ elf_lookup(linker_file_t lf, Elf_Size symidx, int deps, Elf_Addr *res)
 		/* Force lookup failure when we have an insanity. */
 		if (sym->st_shndx == SHN_UNDEF || sym->st_value == 0) {
 			*res = 0;
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 		*res = ((Elf_Addr)ef->address + sym->st_value);
 		return (0);
@@ -1805,13 +1805,13 @@ elf_lookup(linker_file_t lf, Elf_Size symidx, int deps, Elf_Addr *res)
 	/* Force a lookup failure if the symbol name is bogus. */
 	if (*symbol == 0) {
 		*res = 0;
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	addr = ((Elf_Addr)linker_file_lookup_symbol(lf, symbol, deps));
 	if (addr == 0 && ELF_ST_BIND(sym->st_info) != STB_WEAK) {
 		*res = 0;
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	if (elf_set_find(&set_pcpu_list, addr, &start, &base))
@@ -1902,7 +1902,7 @@ elf_lookup_ifunc(linker_file_t lf, Elf_Size symidx, int deps __unused,
 		*res = ((Elf_Addr (*)(void))val)();
 		return (0);
 	}
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 void

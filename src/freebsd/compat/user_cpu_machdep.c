@@ -301,10 +301,10 @@ cpu_est_clockrate(int cpu_id, uint64_t *rate)
 	register_t reg;
 
 	if (pcpu_find(cpu_id) == NULL || rate == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 #ifdef __i386__
 	if ((cpu_feature & CPUID_TSC) == 0)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 #endif
 
 	/*
@@ -312,7 +312,7 @@ cpu_est_clockrate(int cpu_id, uint64_t *rate)
 	 * DELAY(9) based logic fails.
 	 */
 	if (tsc_is_invariant && !tsc_perf_stat)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 
 #ifdef SMP
 	if (smp_cpus > 1) {
@@ -716,7 +716,7 @@ idle_sysctl_available(SYSCTL_HANDLER_ARGS)
 	int error;
 	int i;
 
-	avail = vos_malloc(256, M_TEMP, M_WAITOK);
+	avail = malloc(256, M_TEMP, M_WAITOK);
 	p = avail;
 	for (i = 0; i < nitems(idle_tbl); i++) {
 		if (idle_tbl[i].id_cpuid2_flag != 0 &&
@@ -729,7 +729,7 @@ idle_sysctl_available(SYSCTL_HANDLER_ARGS)
 		    idle_tbl[i].id_name);
 	}
 	error = sysctl_handle_string(oidp, avail, 0, req);
-	vos_free(avail, M_TEMP);
+	free(avail, M_TEMP);
 	return (error);
 }
 
@@ -773,11 +773,11 @@ cpu_idle_sysctl(SYSCTL_HANDLER_ARGS)
 			break;
 		}
 	}
-	vos_strncpy(buf, p, sizeof(buf));
+	strncpy(buf, p, sizeof(buf));
 	error = sysctl_handle_string(oidp, buf, sizeof(buf), req);
 	if (error != 0 || req->newptr == NULL)
 		return (error);
-	return (cpu_idle_selector(buf) ? 0 : VOS_EINVAL);
+	return (cpu_idle_selector(buf) ? 0 : EINVAL);
 }
 
 SYSCTL_PROC(_machdep, OID_AUTO, idle,
@@ -1044,7 +1044,7 @@ sysctl_hw_mds_disable_state_handler(SYSCTL_HANDLER_ARGS)
 		state = "software Silvermont";
 	else
 		state = "unknown";
-	return (SYSCTL_OUT(req, state, vos_strlen(state)));
+	return (SYSCTL_OUT(req, state, strlen(state)));
 }
 
 SYSCTL_PROC(_hw, OID_AUTO, mds_disable_state,
@@ -1178,7 +1178,7 @@ hw_mds_recalculate(void)
 		CPU_FOREACH(i) {
 			pc = pcpu_find(i);
 			if (pc->pc_mds_buf == NULL)
-				pc->pc_mds_buf = vos_malloc(256, M_TEMP, M_WAITOK);
+				pc->pc_mds_buf = malloc(256, M_TEMP, M_WAITOK);
 		}
 		mds_handler = mds_handler_silvermont;
 	} else {
@@ -1205,7 +1205,7 @@ sysctl_mds_disable_handler(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (val < 0 || val > 3)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	hw_mds_disable = val;
 	hw_mds_recalculate();
 	return (0);
@@ -1351,7 +1351,7 @@ sysctl_taa_handler(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (val < TAA_NONE || val > TAA_AUTO)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	x86_taa_enable = val;
 	x86_taa_recalculate();
 	return (0);
@@ -1388,7 +1388,7 @@ sysctl_taa_state_handler(SYSCTL_HANDLER_ARGS)
 		state = "unknown";
 	}
 
-	return (SYSCTL_OUT(req, state, vos_strlen(state)));
+	return (SYSCTL_OUT(req, state, strlen(state)));
 }
 
 SYSCTL_PROC(_machdep_mitigations_taa, OID_AUTO, state,
@@ -1448,7 +1448,7 @@ sysctl_rngds_state_handler(SYSCTL_HANDLER_ARGS)
 	} else {
 		state = "Mitigated";
 	}
-	return (SYSCTL_OUT(req, state, vos_strlen(state)));
+	return (SYSCTL_OUT(req, state, strlen(state)));
 }
 SYSCTL_PROC(_machdep_mitigations_rngds, OID_AUTO, state,
     CTLTYPE_STRING | CTLFLAG_RD | CTLFLAG_MPSAFE, NULL, 0,

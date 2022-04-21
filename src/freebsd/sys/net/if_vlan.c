@@ -333,7 +333,7 @@ static void
 vlan_mc_free(struct epoch_context *ctx)
 {
 	struct vlan_mc_entry *mc = __containerof(ctx, struct vlan_mc_entry, mc_epoch_ctx);
-	vos_free(mc, M_VLAN);
+	free(mc, M_VLAN);
 }
 
 #ifndef VLAN_ARRAY
@@ -356,7 +356,7 @@ vlan_inithash(struct ifvlantrunk *trunk)
 	trunk->hwidth = VLAN_DEF_HWIDTH;
 	n = 1 << trunk->hwidth;
 	trunk->hmask = n - 1;
-	trunk->hash = vos_malloc(sizeof(struct ifvlanhead) * n, M_VLAN, M_WAITOK);
+	trunk->hash = malloc(sizeof(struct ifvlanhead) * n, M_VLAN, M_WAITOK);
 	for (i = 0; i < n; i++)
 		CK_SLIST_INIT(&trunk->hash[i]);
 }
@@ -372,7 +372,7 @@ vlan_freehash(struct ifvlantrunk *trunk)
 		KASSERT(CK_SLIST_EMPTY(&trunk->hash[i]),
 		    ("%s: hash table not empty", __func__));
 #endif
-	vos_free(trunk->hash, M_VLAN);
+	free(trunk->hash, M_VLAN);
 	trunk->hash = NULL;
 	trunk->hwidth = trunk->hmask = 0;
 }
@@ -390,7 +390,7 @@ vlan_inshash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 	i = HASH(ifv->ifv_vid, trunk->hmask);
 	CK_SLIST_FOREACH(ifv2, &trunk->hash[i], ifv_list)
 		if (ifv->ifv_vid == ifv2->ifv_vid)
-			return (VOS_EEXIST);
+			return (EEXIST);
 
 	/*
 	 * Grow the hash when the number of vlans exceeds half of the number of
@@ -428,7 +428,7 @@ vlan_remhash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 		}
 
 	panic("%s: vlan not found\n", __func__);
-	return (VOS_ENOENT); /*NOTREACHED*/
+	return (ENOENT); /*NOTREACHED*/
 }
 
 /*
@@ -457,7 +457,7 @@ vlan_growhash(struct ifvlantrunk *trunk, int howmuch)
 	if (hwidth2 < VLAN_DEF_HWIDTH)
 		return;
 
-	hash2 = vos_malloc(sizeof(struct ifvlanhead) * n2, M_VLAN, M_WAITOK);
+	hash2 = malloc(sizeof(struct ifvlanhead) * n2, M_VLAN, M_WAITOK);
 	if (hash2 == NULL) {
 		printf("%s: out of memory -- hash size not changed\n",
 		    __func__);
@@ -472,7 +472,7 @@ vlan_growhash(struct ifvlantrunk *trunk, int howmuch)
 			CK_SLIST_INSERT_HEAD(&hash2[j], ifv, ifv_list);
 		}
 	NET_EPOCH_WAIT();
-	vos_free(trunk->hash, M_VLAN);
+	free(trunk->hash, M_VLAN);
 	trunk->hash = hash2;
 	trunk->hwidth = hwidth2;
 	trunk->hmask = n2 - 1;
@@ -525,7 +525,7 @@ vlan_inshash(struct ifvlantrunk *trunk, struct ifvlan *ifv)
 {
 
 	if (trunk->vlans[ifv->ifv_vid] != NULL)
-		return VOS_EEXIST;
+		return EEXIST;
 	trunk->vlans[ifv->ifv_vid] = ifv;
 	trunk->refcnt++;
 
@@ -563,7 +563,7 @@ trunk_destroy(struct ifvlantrunk *trunk)
 	trunk->parent->if_vlantrunk = NULL;
 	TRUNK_LOCK_DESTROY(trunk);
 	if_rele(trunk->parent);
-	vos_free(trunk, M_VLAN);
+	free(trunk, M_VLAN);
 }
 
 /*
@@ -603,10 +603,10 @@ vlan_setmulti(struct ifnet *ifp)
 	CK_STAILQ_FOREACH(ifma, &ifp->if_multiaddrs, ifma_link) {
 		if (ifma->ifma_addr->sa_family != AF_LINK)
 			continue;
-		mc = vos_malloc(sizeof(struct vlan_mc_entry), M_VLAN, M_NOWAIT);
+		mc = malloc(sizeof(struct vlan_mc_entry), M_VLAN, M_NOWAIT);
 		if (mc == NULL) {
 			IF_ADDR_WUNLOCK(ifp);
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		}
 		bcopy(ifma->ifma_addr, &mc->mc_addr, ifma->ifma_addr->sa_len);
 		mc->mc_addr.sdl_index = ifp_p->if_index;
@@ -741,7 +741,7 @@ vlan_tag(struct ifnet *ifp, uint16_t *vidp)
 	struct ifvlan *ifv;
 
 	if (ifp->if_type != IFT_L2VLAN)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	ifv = ifp->if_softc;
 	*vidp = ifv->ifv_vid;
 	return (0);
@@ -753,7 +753,7 @@ vlan_pcp(struct ifnet *ifp, uint16_t *pcpp)
 	struct ifvlan *ifv;
 
 	if (ifp->if_type != IFT_L2VLAN)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	ifv = ifp->if_softc;
 	*pcpp = ifv->ifv_pcp;
 	return (0);
@@ -784,7 +784,7 @@ vlan_setcookie(struct ifnet *ifp, void *cookie)
 	struct ifvlan *ifv;
 
 	if (ifp->if_type != IFT_L2VLAN)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	ifv = ifp->if_softc;
 	ifv->ifv_cookie = cookie;
 	return (0);
@@ -832,11 +832,11 @@ vlan_modevent(module_t mod, int type, void *data)
 		ifdetach_tag = EVENTHANDLER_REGISTER(ifnet_departure_event,
 		    vlan_ifdetach, NULL, EVENTHANDLER_PRI_ANY);
 		if (ifdetach_tag == NULL)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		iflladdr_tag = EVENTHANDLER_REGISTER(iflladdr_event,
 		    vlan_iflladdr, NULL, EVENTHANDLER_PRI_ANY);
 		if (iflladdr_tag == NULL)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		VLAN_LOCKING_INIT();
 		vlan_input_p = vlan_input;
 		vlan_link_state_p = vlan_link_state;
@@ -880,7 +880,7 @@ vlan_modevent(module_t mod, int type, void *data)
 			printf("vlan: unloaded\n");
 		break;
 	default:
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	return (0);
 }
@@ -927,8 +927,8 @@ vlan_clone_match_ethervid(const char *name, int *vidp)
 	struct ifnet *ifp;
 	int vid;
 
-	vos_strlcpy(ifname, name, IFNAMSIZ);
-	if ((cp = vos_strrchr(ifname, '.')) == NULL)
+	strlcpy(ifname, name, IFNAMSIZ);
+	if ((cp = strrchr(ifname, '.')) == NULL)
 		return (NULL);
 	*cp = '\0';
 	if ((ifp = ifunit_ref(ifname)) == NULL)
@@ -963,7 +963,7 @@ vlan_clone_match(struct if_clone *ifc, const char *name)
 		return (1);
 	}
 
-	if (vos_strncmp(vlanname, name, vos_strlen(vlanname)) != 0)
+	if (strncmp(vlanname, name, strlen(vlanname)) != 0)
 		return (0);
 	for (cp = name + 4; *cp != '\0'; cp++) {
 		if (*cp < '0' || *cp > '9')
@@ -1014,7 +1014,7 @@ vlan_clone_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 
 		p = ifunit_ref(vlr.vlr_parent);
 		if (p == NULL)
-			return (VOS_ENXIO);
+			return (ENXIO);
 	}
 
 	if ((error = ifc_name2unit(name, &unit)) == 0) {
@@ -1034,11 +1034,11 @@ vlan_clone_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 			if (p != NULL) {
 				if_rele(p_tmp);
 				if (p != p_tmp)
-					error = VOS_EINVAL;
+					error = EINVAL;
 			} else
 				p = p_tmp;
 		} else
-			error = VOS_ENXIO;
+			error = ENXIO;
 	}
 
 	if (error != 0) {
@@ -1066,15 +1066,15 @@ vlan_clone_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 		}
 	}
 
-	ifv = vos_malloc(sizeof(struct ifvlan), M_VLAN, M_WAITOK | M_ZERO);
+	ifv = malloc(sizeof(struct ifvlan), M_VLAN, M_WAITOK | M_ZERO);
 	ifp = ifv->ifv_ifp = if_alloc(IFT_ETHER);
 	if (ifp == NULL) {
 		if (!subinterface)
 			ifc_free_unit(ifc, unit);
-		vos_free(ifv, M_VLAN);
+		free(ifv, M_VLAN);
 		if (p != NULL)
 			if_rele(p);
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 	}
 	CK_SLIST_INIT(&ifv->vlan_mc_listhead);
 	ifp->if_softc = ifv;
@@ -1082,7 +1082,7 @@ vlan_clone_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 	 * Set the name manually rather than using if_initname because
 	 * we don't conform to the default naming convention for interfaces.
 	 */
-	vos_strlcpy(ifp->if_xname, name, IFNAMSIZ);
+	strlcpy(ifp->if_xname, name, IFNAMSIZ);
 	ifp->if_dname = vlanname;
 	ifp->if_dunit = unit;
 
@@ -1120,7 +1120,7 @@ vlan_clone_create(struct if_clone *ifc, char *name, size_t len, caddr_t params)
 			if_free(ifp);
 			if (!subinterface)
 				ifc_free_unit(ifc, unit);
-			vos_free(ifv, M_VLAN);
+			free(ifv, M_VLAN);
 
 			return (error);
 		}
@@ -1136,7 +1136,7 @@ vlan_clone_destroy(struct if_clone *ifc, struct ifnet *ifp)
 	int unit = ifp->if_dunit;
 
 	if (ifp->if_vlantrunk)
-		return (VOS_EBUSY);
+		return (EBUSY);
 
 	ether_ifdetach(ifp);	/* first, remove it from system-wide lists */
 	vlan_unconfig(ifp);	/* now it can be unconfigured and freed */
@@ -1148,7 +1148,7 @@ vlan_clone_destroy(struct if_clone *ifc, struct ifnet *ifp)
 	taskqueue_drain(taskqueue_thread, &ifv->lladdr_task);
 	NET_EPOCH_WAIT();
 	if_free(ifp);
-	vos_free(ifv, M_VLAN);
+	free(ifv, M_VLAN);
 	if (unit != IF_DUNIT_NONE)
 		ifc_free_unit(ifc, unit);
 
@@ -1179,7 +1179,7 @@ vlan_transmit(struct ifnet *ifp, struct mbuf *m)
 	if (TRUNK(ifv) == NULL) {
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		m_freem(m);
-		return (VOS_ENETDOWN);
+		return (ENETDOWN);
 	}
 	p = PARENT(ifv);
 	len = m->m_pkthdr.len;
@@ -1198,7 +1198,7 @@ vlan_transmit(struct ifnet *ifp, struct mbuf *m)
 		if (vst->tag->ifp != p) {
 			if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 			m_freem(m);
-			return (VOS_EAGAIN);
+			return (EAGAIN);
 		}
 
 		m->m_pkthdr.snd_tag = m_snd_tag_ref(vst->tag);
@@ -1213,7 +1213,7 @@ vlan_transmit(struct ifnet *ifp, struct mbuf *m)
 	if (!UP_AND_RUNNING(p)) {
 		if_inc_counter(ifp, IFCOUNTER_OERRORS, 1);
 		m_freem(m);
-		return (VOS_ENETDOWN);
+		return (ENETDOWN);
 	}
 
 	if (!ether_8021q_frame(&m, ifp, p, &ifv->ifv_qtag)) {
@@ -1250,7 +1250,7 @@ vlan_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	do {
 		if (TRUNK(ifv) == NULL) {
 			m_freem(m);
-			return (VOS_ENETDOWN);
+			return (ENETDOWN);
 		}
 		p = PARENT(ifv);
 		ifv = p->if_softc;
@@ -1399,22 +1399,22 @@ vlan_config(struct ifvlan *ifv, struct ifnet *p, uint16_t vid,
 	if (p->if_type != IFT_ETHER &&
 	    p->if_type != IFT_L2VLAN &&
 	    (p->if_capenable & IFCAP_VLAN_HWTAGGING) == 0)
-		return (VOS_EPROTONOSUPPORT);
+		return (EPROTONOSUPPORT);
 	if ((p->if_flags & VLAN_IFFLAGS) != VLAN_IFFLAGS)
-		return (VOS_EPROTONOSUPPORT);
+		return (EPROTONOSUPPORT);
 	/*
 	 * Don't let the caller set up a VLAN VID with
 	 * anything except VLID bits.
 	 * VID numbers 0x0 and 0xFFF are reserved.
 	 */
 	if (vid == 0 || vid == 0xFFF || (vid & ~EVL_VLID_MASK))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (ifv->ifv_trunk)
-		return (VOS_EBUSY);
+		return (EBUSY);
 
 	VLAN_XLOCK();
 	if (p->if_vlantrunk == NULL) {
-		trunk = vos_malloc(sizeof(struct ifvlantrunk),
+		trunk = malloc(sizeof(struct ifvlantrunk),
 		    M_VLAN, M_WAITOK | M_ZERO);
 		vlan_inithash(trunk);
 		TRUNK_LOCK_INIT(trunk);
@@ -1886,13 +1886,13 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 				}
 			}
 		} else {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		}
 		VLAN_SUNLOCK();
 		break;
 
 	case SIOCSIFMEDIA:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 
 	case SIOCSIFMTU:
@@ -1907,12 +1907,12 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 			     (PARENT(ifv)->if_mtu - ifv->ifv_mtufudge) ||
 			    ifr->ifr_mtu <
 			     (ifv->ifv_mintu - ifv->ifv_mtufudge))
-				error = VOS_EINVAL;
+				error = EINVAL;
 			else
 				ifp->if_mtu = ifr->ifr_mtu;
 			TRUNK_WUNLOCK(trunk);
 		} else
-			error = VOS_EINVAL;
+			error = EINVAL;
 		VLAN_SUNLOCK();
 		break;
 
@@ -1926,7 +1926,7 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		 * is the right way to accomplish that policy goal.
 		 */
 		if (ifp->if_vnet != ifp->if_home_vnet) {
-			error = VOS_EPERM;
+			error = EPERM;
 			break;
 		}
 #endif
@@ -1939,7 +1939,7 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		}
 		p = ifunit_ref(vlr.vlr_parent);
 		if (p == NULL) {
-			error = VOS_ENOENT;
+			error = ENOENT;
 			break;
 		}
 		oldmtu = ifp->if_mtu;
@@ -1961,14 +1961,14 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	case SIOCGETVLAN:
 #ifdef VIMAGE
 		if (ifp->if_vnet != ifp->if_home_vnet) {
-			error = VOS_EPERM;
+			error = EPERM;
 			break;
 		}
 #endif
 		bzero(&vlr, sizeof(vlr));
 		VLAN_SLOCK();
 		if (TRUNK(ifv) != NULL) {
-			vos_strlcpy(vlr.vlr_parent, PARENT(ifv)->if_xname,
+			strlcpy(vlr.vlr_parent, PARENT(ifv)->if_xname,
 			    sizeof(vlr.vlr_parent));
 			vlr.vlr_tag = ifv->ifv_vid;
 			vlr.vlr_proto = ifv->ifv_proto;
@@ -2007,7 +2007,7 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	case SIOCGVLANPCP:
 #ifdef VIMAGE
 		if (ifp->if_vnet != ifp->if_home_vnet) {
-			error = VOS_EPERM;
+			error = EPERM;
 			break;
 		}
 #endif
@@ -2017,7 +2017,7 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	case SIOCSVLANPCP:
 #ifdef VIMAGE
 		if (ifp->if_vnet != ifp->if_home_vnet) {
-			error = VOS_EPERM;
+			error = EPERM;
 			break;
 		}
 #endif
@@ -2025,7 +2025,7 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		if (error)
 			break;
 		if (ifr->ifr_vlan_pcp > 7) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		ifv->ifv_pcp = ifr->ifr_vlan_pcp;
@@ -2049,7 +2049,7 @@ vlan_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		break;
 
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 
@@ -2076,21 +2076,21 @@ vlan_snd_tag_alloc(struct ifnet *ifp,
 		parent = NULL;
 	if (parent == NULL) {
 		NET_EPOCH_EXIT(et);
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	if_ref(parent);
 	NET_EPOCH_EXIT(et);
 
-	vst = vos_malloc(sizeof(*vst), M_VLAN, M_NOWAIT);
+	vst = malloc(sizeof(*vst), M_VLAN, M_NOWAIT);
 	if (vst == NULL) {
 		if_rele(parent);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 
 	error = m_snd_tag_alloc(parent, params, &vst->tag);
 	if_rele(parent);
 	if (error) {
-		vos_free(vst, M_VLAN);
+		free(vst, M_VLAN);
 		return (error);
 	}
 
@@ -2127,6 +2127,6 @@ vlan_snd_tag_free(struct m_snd_tag *mst)
 
 	vst = mst_to_vst(mst);
 	m_snd_tag_rele(vst->tag);
-	vos_free(vst, M_VLAN);
+	free(vst, M_VLAN);
 }
 #endif

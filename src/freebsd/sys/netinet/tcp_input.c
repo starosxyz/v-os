@@ -1403,7 +1403,7 @@ dropunlock:
 drop:
 	INP_INFO_WUNLOCK_ASSERT(&V_tcbinfo);
 	if (s != NULL)
-		vos_free(s, M_TCPLOG);
+		free(s, M_TCPLOG);
 	if (m != NULL)
 		m_freem(m);
 	return (IPPROTO_DONE);
@@ -1543,7 +1543,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 			log(LOG_DEBUG, "%s; %s: "
 			    "SYN|FIN segment ignored (based on "
 			    "sysctl setting)\n", s, __func__);
-			vos_free(s, M_TCPLOG);
+			free(s, M_TCPLOG);
 		}
 		goto drop;
 	}
@@ -1703,13 +1703,13 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 				log(LOG_DEBUG, "%s; %s: Timestamp missing, "
 				    "segment processed normally\n",
 				    s, __func__);
-				vos_free(s, M_TCPLOG);
+				free(s, M_TCPLOG);
 			}
 		} else {
 			if ((s = tcp_log_addrs(inc, th, NULL, NULL))) {
 				log(LOG_DEBUG, "%s; %s: Timestamp missing, "
 				    "segment silently dropped\n", s, __func__);
-				vos_free(s, M_TCPLOG);
+				free(s, M_TCPLOG);
 			}
 			goto drop;
 		}
@@ -1724,7 +1724,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 		if ((s = tcp_log_addrs(inc, th, NULL, NULL))) {
 			log(LOG_DEBUG, "%s; %s: Timestamp not expected, "
 			    "segment processed normally\n", s, __func__);
-			vos_free(s, M_TCPLOG);
+			free(s, M_TCPLOG);
 		}
 	}
 
@@ -2005,7 +2005,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 		if ((thflags & (TH_ACK|TH_RST)) == (TH_ACK|TH_RST)) {
 			TCP_PROBE5(connect__refused, NULL, tp,
 			    m, tp, th);
-			tp = tcp_drop(tp, VOS_ECONNREFUSED);
+			tp = tcp_drop(tp, ECONNREFUSED);
 		}
 		if (thflags & TH_RST)
 			goto drop;
@@ -2169,7 +2169,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 				/* Drop the connection. */
 				switch (tp->t_state) {
 				case TCPS_SYN_RECEIVED:
-					so->so_error = VOS_ECONNREFUSED;
+					so->so_error = ECONNREFUSED;
 					goto close;
 				case TCPS_ESTABLISHED:
 				case TCPS_FIN_WAIT_1:
@@ -2177,7 +2177,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 				case TCPS_CLOSE_WAIT:
 				case TCPS_CLOSING:
 				case TCPS_LAST_ACK:
-					so->so_error = VOS_ECONNRESET;
+					so->so_error = ECONNRESET;
 				close:
 					/* FALLTHROUGH */
 				default:
@@ -2205,7 +2205,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 		if (V_tcp_insecure_syn &&
 		    SEQ_GEQ(th->th_seq, tp->last_ack_sent) &&
 		    SEQ_LT(th->th_seq, tp->last_ack_sent + tp->rcv_wnd)) {
-			tp = tcp_drop(tp, VOS_ECONNRESET);
+			tp = tcp_drop(tp, ECONNRESET);
 			rstreason = BANDLIM_UNLIMITED;
 		} else {
 			/* Send challenge ACK. */
@@ -2328,7 +2328,7 @@ tcp_do_segment(struct mbuf *m, struct tcphdr *th, struct socket *so,
 			    "after socket was closed, "
 			    "sending RST and removing tcpcb\n",
 			    s, __func__, tcpstates[tp->t_state], tlen);
-			vos_free(s, M_TCPLOG);
+			free(s, M_TCPLOG);
 		}
 		tp = tcp_close(tp);
 		TCPSTAT_INC(tcps_rcvafterclose);

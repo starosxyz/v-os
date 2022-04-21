@@ -343,15 +343,15 @@ __END_DECLS
  * Scale factor for scaled integers used to count %cpu time and load avgs.
  *
  * The number of CPU `tick's that map to a unique `%age' can be expressed
- * by the formula (1 / (2 ^ (VOS_FSHIFT - 11))).  The maximum load average that
+ * by the formula (1 / (2 ^ (FSHIFT - 11))).  The maximum load average that
  * can be calculated (assuming 32 bits) can be closely approximated using
  * the formula (2 ^ (2 * (16 - FSHIFT))) for (FSHIFT < 15).
  *
  * For the scheduler to maintain a 1:1 mapping of CPU `tick' to `%age',
  * FSHIFT must be at least 11; this gives us a maximum load avg of ~1024.
  */
-#define	VOS_FSHIFT	11		/* bits to right of fixed binary point */
-#define FSCALE	(1<<VOS_FSHIFT)
+#define	FSHIFT	11		/* bits to right of fixed binary point */
+#define FSCALE	(1<<FSHIFT)
 
 #define dbtoc(db)			/* calculates devblks to pages */ \
 	((db + (ctodb(1) - 1)) >> (PAGE_SHIFT - DEV_BSHIFT))
@@ -363,7 +363,7 @@ __END_DECLS
  * Old spelling of __containerof().
  */
 #define	member2struct(s, m, x)						\
-	((struct s *)(void *)((char *)(x) - vos_offsetof(struct s, m)))
+	((struct s *)(void *)((char *)(x) - offsetof(struct s, m)))
 
 /*
  * Access a variable length array that has been declared as a fixed

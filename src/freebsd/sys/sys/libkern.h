@@ -169,32 +169,32 @@ char* strcat(char* __restrict, const char* __restrict);
 char* strchr(const char*, int);
 char* strchrnul(const char*, int);
 int	 strcmp(const char*, const char*);
-char* vos_strcpy(char* __restrict, const char* __restrict);
-size_t	 vos_strcspn(const char* __restrict, const char* __restrict) __pure;
+char* strcpy(char* __restrict, const char* __restrict);
+size_t	 strcspn(const char* __restrict, const char* __restrict) __pure;
 char* strdup_flags(const char* __restrict, struct malloc_type*, int);
-char* vos_strdup(const char* __restrict, struct malloc_type*);
-char* vos_strncat(char*, const char*, size_t);
-char* vos_strndup(const char* __restrict, size_t, struct malloc_type*);
-size_t	 vos_strlcat(char*, const char*, size_t);
-size_t	 vos_strlcpy(char*, const char*, size_t);
-size_t	 vos_strlen(const char*);
-int	 vos_strncasecmp(const char*, const char*, size_t);
-int	 vos_strncmp(const char*, const char*, size_t);
-char* vos_strncpy(char* __restrict, const char* __restrict, size_t);
-size_t	 vos_strnlen(const char*, size_t);
-char* vos_strrchr(const char*, int);
-char* vos_strsep(char**, const char* delim);
-size_t	 vos_strspn(const char*, const char*);
-char* vos_strstr(const char*, const char*);
+char* strdup(const char* __restrict, struct malloc_type*);
+char* strncat(char*, const char*, size_t);
+char* strndup(const char* __restrict, size_t, struct malloc_type*);
+size_t	 strlcat(char*, const char*, size_t);
+size_t	 strlcpy(char*, const char*, size_t);
+size_t	 strlen(const char*);
+int	 strncasecmp(const char*, const char*, size_t);
+int	 strncmp(const char*, const char*, size_t);
+char* strncpy(char* __restrict, const char* __restrict, size_t);
+size_t	 strnlen(const char*, size_t);
+char* strrchr(const char*, int);
+char* strsep(char**, const char* delim);
+size_t	 strspn(const char*, const char*);
+char* strstr(const char*, const char*);
 int	 strvalid(const char*, size_t);
 
 #ifdef KCSAN
 char* kcsan_strcpy(char*, const char*);
 int	kcsan_strcmp(const char*, const char*);
 size_t	kcsan_strlen(const char*);
-#define	vos_strcpy(d, s) kcsan_strcpy((d), (s))
+#define	strcpy(d, s) kcsan_strcpy((d), (s))
 #define	strcmp(s1, s2) kcsan_strcmp((s1), (s2))
-#define	vos_strlen(s) kcsan_strlen((s))
+#define	strlen(s) kcsan_strlen((s))
 #endif
 
 static __inline char*
@@ -208,7 +208,7 @@ static __inline char*
 rindex(const char* p, int ch)
 {
 
-	return (vos_strrchr(p, ch));
+	return (strrchr(p, ch));
 }
 
 /* fnmatch() return values. */

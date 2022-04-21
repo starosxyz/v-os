@@ -174,7 +174,7 @@ create_vos_veth(const in_addr_t* ipaddr,
     int error;
     struct ifnet* ifp;
 
-    sc = vos_malloc(sizeof(struct vos_veth), M_DEVBUF, M_WAITOK);
+    sc = malloc(sizeof(struct vos_veth), M_DEVBUF, M_WAITOK);
     if (NULL == sc) {
         printf("ff_veth_softc allocation failed\n");
         goto fail;
@@ -209,7 +209,7 @@ create_vos_veth(const in_addr_t* ipaddr,
 
 fail:
     if (sc) {
-        vos_free(sc, M_DEVBUF);
+        free(sc, M_DEVBUF);
     }
 
     return NULL;
@@ -225,7 +225,7 @@ destroy_vos_veth(struct vos_veth* veth)
         if_free(sc->ifp);
     }
     if (sc) {
-        vos_free(sc, M_DEVBUF);
+        free(sc, M_DEVBUF);
     }
 
     return (0);
@@ -276,7 +276,7 @@ int vos_veth_set_addr(const char* if_dname,
 {
     struct in_aliasreq req;
     bzero(&req, sizeof req);
-    vos_strcpy(req.ifra_name, if_dname);
+    strcpy(req.ifra_name, if_dname);
     struct sockaddr_in sa;
     bzero(&sa, sizeof(sa));
     sa.sin_len = sizeof(sa);
@@ -306,7 +306,7 @@ vos_veth_setaddr(struct vos_veth* sc,
 {
     struct in_aliasreq req;
     bzero(&req, sizeof req);
-    vos_strcpy(req.ifra_name, sc->ifp->if_dname);
+    strcpy(req.ifra_name, sc->ifp->if_dname);
     memcpy(&(sc->ip), paddr, sizeof(in_addr_t));
     memcpy(&(sc->netmask), netmask, sizeof(in_addr_t));
     memcpy(&(sc->broadcast), broadcast, sizeof(in_addr_t));
@@ -372,7 +372,7 @@ int vos_veth_set_vaddr(const char* if_dname,
     struct in_aliasreq req;
     bzero(&req, sizeof req);
 
-    vos_strlcpy(req.ifra_name, if_dname, IFNAMSIZ);
+    strlcpy(req.ifra_name, if_dname, IFNAMSIZ);
 
     struct sockaddr_in sa;
     bzero(&sa, sizeof(sa));
@@ -416,10 +416,10 @@ vos_veth_setvaddr(struct vos_veth* sc, const char* if_dname,
     bzero(&req, sizeof req);
 
     if (if_dname) {
-        vos_strlcpy(req.ifra_name, if_dname, IFNAMSIZ);
+        strlcpy(req.ifra_name, if_dname, IFNAMSIZ);
     }
     else {
-        vos_strlcpy(req.ifra_name, sc->ifp->if_dname, IFNAMSIZ);
+        strlcpy(req.ifra_name, sc->ifp->if_dname, IFNAMSIZ);
     }
 
     sc->nb_vip = nb_vip;
@@ -468,7 +468,7 @@ vos_veth_setaddr6(struct vos_veth* sc, struct in6_addr *ip6)
 
     memcpy(&(sc->ip6), ip6, sizeof(struct in6_addr));
 
-    vos_strcpy(ifr6.ifra_name, sc->ifp->if_dname);
+    strcpy(ifr6.ifra_name, sc->ifp->if_dname);
 
     ifr6.ifra_addr.sin6_len = sizeof ifr6.ifra_addr;
     ifr6.ifra_addr.sin6_family = AF_INET6;
@@ -550,10 +550,10 @@ vos_veth_setvaddr6(struct vos_veth* sc, const char* if_dname,
 
 
     if (if_dname) {
-        vos_strlcpy(ifr6.ifra_name, if_dname, IFNAMSIZ);
+        strlcpy(ifr6.ifra_name, if_dname, IFNAMSIZ);
     }
     else {
-        vos_strlcpy(ifr6.ifra_name, sc->ifp->if_dname, IFNAMSIZ);
+        strlcpy(ifr6.ifra_name, sc->ifp->if_dname, IFNAMSIZ);
     }
 
     ifr6.ifra_addr.sin6_len = sizeof ifr6.ifra_addr;

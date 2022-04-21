@@ -219,7 +219,7 @@ struct vm_object {
   */
 #define	IDX_TO_OFF(idx) (((vm_ooffset_t)(idx)) << PAGE_SHIFT)
 #define	OFF_TO_IDX(off) ((vm_pindex_t)(((vm_ooffset_t)(off)) >> PAGE_SHIFT))
-#define	OBJ_MAX_SIZE	(OFF_TO_IDX(VOS_UINT64_MAX) + 1)
+#define	OBJ_MAX_SIZE	(OFF_TO_IDX(UINT64_MAX) + 1)
 
 #ifdef	_KERNEL
 

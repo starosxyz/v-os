@@ -112,7 +112,7 @@ prison_restrict_ip4(struct prison *pr, struct in_addr *newip4)
 			 */
 			used = 1;
 			if (newip4 == NULL) {
-				newip4 = vos_malloc(ppr->pr_ip4s * sizeof(*newip4),
+				newip4 = malloc(ppr->pr_ip4s * sizeof(*newip4),
 				    M_PRISON, M_NOWAIT);
 				if (newip4 != NULL)
 					used = 0;
@@ -120,7 +120,7 @@ prison_restrict_ip4(struct prison *pr, struct in_addr *newip4)
 			if (newip4 != NULL) {
 				bcopy(ppr->pr_ip4, newip4,
 				    ppr->pr_ip4s * sizeof(*newip4));
-				vos_free(pr->pr_ip4, M_PRISON);
+				free(pr->pr_ip4, M_PRISON);
 				pr->pr_ip4 = newip4;
 				pr->pr_ip4s = ppr->pr_ip4s;
 			}
@@ -131,7 +131,7 @@ prison_restrict_ip4(struct prison *pr, struct in_addr *newip4)
 			bcopy(ppr->pr_ip4, pr->pr_ip4,
 			    pr->pr_ip4s * sizeof(*newip4));
 		else if (pr->pr_ip4 != NULL) {
-			vos_free(pr->pr_ip4, M_PRISON);
+			free(pr->pr_ip4, M_PRISON);
 			pr->pr_ip4 = NULL;
 		}
 	} else if (pr->pr_ip4s > 0) {
@@ -167,7 +167,7 @@ prison_restrict_ip4(struct prison *pr, struct in_addr *newip4)
 			}
 		}
 		if (pr->pr_ip4s == 0) {
-			vos_free(pr->pr_ip4, M_PRISON);
+			free(pr->pr_ip4, M_PRISON);
 			pr->pr_ip4 = NULL;
 		}
 	}
@@ -180,7 +180,7 @@ prison_restrict_ip4(struct prison *pr, struct in_addr *newip4)
  * If not restricted return success but do not alter the address.  Caller has
  * to make sure to initialize it correctly (e.g. INADDR_ANY).
  *
- * Returns 0 on success, VOS_EAFNOSUPPORT if the jail doesn't allow IPv4.
+ * Returns 0 on success, EAFNOSUPPORT if the jail doesn't allow IPv4.
  * Address returned in NBO.
  */
 int
@@ -201,7 +201,7 @@ prison_get_ip4(struct ucred *cred, struct in_addr *ia)
 	}
 	if (pr->pr_ip4 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
 	ia->s_addr = pr->pr_ip4[0].s_addr;
@@ -214,7 +214,7 @@ prison_get_ip4(struct ucred *cred, struct in_addr *ia)
  * We will return 0 if we should bypass source address selection in favour
  * of the primary jail IPv4 address. Only in this case *ia will be updated and
  * returned in NBO.
- * Return VOS_EAFNOSUPPORT, in case this jail does not allow IPv4.
+ * Return EAFNOSUPPORT, in case this jail does not allow IPv4.
  */
 int
 prison_saddrsel_ip4(struct ucred *cred, struct in_addr *ia)
@@ -278,7 +278,7 @@ prison_equal_ip4(struct prison *pr1, struct prison *pr2)
  * jail.
  *
  * Returns 0 if jail doesn't restrict IPv4 or if address belongs to jail,
- * VOS_EADDRNOTAVAIL if the address doesn't belong, or VOS_EAFNOSUPPORT if the jail
+ * EADDRNOTAVAIL if the address doesn't belong, or EAFNOSUPPORT if the jail
  * doesn't allow IPv4.  Address passed in in NBO and returned in NBO.
  */
 int
@@ -301,7 +301,7 @@ prison_local_ip4(struct ucred *cred, struct in_addr *ia)
 	}
 	if (pr->pr_ip4 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
 	ia0.s_addr = ntohl(ia->s_addr);
@@ -317,7 +317,7 @@ prison_local_ip4(struct ucred *cred, struct in_addr *ia)
 	}
 
 	error = prison_check_ip4_locked(pr, ia);
-	if (error == VOS_EADDRNOTAVAIL && ia0.s_addr == INADDR_LOOPBACK) {
+	if (error == EADDRNOTAVAIL && ia0.s_addr == INADDR_LOOPBACK) {
 		ia->s_addr = pr->pr_ip4[0].s_addr;
 		error = 0;
 	}
@@ -329,7 +329,7 @@ prison_local_ip4(struct ucred *cred, struct in_addr *ia)
 /*
  * Rewrite destination address in case we will connect to loopback address.
  *
- * Returns 0 on success, VOS_EAFNOSUPPORT if the jail doesn't allow IPv4.
+ * Returns 0 on success, EAFNOSUPPORT if the jail doesn't allow IPv4.
  * Address passed in in NBO and returned in NBO.
  */
 int
@@ -350,11 +350,11 @@ prison_remote_ip4(struct ucred *cred, struct in_addr *ia)
 	}
 	if (pr->pr_ip4 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
 	if (ntohl(ia->s_addr) == INADDR_LOOPBACK &&
-	    prison_check_ip4_locked(pr, ia) == VOS_EADDRNOTAVAIL) {
+	    prison_check_ip4_locked(pr, ia) == EADDRNOTAVAIL) {
 		ia->s_addr = pr->pr_ip4[0].s_addr;
 		mtx_unlock(&pr->pr_mtx);
 		return (0);
@@ -371,7 +371,7 @@ prison_remote_ip4(struct ucred *cred, struct in_addr *ia)
  * Check if given address belongs to the jail referenced by cred/prison.
  *
  * Returns 0 if address belongs to jail,
- * VOS_EADDRNOTAVAIL if the address doesn't belong to the jail.
+ * EADDRNOTAVAIL if the address doesn't belong to the jail.
  */
 int
 prison_check_ip4_locked(const struct prison *pr, const struct in_addr *ia)
@@ -400,7 +400,7 @@ prison_check_ip4_locked(const struct prison *pr, const struct in_addr *ia)
 			return (0);
 	}
 
-	return (VOS_EADDRNOTAVAIL);
+	return (EADDRNOTAVAIL);
 }
 
 int
@@ -422,7 +422,7 @@ prison_check_ip4(const struct ucred *cred, const struct in_addr *ia)
 	}
 	if (pr->pr_ip4 == NULL) {
 		mtx_unlock(&pr->pr_mtx);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
 	error = prison_check_ip4_locked(pr, ia);

@@ -41,11 +41,11 @@ __FBSDID("$FreeBSD$");
 #define GRND_VALIDFLAGS	(GRND_NONBLOCK | GRND_RANDOM | GRND_INSECURE)
 
 /*
- * random_read_uio(9) returns VOS_EWOULDBLOCK if a nonblocking request would block,
- * but the Linux API name is VOS_EAGAIN.  On FreeBSD, they have the same numeric
+ * random_read_uio(9) returns EWOULDBLOCK if a nonblocking request would block,
+ * but the Linux API name is EAGAIN.  On FreeBSD, they have the same numeric
  * value for now.
  */
-CTASSERT(VOS_EWOULDBLOCK == VOS_EAGAIN);
+CTASSERT(EWOULDBLOCK == EAGAIN);
 
 static int
 kern_getrandom(struct thread *td, void *user_buf, size_t buflen,
@@ -56,9 +56,9 @@ kern_getrandom(struct thread *td, void *user_buf, size_t buflen,
 	int error;
 
 	if ((flags & ~GRND_VALIDFLAGS) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (buflen > IOSIZE_MAX)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * Linux compatibility: We have two choices for handling Linux's
@@ -70,7 +70,7 @@ kern_getrandom(struct thread *td, void *user_buf, size_t buflen,
 	 *
 	 * 2. Alternatively, we could treat GRND_INSECURE requests as requests
 	 * for GRND_NONBLOCK.  Here, the surprising result for Linux programs
-	 * is that invocations with unseeded random(4) will produce VOS_EAGAIN,
+	 * is that invocations with unseeded random(4) will produce EAGAIN,
 	 * rather than garbage.
 	 *
 	 * Honoring the flag in the way Linux does seems fraught.  If we

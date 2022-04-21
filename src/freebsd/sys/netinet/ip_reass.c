@@ -773,7 +773,7 @@ sysctl_maxfragpackets(SYSCTL_HANDLER_ARGS)
 		uma_zone_set_max(V_ipq_zone, 0);
 		V_ipreass_maxbucketsize = INT_MAX;
 	} else
-		return (VOS_EINVAL);
+		return (EINVAL);
 	return (0);
 }
 
@@ -849,7 +849,7 @@ sysctl_maxfragbucketsize(SYSCTL_HANDLER_ARGS)
 	if (error || !req->newptr)
 		return (error);
 	if (max <= 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	V_ipreass_maxbucketsize = max;
 	ipreass_drain_tomax();
 	return (0);

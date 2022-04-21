@@ -550,7 +550,7 @@ after_sack_rexmit:
 #endif
 	if (tp->t_inpcb->inp_options)
 		ipoptlen = tp->t_inpcb->inp_options->m_len -
-		vos_offsetof(struct ipoption, ipopt_list);
+				offsetof(struct ipoption, ipopt_list);
 	else
 		ipoptlen = 0;
 #if defined(IPSEC) || defined(IPSEC_SUPPORT)
@@ -976,7 +976,7 @@ send:
 				 * TCP segment.
 				 */
 				SOCKBUF_UNLOCK(&so->so_snd);
-				error = VOS_EMSGSIZE;
+				error = EMSGSIZE;
 				sack_rxmit = 0;
 				goto out;
 			}
@@ -1051,7 +1051,7 @@ send:
 
 		if (m == NULL) {
 			SOCKBUF_UNLOCK(&so->so_snd);
-			error = VOS_ENOBUFS;
+			error = ENOBUFS;
 			sack_rxmit = 0;
 			goto out;
 		}
@@ -1090,7 +1090,7 @@ send:
 			if (m->m_next == NULL) {
 				SOCKBUF_UNLOCK(&so->so_snd);
 				(void) m_free(m);
-				error = VOS_ENOBUFS;
+				error = ENOBUFS;
 				sack_rxmit = 0;
 				goto out;
 			}
@@ -1119,7 +1119,7 @@ send:
 
 		m = m_gethdr(M_NOWAIT, MT_DATA);
 		if (m == NULL) {
-			error = VOS_ENOBUFS;
+			error = ENOBUFS;
 			sack_rxmit = 0;
 			goto out;
 		}
@@ -1309,7 +1309,7 @@ send:
 	 * checksum extended header and data.
 	 */
 	m->m_pkthdr.len = hdrlen + len; /* in6_cksum() need this */
-	m->m_pkthdr.csum_data = vos_offsetof(struct tcphdr, th_sum);
+	m->m_pkthdr.csum_data = offsetof(struct tcphdr, th_sum);
 
 #if defined(IPSEC_SUPPORT) || defined(TCP_SIGNATURE)
 	if (to.to_flags & TOF_SIGNATURE) {
@@ -1450,7 +1450,7 @@ send:
 		    ((so->so_options & SO_DONTROUTE) ?  IP_ROUTETOIF : 0),
 		    NULL, NULL, tp->t_inpcb);
 
-		if (error == VOS_EMSGSIZE && tp->t_inpcb->inp_route6.ro_nh != NULL)
+		if (error == EMSGSIZE && tp->t_inpcb->inp_route6.ro_nh != NULL)
 			mtu = tp->t_inpcb->inp_route6.ro_nh->nh_mtu;
 	}
 #endif /* INET6 */
@@ -1493,7 +1493,7 @@ send:
 	    ((so->so_options & SO_DONTROUTE) ? IP_ROUTETOIF : 0), 0,
 	    tp->t_inpcb);
 
-	if (error == VOS_EMSGSIZE && tp->t_inpcb->inp_route.ro_nh != NULL)
+	if (error == EMSGSIZE && tp->t_inpcb->inp_route.ro_nh != NULL)
 		mtu = tp->t_inpcb->inp_route.ro_nh->nh_mtu;
     }
 #endif /* INET */
@@ -1617,7 +1617,7 @@ timer:
 		 * We know that the packet was lost, so back out the
 		 * sequence number advance, if any.
 		 *
-		 * If the error is VOS_EPERM the packet got blocked by the
+		 * If the error is EPERM the packet got blocked by the
 		 * local firewall.  Normally we should terminate the
 		 * connection but the blocking may have been spurious
 		 * due to a firewall reconfiguration cycle.  So we treat
@@ -1629,7 +1629,7 @@ timer:
 		if (((tp->t_flags & TF_FORCEDATA) == 0 ||
 		    !tcp_timer_active(tp, TT_PERSIST)) &&
 		    ((flags & TH_SYN) == 0) &&
-		    (error != VOS_EPERM)) {
+		    (error != EPERM)) {
 			if (sack_rxmit) {
 				p->rxmit -= len;
 				tp->sackhint.sack_bytes_rexmit -= len;
@@ -1640,15 +1640,15 @@ timer:
 		}
 		SOCKBUF_UNLOCK_ASSERT(&so->so_snd);	/* Check gotos. */
 		switch (error) {
-		case VOS_EACCES:
-		case VOS_EPERM:
+		case EACCES:
+		case EPERM:
 			tp->t_softerror = error;
 			return (error);
-		case VOS_ENOBUFS:
+		case ENOBUFS:
 			TCP_XMIT_TIMER_ASSERT(tp, len, flags);
 			tp->snd_cwnd = tp->t_maxseg;
 			return (0);
-		case VOS_EMSGSIZE:
+		case EMSGSIZE:
 			/*
 			 * For some reason the interface we used initially
 			 * to send segments changed to another or lowered
@@ -1665,10 +1665,10 @@ timer:
 				goto again;
 			}
 			return (error);
-		case VOS_EHOSTDOWN:
-		case VOS_EHOSTUNREACH:
-		case VOS_ENETDOWN:
-		case VOS_ENETUNREACH:
+		case EHOSTDOWN:
+		case EHOSTUNREACH:
+		case ENETDOWN:
+		case ENETUNREACH:
 			if (TCPS_HAVERCVDSYN(tp->t_state)) {
 				tp->t_softerror = error;
 				return (0);

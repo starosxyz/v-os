@@ -246,7 +246,7 @@ exit1(struct thread *td, int rval, int signo)
 		 * so it may not be instantaneous.  With this state set
 		 * any thread entering the kernel from userspace will
 		 * thread_exit() in trap().  Any thread attempting to
-		 * sleep will return immediately with VOS_EINTR or VOS_EWOULDBLOCK
+		 * sleep will return immediately with EINTR or EWOULDBLOCK
 		 * which will hopefully force them to back out to userland
 		 * freeing resources as they go.  Any thread attempting
 		 * to return to userland will thread_exit() from userret().
@@ -1231,7 +1231,7 @@ kern_wait6(struct thread *td, idtype_t idtype, id_t id, int *status,
 	/* If we don't know the option, just return. */
 	if ((options & ~(WUNTRACED | WNOHANG | WCONTINUED | WNOWAIT |
 	    WEXITED | WTRAPPED | WLINUXCLONE)) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if ((options & (WEXITED | WUNTRACED | WCONTINUED | WTRAPPED)) == 0) {
 		/*
 		 * We will be unable to find any matching processes,
@@ -1239,7 +1239,7 @@ kern_wait6(struct thread *td, idtype_t idtype, id_t id, int *status,
 		 * Prefer to return error instead of blocking
 		 * indefinitely.
 		 */
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 loop:
@@ -1333,7 +1333,7 @@ loop_locked:
 	}
 	if (nfound == 0) {
 		sx_xunlock(&proctree_lock);
-		return (VOS_ECHILD);
+		return (ECHILD);
 	}
 	if (options & WNOHANG) {
 		sx_xunlock(&proctree_lock);

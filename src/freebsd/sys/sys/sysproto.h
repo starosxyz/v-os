@@ -628,15 +628,15 @@ struct shmget_args {
 };
 struct clock_gettime_args {
 	char clock_id_l_[PADL_(clockid_t)]; clockid_t clock_id; char clock_id_r_[PADR_(clockid_t)];
-	char tp_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* tp; char tp_r_[PADR_(struct vos_timespec*)];
+	char tp_l_[PADL_(struct timespec*)]; struct timespec* tp; char tp_r_[PADR_(struct timespec*)];
 };
 struct clock_settime_args {
 	char clock_id_l_[PADL_(clockid_t)]; clockid_t clock_id; char clock_id_r_[PADR_(clockid_t)];
-	char tp_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* tp; char tp_r_[PADR_(const struct vos_timespec*)];
+	char tp_l_[PADL_(const struct timespec*)]; const struct timespec* tp; char tp_r_[PADR_(const struct timespec*)];
 };
 struct clock_getres_args {
 	char clock_id_l_[PADL_(clockid_t)]; clockid_t clock_id; char clock_id_r_[PADR_(clockid_t)];
-	char tp_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* tp; char tp_r_[PADR_(struct vos_timespec*)];
+	char tp_l_[PADL_(struct timespec*)]; struct timespec* tp; char tp_r_[PADR_(struct timespec*)];
 };
 struct ktimer_create_args {
 	char clock_id_l_[PADL_(clockid_t)]; clockid_t clock_id; char clock_id_r_[PADR_(clockid_t)];
@@ -660,8 +660,8 @@ struct ktimer_getoverrun_args {
 	char timerid_l_[PADL_(int)]; int timerid; char timerid_r_[PADR_(int)];
 };
 struct nanosleep_args {
-	char rqtp_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* rqtp; char rqtp_r_[PADR_(const struct vos_timespec*)];
-	char rmtp_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* rmtp; char rmtp_r_[PADR_(struct vos_timespec*)];
+	char rqtp_l_[PADL_(const struct timespec*)]; const struct timespec* rqtp; char rqtp_r_[PADR_(const struct timespec*)];
+	char rmtp_l_[PADL_(struct timespec*)]; struct timespec* rmtp; char rmtp_r_[PADR_(struct timespec*)];
 };
 struct ffclock_getcounter_args {
 	char ffcount_l_[PADL_(ffcounter*)]; ffcounter* ffcount; char ffcount_r_[PADR_(ffcounter*)];
@@ -675,8 +675,8 @@ struct ffclock_getestimate_args {
 struct clock_nanosleep_args {
 	char clock_id_l_[PADL_(clockid_t)]; clockid_t clock_id; char clock_id_r_[PADR_(clockid_t)];
 	char flags_l_[PADL_(int)]; int flags; char flags_r_[PADR_(int)];
-	char rqtp_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* rqtp; char rqtp_r_[PADR_(const struct vos_timespec*)];
-	char rmtp_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* rmtp; char rmtp_r_[PADR_(struct vos_timespec*)];
+	char rqtp_l_[PADL_(const struct timespec*)]; const struct timespec* rqtp; char rqtp_r_[PADR_(const struct timespec*)];
+	char rmtp_l_[PADL_(struct timespec*)]; struct timespec* rmtp; char rmtp_r_[PADR_(struct timespec*)];
 };
 struct clock_getcpuclockid2_args {
 	char id_l_[PADL_(id_t)]; id_t id; char id_r_[PADR_(id_t)];
@@ -789,7 +789,7 @@ struct aio_return_args {
 struct aio_suspend_args {
 	char aiocbp_l_[PADL_(struct aiocb* const*)]; struct aiocb* const* aiocbp; char aiocbp_r_[PADR_(struct aiocb* const*)];
 	char nent_l_[PADL_(int)]; int nent; char nent_r_[PADR_(int)];
-	char timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* timeout; char timeout_r_[PADR_(const struct vos_timespec*)];
+	char timeout_l_[PADL_(const struct timespec*)]; const struct timespec* timeout; char timeout_r_[PADR_(const struct timespec*)];
 };
 struct aio_cancel_args {
 	char fd_l_[PADL_(int)]; int fd; char fd_r_[PADR_(int)];
@@ -838,7 +838,7 @@ struct sched_get_priority_min_args {
 };
 struct sched_rr_get_interval_args {
 	char pid_l_[PADL_(pid_t)]; pid_t pid; char pid_r_[PADR_(pid_t)];
-	char interval_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* interval; char interval_r_[PADR_(struct vos_timespec*)];
+	char interval_l_[PADL_(struct timespec*)]; struct timespec* interval; char interval_r_[PADR_(struct timespec*)];
 };
 struct utrace_args {
 	char addr_l_[PADL_(const void*)]; const void* addr; char addr_r_[PADR_(const void*)];
@@ -873,7 +873,7 @@ struct sigpending_args {
 struct sigtimedwait_args {
 	char set_l_[PADL_(const sigset_t*)]; const sigset_t* set; char set_r_[PADR_(const sigset_t*)];
 	char info_l_[PADL_(siginfo_t*)]; siginfo_t* info; char info_r_[PADR_(siginfo_t*)];
-	char timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* timeout; char timeout_r_[PADR_(const struct vos_timespec*)];
+	char timeout_l_[PADL_(const struct timespec*)]; const struct timespec* timeout; char timeout_r_[PADR_(const struct timespec*)];
 };
 struct sigwaitinfo_args {
 	char set_l_[PADL_(const sigset_t*)]; const sigset_t* set; char set_r_[PADR_(const sigset_t*)];
@@ -945,7 +945,7 @@ struct extattr_delete_file_args {
 };
 struct aio_waitcomplete_args {
 	char aiocbp_l_[PADL_(struct aiocb**)]; struct aiocb** aiocbp; char aiocbp_r_[PADR_(struct aiocb**)];
-	char timeout_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* timeout; char timeout_r_[PADR_(struct vos_timespec*)];
+	char timeout_l_[PADL_(struct timespec*)]; struct timespec* timeout; char timeout_r_[PADR_(struct timespec*)];
 };
 struct getresuid_args {
 	char ruid_l_[PADL_(uid_t*)]; uid_t* ruid; char ruid_r_[PADR_(uid_t*)];
@@ -1202,10 +1202,10 @@ struct extattr_list_link_args {
 };
 struct ksem_timedwait_args {
 	char id_l_[PADL_(semid_t)]; semid_t id; char id_r_[PADR_(semid_t)];
-	char abstime_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* abstime; char abstime_r_[PADR_(const struct vos_timespec*)];
+	char abstime_l_[PADL_(const struct timespec*)]; const struct timespec* abstime; char abstime_r_[PADR_(const struct timespec*)];
 };
 struct thr_suspend_args {
-	char timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* timeout; char timeout_r_[PADR_(const struct vos_timespec*)];
+	char timeout_l_[PADL_(const struct timespec*)]; const struct timespec* timeout; char timeout_r_[PADR_(const struct timespec*)];
 };
 struct thr_wake_args {
 	char id_l_[PADL_(long)]; long id; char id_r_[PADR_(long)];
@@ -1278,14 +1278,14 @@ struct kmq_timedreceive_args {
 	char msg_ptr_l_[PADL_(char*)]; char* msg_ptr; char msg_ptr_r_[PADR_(char*)];
 	char msg_len_l_[PADL_(size_t)]; size_t msg_len; char msg_len_r_[PADR_(size_t)];
 	char msg_prio_l_[PADL_(unsigned*)]; unsigned* msg_prio; char msg_prio_r_[PADR_(unsigned*)];
-	char abs_timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* abs_timeout; char abs_timeout_r_[PADR_(const struct vos_timespec*)];
+	char abs_timeout_l_[PADL_(const struct timespec*)]; const struct timespec* abs_timeout; char abs_timeout_r_[PADR_(const struct timespec*)];
 };
 struct kmq_timedsend_args {
 	char mqd_l_[PADL_(int)]; int mqd; char mqd_r_[PADR_(int)];
 	char msg_ptr_l_[PADL_(const char*)]; const char* msg_ptr; char msg_ptr_r_[PADR_(const char*)];
 	char msg_len_l_[PADL_(size_t)]; size_t msg_len; char msg_len_r_[PADR_(size_t)];
 	char msg_prio_l_[PADL_(unsigned)]; unsigned msg_prio; char msg_prio_r_[PADR_(unsigned)];
-	char abs_timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* abs_timeout; char abs_timeout_r_[PADR_(const struct vos_timespec*)];
+	char abs_timeout_l_[PADL_(const struct timespec*)]; const struct timespec* abs_timeout; char abs_timeout_r_[PADR_(const struct timespec*)];
 };
 struct kmq_notify_args {
 	char mqd_l_[PADL_(int)]; int mqd; char mqd_r_[PADR_(int)];
@@ -1553,7 +1553,7 @@ struct pselect_args {
 	char in_l_[PADL_(fd_set*)]; fd_set* in; char in_r_[PADR_(fd_set*)];
 	char ou_l_[PADL_(fd_set*)]; fd_set* ou; char ou_r_[PADR_(fd_set*)];
 	char ex_l_[PADL_(fd_set*)]; fd_set* ex; char ex_r_[PADR_(fd_set*)];
-	char ts_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* ts; char ts_r_[PADR_(const struct vos_timespec*)];
+	char ts_l_[PADL_(const struct timespec*)]; const struct timespec* ts; char ts_r_[PADR_(const struct timespec*)];
 	char sm_l_[PADL_(const sigset_t*)]; const sigset_t* sm; char sm_r_[PADR_(const sigset_t*)];
 };
 struct getloginclass_args {
@@ -1674,17 +1674,17 @@ struct procctl_args {
 struct ppoll_args {
 	char fds_l_[PADL_(struct pollfd*)]; struct pollfd* fds; char fds_r_[PADR_(struct pollfd*)];
 	char nfds_l_[PADL_(u_int)]; u_int nfds; char nfds_r_[PADR_(u_int)];
-	char ts_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* ts; char ts_r_[PADR_(const struct vos_timespec*)];
+	char ts_l_[PADL_(const struct timespec*)]; const struct timespec* ts; char ts_r_[PADR_(const struct timespec*)];
 	char set_l_[PADL_(const sigset_t*)]; const sigset_t* set; char set_r_[PADR_(const sigset_t*)];
 };
 struct futimens_args {
 	char fd_l_[PADL_(int)]; int fd; char fd_r_[PADR_(int)];
-	char times_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* times; char times_r_[PADR_(struct vos_timespec*)];
+	char times_l_[PADL_(struct timespec*)]; struct timespec* times; char times_r_[PADR_(struct timespec*)];
 };
 struct utimensat_args {
 	char fd_l_[PADL_(int)]; int fd; char fd_r_[PADR_(int)];
 	char path_l_[PADL_(const char*)]; const char* path; char path_r_[PADR_(const char*)];
-	char times_l_[PADL_(struct vos_timespec*)]; struct vos_timespec* times; char times_r_[PADR_(struct vos_timespec*)];
+	char times_l_[PADL_(struct timespec*)]; struct timespec* times; char times_r_[PADR_(struct timespec*)];
 	char flag_l_[PADL_(int)]; int flag; char flag_r_[PADR_(int)];
 };
 struct fdatasync_args {
@@ -1739,7 +1739,7 @@ struct kevent_args {
 	char nchanges_l_[PADL_(int)]; int nchanges; char nchanges_r_[PADR_(int)];
 	char eventlist_l_[PADL_(struct kevent*)]; struct kevent* eventlist; char eventlist_r_[PADR_(struct kevent*)];
 	char nevents_l_[PADL_(int)]; int nevents; char nevents_r_[PADR_(int)];
-	char timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* timeout; char timeout_r_[PADR_(const struct vos_timespec*)];
+	char timeout_l_[PADL_(const struct timespec*)]; const struct timespec* timeout; char timeout_r_[PADR_(const struct timespec*)];
 };
 struct cpuset_getdomain_args {
 	char level_l_[PADL_(cpulevel_t)]; cpulevel_t level; char level_r_[PADR_(cpulevel_t)];
@@ -2650,7 +2650,7 @@ struct freebsd11_kevent_args {
 	char nchanges_l_[PADL_(int)]; int nchanges; char nchanges_r_[PADR_(int)];
 	char eventlist_l_[PADL_(struct kevent_freebsd11*)]; struct kevent_freebsd11* eventlist; char eventlist_r_[PADR_(struct kevent_freebsd11*)];
 	char nevents_l_[PADL_(int)]; int nevents; char nevents_r_[PADR_(int)];
-	char timeout_l_[PADL_(const struct vos_timespec*)]; const struct vos_timespec* timeout; char timeout_r_[PADR_(const struct vos_timespec*)];
+	char timeout_l_[PADL_(const struct timespec*)]; const struct timespec* timeout; char timeout_r_[PADR_(const struct timespec*)];
 };
 struct freebsd11_getfsstat_args {
 	char buf_l_[PADL_(struct freebsd11_statfs*)]; struct freebsd11_statfs* buf; char buf_r_[PADR_(struct freebsd11_statfs*)];

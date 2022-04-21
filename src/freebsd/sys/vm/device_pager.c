@@ -440,7 +440,7 @@ old_dev_pager_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
 	dev = handle;
 	csw = dev_refthread(dev, &ref);
 	if (csw == NULL)
-		return (VOS_ENXIO);
+		return (ENXIO);
 
 	/*
 	 * Check that the specified range of the device allows the desired
@@ -453,7 +453,7 @@ old_dev_pager_ctor(void *handle, vm_ooffset_t size, vm_prot_t prot,
 	for (off = foff; npages--; off += PAGE_SIZE) {
 		if (csw->d_mmap(dev, off, &paddr, (int)prot, &dummy) != 0) {
 			dev_relthread(dev, ref);
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 	}
 

@@ -2816,7 +2816,7 @@ vm_map_madvise(
 		vm_map_lock_read(map);
 		break;
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	/*
@@ -4729,7 +4729,7 @@ vmspace_exec(struct proc* p, vm_offset_t minuser, vm_offset_t maxuser)
 		("vmspace_exec recursed"));
 	newvmspace = vmspace_alloc(minuser, maxuser, pmap_pinit);
 	if (newvmspace == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	newvmspace->vm_swrss = oldvmspace->vm_swrss;
 	/*
 	 * This code is written like this for prototype purposes.  The
@@ -4767,10 +4767,10 @@ vmspace_unshare(struct proc* p)
 	fork_charge = 0;
 	newvmspace = vmspace_fork(oldvmspace, &fork_charge);
 	if (newvmspace == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	if (!swap_reserve_by_cred(fork_charge, p->p_ucred)) {
 		vmspace_free(newvmspace);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	PROC_VMSPACE_LOCK(p);
 	p->p_vmspace = newvmspace;

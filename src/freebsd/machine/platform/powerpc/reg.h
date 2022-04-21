@@ -33,7 +33,7 @@ struct dbreg {
 	unsigned int	junk;
 };
 
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 /* Must match struct trapframe */
 struct reg32 {
 	__int32_t fixreg[32];

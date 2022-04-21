@@ -115,7 +115,7 @@ p31b_sysctl_proc(SYSCTL_HANDLER_ARGS)
 
 	num = arg2;
 	if (!P31B_VALID(num))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	val = facility_initialized[num - 1] ? facility[num - 1] : 0;
 	error = sysctl_handle_int(oidp, &val, 0, req);
 	if (error == 0 && req->newptr != NULL && facility_initialized[num - 1])

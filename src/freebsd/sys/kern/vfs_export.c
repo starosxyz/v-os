@@ -129,7 +129,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 		if (mp->mnt_flag & MNT_DEFEXPORTED) {
 			vfs_mount_error(mp,
 			    "MNT_DEFEXPORTED already set for mount %p", mp);
-			return (VOS_EPERM);
+			return (EPERM);
 		}
 		np = &nep->ne_defexported;
 		np->netc_exflags = argp->ex_flags;
@@ -152,17 +152,17 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 	if (argp->ex_addrlen > MLEN) {
 		vfs_mount_error(mp, "ex_addrlen %d is greater than %d",
 		    argp->ex_addrlen, MLEN);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 #endif
 
 	i = sizeof(struct netcred) + argp->ex_addrlen + argp->ex_masklen;
-	np = (struct netcred *)vos_malloc(i, M_NETADDR, M_WAITOK | M_ZERO);
+	np = (struct netcred *) malloc(i, M_NETADDR, M_WAITOK | M_ZERO);
 	saddr = (struct sockaddr *) (np + 1);
 	if ((error = copyin(argp->ex_addr, saddr, argp->ex_addrlen)))
 		goto out;
 	if (saddr->sa_family == AF_UNSPEC || saddr->sa_family > AF_MAX) {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		vfs_mount_error(mp, "Invalid saddr->sa_family: %d");
 		goto out;
 	}
@@ -181,7 +181,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 #ifdef INET
 	case AF_INET:
 		if ((rnh = nep->ne4) == NULL) {
-			off = vos_offsetof(struct sockaddr_in, sin_addr) << 3;
+			off = offsetof(struct sockaddr_in, sin_addr) << 3;
 			rnh = vfs_create_addrlist_af(&nep->ne4, off);
 		}
 		break;
@@ -189,14 +189,14 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 #ifdef INET6
 	case AF_INET6:
 		if ((rnh = nep->ne6) == NULL) {
-			off = vos_offsetof(struct sockaddr_in6, sin6_addr) << 3;
+			off = offsetof(struct sockaddr_in6, sin6_addr) << 3;
 			rnh = vfs_create_addrlist_af(&nep->ne6, off);
 		}
 		break;
 #endif
 	}
 	if (rnh == NULL) {
-		error = VOS_ENOBUFS;
+		error = ENOBUFS;
 		vfs_mount_error(mp, "%s %s %d",
 		    "Unable to initialize radix node head ",
 		    "for address family", saddr->sa_family);
@@ -206,7 +206,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 	rn = (*rnh->rnh_addaddr)(saddr, smask, &rnh->rh, np->netc_rnodes);
 	RADIX_NODE_HEAD_UNLOCK(rnh);
 	if (rn == NULL || np != (struct netcred *)rn) {	/* already exists */
-		error = VOS_EPERM;
+		error = EPERM;
 		vfs_mount_error(mp,
 		    "netcred already exists for given addr/mask");
 		goto out;
@@ -223,7 +223,7 @@ vfs_hang_addrlist(struct mount *mp, struct netexport *nep,
 	    sizeof(np->netc_secflavors));
 	return (0);
 out:
-	vos_free(np, M_NETADDR);
+	free(np, M_NETADDR);
 	return (error);
 }
 
@@ -239,7 +239,7 @@ vfs_free_netcred(struct radix_node *rn, void *w)
 	cred = ((struct netcred *)rn)->netc_anon;
 	if (cred != NULL)
 		crfree(cred);
-	vos_free(rn, M_NETADDR);
+	free(rn, M_NETADDR);
 	return (0);
 }
 
@@ -301,19 +301,19 @@ vfs_export(struct mount *mp, struct export_args *argp)
 	int error;
 
 	if ((argp->ex_flags & (MNT_DELEXPORT | MNT_EXPORTED)) == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if ((argp->ex_flags & MNT_EXPORTED) != 0 &&
 	    (argp->ex_numsecflavors < 0
 	    || argp->ex_numsecflavors >= MAXSECFLAVORS))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = 0;
 	lockmgr(&mp->mnt_explock, LK_EXCLUSIVE, NULL);
 	nep = mp->mnt_export;
 	if (argp->ex_flags & MNT_DELEXPORT) {
 		if (nep == NULL) {
-			error = VOS_ENOENT;
+			error = ENOENT;
 			goto out;
 		}
 		if (mp->mnt_flag & MNT_EXPUBLIC) {
@@ -324,7 +324,7 @@ vfs_export(struct mount *mp, struct export_args *argp)
 		}
 		vfs_free_addrlist(nep);
 		mp->mnt_export = NULL;
-		vos_free(nep, M_MOUNT);
+		free(nep, M_MOUNT);
 		nep = NULL;
 		MNT_ILOCK(mp);
 		mp->mnt_flag &= ~(MNT_EXPORTED | MNT_DEFEXPORTED);
@@ -332,7 +332,7 @@ vfs_export(struct mount *mp, struct export_args *argp)
 	}
 	if (argp->ex_flags & MNT_EXPORTED) {
 		if (nep == NULL) {
-			nep = vos_malloc(sizeof(struct netexport), M_MOUNT, M_WAITOK | M_ZERO);
+			nep = malloc(sizeof(struct netexport), M_MOUNT, M_WAITOK | M_ZERO);
 			mp->mnt_export = nep;
 		}
 		if (argp->ex_flags & MNT_EXPUBLIC) {
@@ -389,7 +389,7 @@ vfs_setpublicfs(struct mount *mp, struct netexport *nep,
 		if (nfs_pub.np_valid) {
 			nfs_pub.np_valid = 0;
 			if (nfs_pub.np_index != NULL) {
-				vos_free(nfs_pub.np_index, M_TEMP);
+				free(nfs_pub.np_index, M_TEMP);
 				nfs_pub.np_index = NULL;
 			}
 		}
@@ -400,7 +400,7 @@ vfs_setpublicfs(struct mount *mp, struct netexport *nep,
 	 * Only one allowed at a time.
 	 */
 	if (nfs_pub.np_valid != 0 && mp != nfs_pub.np_mount)
-		return (VOS_EBUSY);
+		return (EBUSY);
 
 	/*
 	 * Get real filehandle for root of exported FS.
@@ -421,7 +421,7 @@ vfs_setpublicfs(struct mount *mp, struct netexport *nep,
 	 */
 	if (argp->ex_indexfile != NULL) {
 		if (nfs_pub.np_index == NULL)
-			nfs_pub.np_index = vos_malloc(MAXNAMLEN + 1, M_TEMP,
+			nfs_pub.np_index = malloc(MAXNAMLEN + 1, M_TEMP,
 			    M_WAITOK);
 		error = copyinstr(argp->ex_indexfile, nfs_pub.np_index,
 		    MAXNAMLEN, (size_t *)0);
@@ -431,13 +431,13 @@ vfs_setpublicfs(struct mount *mp, struct netexport *nep,
 			 */
 			for (cp = nfs_pub.np_index; *cp; cp++) {
 				if (*cp == '/') {
-					error = VOS_EINVAL;
+					error = EINVAL;
 					break;
 				}
 			}
 		}
 		if (error) {
-			vos_free(nfs_pub.np_index, M_TEMP);
+			free(nfs_pub.np_index, M_TEMP);
 			nfs_pub.np_index = NULL;
 			return (error);
 		}
@@ -521,7 +521,7 @@ vfs_stdcheckexp(struct mount *mp, struct sockaddr *nam, uint64_t *extflagsp,
 	if (np == NULL) {
 		lockmgr(&mp->mnt_explock, LK_RELEASE, NULL);
 		*credanonp = NULL;
-		return (VOS_EACCES);
+		return (EACCES);
 	}
 	*extflagsp = np->netc_exflags;
 	if ((*credanonp = np->netc_anon) != NULL)

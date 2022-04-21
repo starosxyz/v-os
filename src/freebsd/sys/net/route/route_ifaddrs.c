@@ -122,7 +122,7 @@ rib_handle_ifaddr_info(uint32_t fibnum, int cmd, struct rt_addrinfo *info)
 		} else {
 			/* we only give an error if it wasn't in any table */
 			error = ((info->rti_flags & RTF_HOST) ?
-			    VOS_EHOSTUNREACH : VOS_ENETUNREACH);
+			    EHOSTUNREACH : ENETUNREACH);
 		}
 	} else {
 		if (last_error != 0) {
@@ -172,8 +172,8 @@ ifa_maintain_loopback_route(int cmd, const char *otype, struct ifaddr *ifa,
 		ifa_free(rti_ifa);
 
 	if (error == 0 ||
-	    (cmd == RTM_ADD && error == VOS_EEXIST) ||
-	    (cmd == RTM_DELETE && (error == VOS_ENOENT || error == VOS_ESRCH)))
+	    (cmd == RTM_ADD && error == EEXIST) ||
+	    (cmd == RTM_DELETE && (error == ENOENT || error == ESRCH)))
 		return (error);
 
 	log(LOG_DEBUG, "%s: %s failed for interface %s: %u\n",

@@ -57,7 +57,7 @@ __FBSDID("$FreeBSD$");
 
 MALLOC_DEFINE(M_P31B, "p1003.1b", "Posix 1003.1B");
 
-/* The system calls return VOS_ENOSYS if an entry is called that is not run-time
+/* The system calls return ENOSYS if an entry is called that is not run-time
  * supported.  I am also logging since some programs start to use this when
  * they shouldn't.  That will be removed if annoying.
  */
@@ -70,7 +70,7 @@ syscall_not_present(struct thread *td, const char *s, struct nosys_args *uap)
 	/* a " return nosys(p, uap); " here causes a core dump.
 	 */
 
-	return VOS_ENOSYS;
+	return ENOSYS;
 }
 
 #if !defined(_KPOSIX_PRIORITY_SCHEDULING)
@@ -128,7 +128,7 @@ sys_sched_setparam(struct thread *td, struct sched_setparam_args *uap)
 	} else {
 		targetp = pfind(uap->pid);
 		if (targetp == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		targettd = FIRST_THREAD_IN_PROC(targetp);
 	}
 
@@ -169,7 +169,7 @@ sys_sched_getparam(struct thread *td, struct sched_getparam_args *uap)
 	} else {
 		targetp = pfind(uap->pid);
 		if (targetp == NULL) {
-			return (VOS_ESRCH);
+			return (ESRCH);
 		}
 		targettd = FIRST_THREAD_IN_PROC(targetp);
 	}
@@ -216,7 +216,7 @@ sys_sched_setscheduler(struct thread *td, struct sched_setscheduler_args *uap)
 	} else {
 		targetp = pfind(uap->pid);
 		if (targetp == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		targettd = FIRST_THREAD_IN_PROC(targetp);
 	}
 
@@ -262,7 +262,7 @@ sys_sched_getscheduler(struct thread *td, struct sched_getscheduler_args *uap)
 	} else {
 		targetp = pfind(uap->pid);
 		if (targetp == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		targettd = FIRST_THREAD_IN_PROC(targetp);
 	}
 
@@ -324,18 +324,18 @@ int
 sys_sched_rr_get_interval(struct thread *td,
     struct sched_rr_get_interval_args *uap)
 {
-	struct vos_timespec vos_timespec;
+	struct timespec timespec;
 	int error;
 
-	error = kern_sched_rr_get_interval(td, uap->pid, &vos_timespec);
+	error = kern_sched_rr_get_interval(td, uap->pid, &timespec);
 	if (error == 0)
-		error = copyout(&vos_timespec, uap->interval, sizeof(vos_timespec));
+		error = copyout(&timespec, uap->interval, sizeof(timespec));
 	return (error);
 }
 
 int
 kern_sched_rr_get_interval(struct thread *td, pid_t pid,
-    struct vos_timespec *ts)
+    struct timespec *ts)
 {
 	int e;
 	struct thread *targettd;
@@ -348,7 +348,7 @@ kern_sched_rr_get_interval(struct thread *td, pid_t pid,
 	} else {
 		targetp = pfind(pid);
 		if (targetp == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		targettd = FIRST_THREAD_IN_PROC(targetp);
 	}
 
@@ -359,7 +359,7 @@ kern_sched_rr_get_interval(struct thread *td, pid_t pid,
 
 int
 kern_sched_rr_get_interval_td(struct thread *td, struct thread *targettd,
-    struct vos_timespec *ts)
+    struct timespec *ts)
 {
 	struct proc *p;
 	int error;

@@ -98,10 +98,10 @@ __FBSDID("$FreeBSD$");
 
 #include <security/mac/mac_framework.h>
 
-_Static_assert(sizeof(struct acctv3) - vos_offsetof(struct acctv3, ac_trailer) ==
-    sizeof(struct acctv2) - vos_offsetof(struct acctv2, ac_trailer), "trailer");
-_Static_assert(sizeof(struct acctv3) - vos_offsetof(struct acctv3, ac_len2) ==
-    sizeof(struct acctv2) - vos_offsetof(struct acctv2, ac_len2), "len2");
+_Static_assert(sizeof(struct acctv3) - offsetof(struct acctv3, ac_trailer) ==
+    sizeof(struct acctv2) - offsetof(struct acctv2, ac_trailer), "trailer");
+_Static_assert(sizeof(struct acctv3) - offsetof(struct acctv3, ac_len2) ==
+    sizeof(struct acctv2) - offsetof(struct acctv2, ac_len2), "len2");
 
 /*
  * The routines implemented in this file are described in:
@@ -183,7 +183,7 @@ sysctl_acct_chkfreq(SYSCTL_HANDLER_ARGS)
 	if (error)
 		return (error);
 	if (value <= 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	acctchkfreq = value;
 	return (0);
 }
@@ -235,7 +235,7 @@ sys_acct(struct thread *td, struct acct_args *uap)
 		VOP_UNLOCK(nd.ni_vp);
 		if (nd.ni_vp->v_type != VREG) {
 			vn_close(nd.ni_vp, flags, td->td_ucred, td);
-			return (VOS_EACCES);
+			return (EACCES);
 		}
 #ifdef MAC
 	} else {

@@ -306,7 +306,7 @@ ProxyEncodeTcpStream(struct alias_link *lnk,
 	    (u_int) ntohs(GetProxyPort(lnk)));
 
 /* Pad string out to a multiple of two in length */
-	slen = vos_strlen(buffer);
+	slen = strlen(buffer);
 	switch (slen % 2) {
 	case 0:
 		strcat(buffer, " \n");
@@ -318,7 +318,7 @@ ProxyEncodeTcpStream(struct alias_link *lnk,
 	}
 
 /* Check for packet overflow */
-	if ((int)(ntohs(pip->ip_len) + vos_strlen(buffer)) > maxpacketsize)
+	if ((int)(ntohs(pip->ip_len) + strlen(buffer)) > maxpacketsize)
 		return;
 
 /* Shift existing TCP data and insert destination string */
@@ -564,18 +564,18 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 	LIBALIAS_LOCK(la);
 	ret = 0;
 /* Copy command line into a buffer */
-	cmd += vos_strspn(cmd, " \t");
-	cmd_len = vos_strlen(cmd);
+	cmd += strspn(cmd, " \t");
+	cmd_len = strlen(cmd);
 	if (cmd_len > (int)(sizeof(buffer) - 1)) {
 		ret = -1;
 		goto getout;
 	}
-	vos_strcpy(buffer, cmd);
+	strcpy(buffer, cmd);
 
 /* Convert to lower case */
-	len = vos_strlen(buffer);
+	len = strlen(buffer);
 	for (i = 0; i < len; i++)
-		buffer[i] = vos_tolower((unsigned char)buffer[i]);
+		buffer[i] = tolower((unsigned char)buffer[i]);
 
 /* Set default proxy type */
 
@@ -605,7 +605,7 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 #define STATE_READ_SRC        7
 #define STATE_READ_DST        8
 	state = STATE_READ_KEYWORD;
-	token = vos_strsep(&res, " \t");
+	token = strsep(&res, " \t");
 	token_count = 0;
 	while (token != NULL) {
 		token_count++;
@@ -648,7 +648,7 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 			break;
 
 		case STATE_READ_PORT:
-			vos_strcpy(str_port, token);
+			strcpy(str_port, token);
 			state = STATE_READ_KEYWORD;
 			break;
 
@@ -792,7 +792,7 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 		}
 
 		do {
-			token = vos_strsep(&res, " \t");
+			token = strsep(&res, " \t");
 		} while (token != NULL && !*token);
 	}
 #undef STATE_READ_KEYWORD
@@ -809,7 +809,7 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
    the string is parsed, because the prototype might not be designated
    before the ports (which might be symbolic entries in /etc/services) */
 
-	if (vos_strlen(str_port) != 0) {
+	if (strlen(str_port) != 0) {
 		int err;
 
 		err = IpPort(str_port, proto, &proxy_port);
@@ -821,7 +821,7 @@ LibAliasProxyRule(struct libalias *la, const char *cmd)
 		proxy_port = 0;
 	}
 
-	if (vos_strlen(str_server_port) != 0) {
+	if (strlen(str_server_port) != 0) {
 		int err;
 
 		err = IpPort(str_server_port, proto, &server_port);

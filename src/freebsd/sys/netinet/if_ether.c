@@ -397,14 +397,14 @@ arprequest_internal(struct ifnet *ifp, const struct in_addr *sip,
 		}
 		if (sip == NULL) {
 			printf("%s: cannot find matching address\n", __func__);
-			return (VOS_EADDRNOTAVAIL);
+			return (EADDRNOTAVAIL);
 		}
 	}
 	if (enaddr == NULL)
 		enaddr = carpaddr ? carpaddr : (u_char *)IF_LLADDR(ifp);
 
 	if ((m = m_gethdr(M_NOWAIT, MT_DATA)) == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	m->m_len = sizeof(*ah) + 2 * sizeof(struct in_addr) +
 		2 * ifp->if_addrlen;
 	m->m_pkthdr.len = m->m_len;
@@ -428,7 +428,7 @@ arprequest_internal(struct ifnet *ifp, const struct in_addr *sip,
 	bzero(&ro, sizeof(ro));
 	linkhdrsize = sizeof(linkhdr);
 	error = arp_fillheader(ifp, ah, 1, linkhdr, &linkhdrsize);
-	if (error != 0 && error != VOS_EAFNOSUPPORT) {
+	if (error != 0 && error != EAFNOSUPPORT) {
 		ARP_LOG(LOG_ERR, "Failed to calculate ARP header on %s: %d\n",
 		    if_name(ifp), error);
 		return (error);
@@ -465,7 +465,7 @@ arprequest(struct ifnet *ifp, const struct in_addr *sip,
  * modification so we have to acquire an LLE_EXCLUSIVE lle lock.
  *
  * On success, desten and pflags are filled in and the function returns 0;
- * If the packet must be held pending resolution, we return VOS_EWOULDBLOCK
+ * If the packet must be held pending resolution, we return EWOULDBLOCK
  * On other errors, we return the corresponding error code.
  * Note that m_freem() handles NULL.
  */
@@ -500,7 +500,7 @@ arpresolve_full(struct ifnet *ifp, int is_gw, int flags, struct mbuf *m,
 			    inet_ntoa_r(SIN(dst)->sin_addr, addrbuf),
 			    if_name(ifp));
 			m_freem(m);
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 
 		IF_AFDATA_WLOCK(ifp);
@@ -517,7 +517,7 @@ arpresolve_full(struct ifnet *ifp, int is_gw, int flags, struct mbuf *m,
 	}
 	if (la == NULL) {
 		m_freem(m);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	if ((la->la_flags & LLE_VALID) &&
@@ -570,15 +570,15 @@ arpresolve_full(struct ifnet *ifp, int is_gw, int flags, struct mbuf *m,
 		la->la_numheld++;
 	}
 	/*
-	 * Return VOS_EWOULDBLOCK if we have tried less than arp_maxtries. It
-	 * will be masked by ether_output(). Return VOS_EHOSTDOWN/VOS_EHOSTUNREACH
+	 * Return EWOULDBLOCK if we have tried less than arp_maxtries. It
+	 * will be masked by ether_output(). Return EHOSTDOWN/EHOSTUNREACH
 	 * if we have already sent arp_maxtries ARP requests. Retransmit the
 	 * ARP request, but not faster than one request per second.
 	 */
 	if (la->la_asked < V_arp_maxtries)
-		error = VOS_EWOULDBLOCK;	/* First request. */
+		error = EWOULDBLOCK;	/* First request. */
 	else
-		error = is_gw != 0 ? VOS_EHOSTUNREACH : VOS_EHOSTDOWN;
+		error = is_gw != 0 ? EHOSTUNREACH : EHOSTDOWN;
 
 	if (renew) {
 		int canceled, e;
@@ -617,7 +617,7 @@ arpresolve_full(struct ifnet *ifp, int is_gw, int flags, struct mbuf *m,
  *
  * On success, full/partial link header and flags are filled in and
  * the function returns 0.
- * If the packet must be held pending resolution, we return VOS_EWOULDBLOCK
+ * If the packet must be held pending resolution, we return EWOULDBLOCK
  * On other errors, we return the corresponding error code.
  * Note that m_freem() handles NULL.
  */
@@ -1138,7 +1138,7 @@ reply:
 	 * routing. This is not necessary an error, AF_ARP can/should be handled
 	 * by if_output().
 	 */
-	if (error != 0 && error != VOS_EAFNOSUPPORT) {
+	if (error != 0 && error != EAFNOSUPPORT) {
 		ARP_LOG(LOG_ERR, "Failed to calculate ARP header on %s: %d\n",
 		    if_name(ifp), error);
 		return;

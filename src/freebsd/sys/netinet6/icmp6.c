@@ -362,7 +362,7 @@ icmp6_error(struct mbuf *m, int type, int code, int param)
 	preplen = sizeof(struct ip6_hdr) + sizeof(struct icmp6_hdr);
 	M_PREPEND(m, preplen, M_NOWAIT);	/* FIB is also copied over. */
 	if (m == NULL) {
-		nd6log((LOG_DEBUG, "VOS_ENOBUFS in icmp6_error %d\n", __LINE__));
+		nd6log((LOG_DEBUG, "ENOBUFS in icmp6_error %d\n", __LINE__));
 		return;
 	}
 
@@ -707,7 +707,7 @@ icmp6_input(struct mbuf **mp, int *offp, int proto)
 			maxhlen = M_TRAILINGSPACE(n) -
 			    (sizeof(*nip6) + sizeof(*nicmp6) + 4);
 			mtx_lock(&pr->pr_mtx);
-			hlen = vos_strlen(pr->pr_hostname);
+			hlen = strlen(pr->pr_hostname);
 			if (maxhlen > hlen)
 				maxhlen = hlen;
 			/* meaningless TTL */
@@ -1316,7 +1316,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 			 */
 			mtx_lock(&pr->pr_mtx);
 			n = ni6_nametodns(pr->pr_hostname,
-				vos_strlen(pr->pr_hostname), 0);
+			    strlen(pr->pr_hostname), 0);
 			mtx_unlock(&pr->pr_mtx);
 			if (!n || n->m_next || n->m_len == 0)
 				goto bad;
@@ -1370,7 +1370,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 		break;
 	case NI_QTYPE_FQDN:
 		/* XXX will append an mbuf */
-		replylen += vos_offsetof(struct ni_reply_fqdn, ni_fqdn_namelen);
+		replylen += offsetof(struct ni_reply_fqdn, ni_fqdn_namelen);
 		break;
 	case NI_QTYPE_NODEADDR:
 		addrs = ni6_addrs(ni6, m, &ifp, (struct in6_addr *)subj);
@@ -1393,7 +1393,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 		 */
 		qtype = NI_QTYPE_FQDN;
 		/* XXX will append an mbuf */
-		replylen += vos_offsetof(struct ni_reply_fqdn, ni_fqdn_namelen);
+		replylen += offsetof(struct ni_reply_fqdn, ni_fqdn_namelen);
 		oldfqdn++;
 		break;
 	}
@@ -1449,7 +1449,7 @@ ni6_input(struct mbuf *m, int off, struct prison *pr)
 		 */
 		mtx_lock(&pr->pr_mtx);
 		n->m_next = ni6_nametodns(pr->pr_hostname,
-			vos_strlen(pr->pr_hostname), oldfqdn);
+		    strlen(pr->pr_hostname), oldfqdn);
 		mtx_unlock(&pr->pr_mtx);
 		if (n->m_next == NULL)
 			goto bad;
@@ -2722,7 +2722,7 @@ icmp6_ctloutput(struct socket *so, struct sockopt *sopt)
 		level = op = optname = optlen = 0;
 
 	if (level != IPPROTO_ICMPV6) {
-		return VOS_EINVAL;
+		return EINVAL;
 	}
 
 	switch (op) {
@@ -2733,7 +2733,7 @@ icmp6_ctloutput(struct socket *so, struct sockopt *sopt)
 			struct icmp6_filter ic6f;
 
 			if (optlen != sizeof(ic6f)) {
-				error = VOS_EMSGSIZE;
+				error = EMSGSIZE;
 				break;
 			}
 			error = sooptcopyin(sopt, &ic6f, optlen, optlen);
@@ -2746,7 +2746,7 @@ icmp6_ctloutput(struct socket *so, struct sockopt *sopt)
 		    }
 
 		default:
-			error = VOS_ENOPROTOOPT;
+			error = ENOPROTOOPT;
 			break;
 		}
 		break;
@@ -2765,7 +2765,7 @@ icmp6_ctloutput(struct socket *so, struct sockopt *sopt)
 		    }
 
 		default:
-			error = VOS_ENOPROTOOPT;
+			error = ENOPROTOOPT;
 			break;
 		}
 		break;

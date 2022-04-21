@@ -98,7 +98,7 @@ static int vop_stdvput_pair(struct vop_vput_pair_args *ap);
  * This vnode table stores what we want to do if the filesystem doesn't
  * implement a particular VOP.
  *
- * If there is no specific entry here, we will return VOS_EOPNOTSUPP.
+ * If there is no specific entry here, we will return EOPNOTSUPP.
  *
  * Note that every filesystem has to implement either vop_access
  * or vop_accessx; failing to do so will result in immediate crash
@@ -168,42 +168,42 @@ vop_eopnotsupp(struct vop_generic_args *ap)
 	printf("vop_notsupp[%s]\n", ap->a_desc->vdesc_name);
 	*/
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
 vop_ebadf(struct vop_generic_args *ap)
 {
 
-	return (VOS_EBADF);
+	return (EBADF);
 }
 
 int
 vop_enotty(struct vop_generic_args *ap)
 {
 
-	return (VOS_ENOTTY);
+	return (ENOTTY);
 }
 
 int
 vop_einval(struct vop_generic_args *ap)
 {
 
-	return (VOS_EINVAL);
+	return (EINVAL);
 }
 
 int
 vop_enoent(struct vop_generic_args *ap)
 {
 
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 int
 vop_eagain(struct vop_generic_args *ap)
 {
 
-	return (VOS_EAGAIN);
+	return (EAGAIN);
 }
 
 int
@@ -245,7 +245,7 @@ vop_nolookup(ap)
 {
 
 	*ap->a_vpp = NULL;
-	return (VOS_ENOTDIR);
+	return (ENOTDIR);
 }
 
 /*
@@ -259,7 +259,7 @@ vop_norename(struct vop_rename_args *ap)
 {
 
 	vop_rename_fail(ap);
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 /*
@@ -280,9 +280,9 @@ vop_nostrategy (struct vop_strategy_args *ap)
 	printf("No strategy for buffer at %p\n", ap->a_bp);
 	vn_printf(ap->a_vp, "vnode ");
 	ap->a_bp->b_ioflags |= BIO_ERROR;
-	ap->a_bp->b_error = VOS_EOPNOTSUPP;
+	ap->a_bp->b_error = EOPNOTSUPP;
 	bufdone(ap->a_bp);
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 static int
@@ -327,7 +327,7 @@ get_next_dirent(struct vnode *vp, struct dirent **dpp, char *dirbuf,
 		*len = (dirbuflen - uio.uio_resid);
 
 		if (*len == 0)
-			return (VOS_ENOENT);
+			return (ENOENT);
 	}
 
 	dp = (struct dirent *)(*cpos);
@@ -336,7 +336,7 @@ get_next_dirent(struct vnode *vp, struct dirent **dpp, char *dirbuf,
 
 	/* check for malformed directory.. */
 	if (reclen < DIRENT_MINSIZE)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	*cpos += reclen;
 	*len -= reclen;
@@ -368,7 +368,7 @@ dirent_exists(struct vnode *vp, const char *dirname, struct thread *td)
 	dirbuflen = DEV_BSIZE;
 	if (dirbuflen < va.va_blocksize)
 		dirbuflen = va.va_blocksize;
-	dirbuf = (char *)vos_malloc(dirbuflen, M_TEMP, M_WAITOK);
+	dirbuf = (char *)malloc(dirbuflen, M_TEMP, M_WAITOK);
 
 	off = 0;
 	len = 0;
@@ -386,7 +386,7 @@ dirent_exists(struct vnode *vp, const char *dirname, struct thread *td)
 	} while (len > 0 || !eofflag);
 
 out:
-	vos_free(dirbuf, M_TEMP);
+	free(dirbuf, M_TEMP);
 	return (found);
 }
 
@@ -508,7 +508,7 @@ vop_stdpathconf(ap)
 			*ap->a_retval = 0;
 			return (0);
 		default:
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 	/* NOTREACHED */
 }
@@ -814,7 +814,7 @@ vop_stdputpages(ap)
 int
 vop_stdvptofh(struct vop_vptofh_args *ap)
 {
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -842,7 +842,7 @@ vop_stdvptocnp(struct vop_vptocnp_args *ap)
 	cred = td->td_ucred;
 
 	if (vp->v_type != VDIR)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	error = VOP_GETATTR(vp, &va, cred);
 	if (error)
@@ -880,10 +880,10 @@ vop_stdvptocnp(struct vop_vptocnp_args *ap)
 	dirbuflen = DEV_BSIZE;
 	if (dirbuflen < va.va_blocksize)
 		dirbuflen = va.va_blocksize;
-	dirbuf = (char *)vos_malloc(dirbuflen, M_TEMP, M_WAITOK);
+	dirbuf = (char *)malloc(dirbuflen, M_TEMP, M_WAITOK);
 
 	if ((*dvp)->v_type != VDIR) {
-		error = VOS_ENOENT;
+		error = ENOENT;
 		goto out;
 	}
 
@@ -902,7 +902,7 @@ vop_stdvptocnp(struct vop_vptocnp_args *ap)
 				VOP_UNLOCK(*dvp);
 				vn_lock(mvp, LK_SHARED | LK_RETRY);
 				if (dirent_exists(mvp, dp->d_name, td)) {
-					error = VOS_ENOENT;
+					error = ENOENT;
 					VOP_UNLOCK(mvp);
 					vn_lock(*dvp, LK_SHARED | LK_RETRY);
 					goto out;
@@ -913,11 +913,11 @@ vop_stdvptocnp(struct vop_vptocnp_args *ap)
 			i -= dp->d_namlen;
 
 			if (i < 0) {
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				goto out;
 			}
 			if (dp->d_namlen == 1 && dp->d_name[0] == '.') {
-				error = VOS_ENOENT;
+				error = ENOENT;
 			} else {
 				bcopy(dp->d_name, buf + i, dp->d_namlen);
 				error = 0;
@@ -925,10 +925,10 @@ vop_stdvptocnp(struct vop_vptocnp_args *ap)
 			goto out;
 		}
 	} while (len > 0 || !eofflag);
-	error = VOS_ENOENT;
+	error = ENOENT;
 
 out:
-	vos_free(dirbuf, M_TEMP);
+	free(dirbuf, M_TEMP);
 	if (!error) {
 		*buflen = i;
 		vref(*dvp);
@@ -978,24 +978,24 @@ vop_stdallocate(struct vop_allocate_args *ap)
 		iosize = BLKDEV_IOSIZE;
 	if (iosize > maxphys)
 		iosize = maxphys;
-	buf = vos_malloc(iosize, M_TEMP, M_WAITOK);
+	buf = malloc(iosize, M_TEMP, M_WAITOK);
 
 #ifdef __notyet__
 	/*
 	 * Check if the filesystem sets f_maxfilesize; if not use
 	 * VOP_SETATTR to perform the check.
 	 */
-	sfs = vos_malloc(sizeof(struct statfs), M_STATFS, M_WAITOK);
+	sfs = malloc(sizeof(struct statfs), M_STATFS, M_WAITOK);
 	error = VFS_STATFS(vp->v_mount, sfs, td);
 	if (error == 0)
 		maxfilesize = sfs->f_maxfilesize;
-	vos_free(sfs, M_STATFS);
+	free(sfs, M_STATFS);
 	if (error != 0)
 		goto out;
 	if (maxfilesize) {
 		if (offset > maxfilesize || len > maxfilesize ||
 		    offset + len > maxfilesize) {
-			error = VOS_EFBIG;
+			error = EFBIG;
 			goto out;
 		}
 	} else
@@ -1073,7 +1073,7 @@ vop_stdallocate(struct vop_allocate_args *ap)
  out:
 	*ap->a_len = len;
 	*ap->a_offset = offset;
-	vos_free(buf, M_TEMP);
+	free(buf, M_TEMP);
 	return (error);
 }
 
@@ -1143,7 +1143,7 @@ vop_stdadvise(struct vop_advise_args *ap)
 		VOP_UNLOCK(vp);
 		break;
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 	return (error);
@@ -1190,7 +1190,7 @@ vop_stdset_text(struct vop_set_text_args *ap)
 	vp = ap->a_vp;
 	VI_LOCK(vp);
 	if (vp->v_writecount > 0) {
-		error = VOS_ETXTBSY;
+		error = ETXTBSY;
 	} else {
 		/*
 		 * If requested by fs, keep a use reference to the
@@ -1230,7 +1230,7 @@ vop_stdunset_text(struct vop_unset_text_args *ap)
 		vp->v_writecount++;
 		error = 0;
 	} else {
-		error = VOS_EINVAL;
+		error = EINVAL;
 	}
 	VI_UNLOCK(vp);
 	if (last)
@@ -1248,7 +1248,7 @@ vop_stdadd_writecount(struct vop_add_writecount_args *ap)
 	vp = ap->a_vp;
 	VI_LOCK_FLAGS(vp, MTX_DUPOK);
 	if (vp->v_writecount < 0) {
-		error = VOS_ETXTBSY;
+		error = ETXTBSY;
 	} else {
 		VNASSERT(vp->v_writecount + ap->a_inc >= 0, vp,
 		    ("neg writecount increment %d", ap->a_inc));
@@ -1285,22 +1285,22 @@ vop_stdioctl(struct vop_ioctl_args *ap)
 		vp = ap->a_vp;
 		error = vn_lock(vp, LK_SHARED);
 		if (error != 0)
-			return (VOS_EBADF);
+			return (EBADF);
 		if (vp->v_type == VREG)
 			error = VOP_GETATTR(vp, &va, ap->a_cred);
 		else
-			error = VOS_ENOTTY;
+			error = ENOTTY;
 		if (error == 0) {
 			offp = ap->a_data;
 			if (*offp < 0 || *offp >= va.va_size)
-				error = VOS_ENXIO;
+				error = ENXIO;
 			else if (ap->a_command == FIOSEEKHOLE)
 				*offp = va.va_size;
 		}
 		VOP_UNLOCK(vp);
 		break;
 	default:
-		error = VOS_ENOTTY;
+		error = ENOTTY;
 		break;
 	}
 	return (error);
@@ -1317,7 +1317,7 @@ vfs_stdroot (mp, flags, vpp)
 	struct vnode **vpp;
 {
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -1326,7 +1326,7 @@ vfs_stdstatfs (mp, sbp)
 	struct statfs *sbp;
 {
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -1337,7 +1337,7 @@ vfs_stdquotactl (mp, cmds, uid, arg)
 	void *arg;
 {
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -1363,7 +1363,7 @@ loop:
 			continue;
 		}
 		if ((error = vget(vp, lockreq)) != 0) {
-			if (error == VOS_ENOENT) {
+			if (error == ENOENT) {
 				MNT_VNODE_FOREACH_ALL_ABORT(mp, mvp);
 				goto loop;
 			}
@@ -1405,7 +1405,7 @@ vfs_stdvget (mp, ino, flags, vpp)
 	struct vnode **vpp;
 {
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -1416,7 +1416,7 @@ vfs_stdfhtovp (mp, fhp, flags, vpp)
 	struct vnode **vpp;
 {
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -1446,7 +1446,7 @@ vfs_stdextattrctl(mp, cmd, filename_vp, attrnamespace, attrname)
 
 	if (filename_vp != NULL)
 		VOP_UNLOCK(filename_vp);
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 int
@@ -1456,7 +1456,7 @@ vfs_stdsysctl(mp, op, req)
 	struct sysctl_req *req;
 {
 
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 static vop_bypass_t *
@@ -1490,7 +1490,7 @@ vop_stdstat(struct vop_stat_args *a)
 static int
 vop_stdread_pgcache(struct vop_read_pgcache_args *ap __unused)
 {
-	return (VOS_EJUSTRETURN);
+	return (EJUSTRETURN);
 }
 
 static int

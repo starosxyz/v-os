@@ -149,7 +149,7 @@ vfs_byname_kld(const char *fstype, struct thread *td, int *error)
 	/* Try to load the respective module. */
 	*error = kern_kldload(td, fstype, &fileid);
 	loaded = (*error == 0);
-	if (*error == VOS_EEXIST)
+	if (*error == EEXIST)
 		*error = 0;
 	if (*error)
 		return (NULL);
@@ -159,7 +159,7 @@ vfs_byname_kld(const char *fstype, struct thread *td, int *error)
 	if (vfsp == NULL) {
 		if (loaded)
 			(void)kern_kldunload(td, fileid, LINKER_UNLOAD_FORCE);
-		*error = VOS_ENODEV;
+		*error = ENODEV;
 		return (NULL);
 	}
 	return (vfsp);
@@ -389,12 +389,12 @@ vfs_register(struct vfsconf *vfc)
 	if (vfc->vfc_version != VFS_VERSION) {
 		printf("ERROR: filesystem %s, unsupported ABI version %x\n",
 		    vfc->vfc_name, vfc->vfc_version);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	vfsconf_lock();
 	if (vfs_byname_locked(vfc->vfc_name) != NULL) {
 		vfsconf_unlock();
-		return (VOS_EEXIST);
+		return (EEXIST);
 	}
 
 	if (vfs_typenumhash != 0) {
@@ -534,11 +534,11 @@ vfs_unregister(struct vfsconf *vfc)
 	vfsp = vfs_byname_locked(vfc->vfc_name);
 	if (vfsp == NULL) {
 		vfsconf_unlock();
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	if (vfsp->vfc_refcount != 0) {
 		vfsconf_unlock();
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 	error = 0;
 	if ((vfc->vfc_flags & VFCF_SBDRY) != 0) {
@@ -586,7 +586,7 @@ vfs_modevent(module_t mod, int type, void *data)
 			error = vfs_unregister(vfc);
 		break;
 	default:
-		error = VOS_EOPNOTSUPP;
+		error = EOPNOTSUPP;
 		break;
 	}
 	return (error);

@@ -125,9 +125,9 @@ khelp_deregister_helper(struct helper *h)
 
 	KHELP_LIST_WLOCK();
 	if (h->h_refcount > 0)
-		error = VOS_EBUSY;
+		error = EBUSY;
 	else {
-		error = VOS_ENOENT;
+		error = ENOENT;
 		TAILQ_FOREACH(tmph, &helpers, h_next) {
 			if (tmph == h) {
 				TAILQ_REMOVE(&helpers, h, h_next);
@@ -164,7 +164,7 @@ khelp_init_osd(uint32_t classes, struct osd *hosd)
 		if (h->h_classes & classes && h->h_flags & HELPER_NEEDS_OSD) {
 			hdata = uma_zalloc(h->h_zone, M_NOWAIT);
 			if (hdata == NULL) {
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				break;
 			}
 			osd_set(OSD_KHELP, hosd, h->h_id, hdata);
@@ -245,7 +245,7 @@ khelp_get_id(char *hname)
 
 	KHELP_LIST_RLOCK();
 	TAILQ_FOREACH(h, &helpers, h_next) {
-		if (vos_strncmp(h->h_name, hname, HELPER_NAME_MAXLEN) == 0) {
+		if (strncmp(h->h_name, hname, HELPER_NAME_MAXLEN) == 0) {
 			id = h->h_id;
 			break;
 		}
@@ -327,18 +327,18 @@ khelp_modevent(module_t mod, int event_type, void *data)
 		if (kmd->helper->h_flags & HELPER_NEEDS_OSD) {
 			if (kmd->uma_zsize <= 0) {
 				printf("Use KHELP_DECLARE_MOD_UMA() instead!\n");
-				error = VOS_EDOOFUS;
+				error = EDOOFUS;
 				break;
 			}
 			kmd->helper->h_zone = uma_zcreate(kmd->name,
 			    kmd->uma_zsize, kmd->umactor, kmd->umadtor, NULL,
 			    NULL, 0, 0);
 			if (kmd->helper->h_zone == NULL) {
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				break;
 			}
 		}
-		vos_strlcpy(kmd->helper->h_name, kmd->name, HELPER_NAME_MAXLEN);
+		strlcpy(kmd->helper->h_name, kmd->name, HELPER_NAME_MAXLEN);
 		kmd->helper->h_hooks = kmd->hooks;
 		kmd->helper->h_nhooks = kmd->nhooks;
 		if (kmd->helper->mod_init != NULL)
@@ -356,17 +356,17 @@ khelp_modevent(module_t mod, int event_type, void *data)
 				uma_zdestroy(kmd->helper->h_zone);
 			if (kmd->helper->mod_destroy != NULL)
 				kmd->helper->mod_destroy();
-		} else if (error == VOS_ENOENT)
+		} else if (error == ENOENT)
 			/* Do nothing and allow unload if helper not in list. */
 			error = 0;
-		else if (error == VOS_EBUSY)
+		else if (error == EBUSY)
 			printf("Khelp module \"%s\" can't unload until its "
 			    "refcount drops from %d to 0.\n", kmd->name,
 			    kmd->helper->h_refcount);
 		break;
 
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 

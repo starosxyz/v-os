@@ -559,7 +559,7 @@ sysctl_preload_dump(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (preload_metadata == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	sbuf_new_for_sysctl(&sb, NULL, 512, req);
 	preload_dump_internal(&sb);

@@ -122,7 +122,7 @@ pfil_realloc(pfil_packet_t *p, int flags, struct ifnet *ifp)
 	MPASS(flags & PFIL_MEMPTR);
 
 	if ((m = m_devget(p->mem, PFIL_LENGTH(flags), 0, ifp, NULL)) == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	*p = pfil_packet_align(*p);
 	*p->m = m;
 
@@ -210,7 +210,7 @@ pfil_head_register(struct pfil_head_args *pa)
 
 	MPASS(pa->pa_version == PFIL_VERSION);
 
-	head = vos_malloc(sizeof(struct pfil_head), M_PFIL, M_WAITOK);
+	head = malloc(sizeof(struct pfil_head), M_PFIL, M_WAITOK);
 
 	head->head_nhooksin = head->head_nhooksout = 0;
 	head->head_flags = pa->pa_flags;
@@ -246,11 +246,11 @@ pfil_head_unregister(pfil_head_t ph)
 
 	CK_STAILQ_FOREACH_SAFE(link, &ph->head_in, link_chain, next) {
 		link->link_hook->hook_links--;
-		vos_free(link, M_PFIL);
+		free(link, M_PFIL);
 	}
 	CK_STAILQ_FOREACH_SAFE(link, &ph->head_out, link_chain, next) {
 		link->link_hook->hook_links--;
-		vos_free(link, M_PFIL);
+		free(link, M_PFIL);
 	}
 	PFIL_UNLOCK();
 }
@@ -262,7 +262,7 @@ pfil_add_hook(struct pfil_hook_args *pa)
 
 	MPASS(pa->pa_version == PFIL_VERSION);
 
-	hook = vos_malloc(sizeof(struct pfil_hook), M_PFIL, M_WAITOK | M_ZERO);
+	hook = malloc(sizeof(struct pfil_hook), M_PFIL, M_WAITOK | M_ZERO);
 	hook->hook_func = pa->pa_func;
 	hook->hook_ruleset = pa->pa_ruleset;
 	hook->hook_flags = pa->pa_flags;
@@ -314,7 +314,7 @@ pfil_unlink(struct pfil_link_args *pa, pfil_head_t head, pfil_hook_t hook)
 		NET_EPOCH_CALL(pfil_link_free, &out->link_epoch_ctx);
 
 	if (in == NULL && out == NULL)
-		return (VOS_ENOENT);
+		return (ENOENT);
 	else
 		return (0);
 }
@@ -330,11 +330,11 @@ pfil_link(struct pfil_link_args *pa)
 	MPASS(pa->pa_version == PFIL_VERSION);
 
 	if ((pa->pa_flags & (PFIL_IN | PFIL_UNLINK)) == PFIL_IN)
-		in = vos_malloc(sizeof(*in), M_PFIL, M_WAITOK | M_ZERO);
+		in = malloc(sizeof(*in), M_PFIL, M_WAITOK | M_ZERO);
 	else
 		in = NULL;
 	if ((pa->pa_flags & (PFIL_OUT | PFIL_UNLINK)) == PFIL_OUT)
-		out = vos_malloc(sizeof(*out), M_PFIL, M_WAITOK | M_ZERO);
+		out = malloc(sizeof(*out), M_PFIL, M_WAITOK | M_ZERO);
 	else
 		out = NULL;
 
@@ -353,7 +353,7 @@ pfil_link(struct pfil_link_args *pa)
 			    strcmp(pa->pa_rulname, hook->hook_rulname) == 0)
 				break;
 	if (head == NULL || hook == NULL) {
-		error = VOS_ENOENT;
+		error = ENOENT;
 		goto fail;
 	}
 
@@ -362,20 +362,20 @@ pfil_link(struct pfil_link_args *pa)
 
 	if (head->head_type != hook->hook_type ||
 	    ((hook->hook_flags & pa->pa_flags) & ~head->head_flags)) {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto fail;
 	}
 
 	if (pa->pa_flags & PFIL_IN)
 		CK_STAILQ_FOREACH(link, &head->head_in, link_chain)
 			if (link->link_hook == hook) {
-				error = VOS_EEXIST;
+				error = EEXIST;
 				goto fail;
 			}
 	if (pa->pa_flags & PFIL_OUT)
 		CK_STAILQ_FOREACH(link, &head->head_out, link_chain)
 			if (link->link_hook == hook) {
-				error = VOS_EEXIST;
+				error = EEXIST;
 				goto fail;
 			}
 
@@ -409,8 +409,8 @@ pfil_link(struct pfil_link_args *pa)
 
 fail:
 	PFIL_UNLOCK();
-	vos_free(in, M_PFIL);
-	vos_free(out, M_PFIL);
+	free(in, M_PFIL);
+	free(out, M_PFIL);
 	return (error);
 }
 
@@ -420,7 +420,7 @@ pfil_link_free(epoch_context_t ctx)
 	struct pfil_link *link;
 
 	link = __containerof(ctx, struct pfil_link, link_epoch_ctx);
-	vos_free(link, M_PFIL);
+	free(link, M_PFIL);
 }
 
 /*
@@ -454,7 +454,7 @@ retry:
 	LIST_REMOVE(hook, hook_list);
 	PFIL_UNLOCK();
 	MPASS(hook->hook_links == 0);
-	vos_free(hook, M_PFIL);
+	free(hook, M_PFIL);
 }
 
 /*
@@ -525,7 +525,7 @@ pfil_ioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 		error = pfilioc_link((struct pfilioc_link *)addr);
 		break;
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 	CURVNET_RESTORE();
@@ -557,8 +557,8 @@ restart:
 		return (0);
 	}
 
-	iohead = vos_malloc(sizeof(*iohead) * nheads, M_TEMP, M_WAITOK);
-	iohook = vos_malloc(sizeof(*iohook) * nhooks, M_TEMP, M_WAITOK);
+	iohead = malloc(sizeof(*iohead) * nheads, M_TEMP, M_WAITOK);
+	iohook = malloc(sizeof(*iohook) * nhooks, M_TEMP, M_WAITOK);
 
 	hd = hk = 0;
 	PFIL_LOCK();
@@ -566,29 +566,29 @@ restart:
 		if (hd + 1 > nheads ||
 		    hk + head->head_nhooksin + head->head_nhooksout > nhooks) {
 			/* Configuration changed during malloc(). */
-			vos_free(iohead, M_TEMP);
-			vos_free(iohook, M_TEMP);
+			free(iohead, M_TEMP);
+			free(iohook, M_TEMP);
 			goto restart;
 		}
-		vos_strlcpy(iohead[hd].pio_name, head->head_name,
+		strlcpy(iohead[hd].pio_name, head->head_name,
 			sizeof(iohead[0].pio_name));
 		iohead[hd].pio_nhooksin = head->head_nhooksin;
 		iohead[hd].pio_nhooksout = head->head_nhooksout;
 		iohead[hd].pio_type = head->head_type;
 		CK_STAILQ_FOREACH(link, &head->head_in, link_chain) {
-			vos_strlcpy(iohook[hk].pio_module,
+			strlcpy(iohook[hk].pio_module,
 			    link->link_hook->hook_modname,
 			    sizeof(iohook[0].pio_module));
-			vos_strlcpy(iohook[hk].pio_ruleset,
+			strlcpy(iohook[hk].pio_ruleset,
 			    link->link_hook->hook_rulname,
 			    sizeof(iohook[0].pio_ruleset));
 			hk++;
 		}
 		CK_STAILQ_FOREACH(link, &head->head_out, link_chain) {
-			vos_strlcpy(iohook[hk].pio_module,
+			strlcpy(iohook[hk].pio_module,
 			    link->link_hook->hook_modname,
 			    sizeof(iohook[0].pio_module));
-			vos_strlcpy(iohook[hk].pio_ruleset,
+			strlcpy(iohook[hk].pio_ruleset,
 			    link->link_hook->hook_rulname,
 			    sizeof(iohook[0].pio_ruleset));
 			hk++;
@@ -606,8 +606,8 @@ restart:
 	req->pio_nheads = hd;
 	req->pio_nhooks = hk;
 
-	vos_free(iohead, M_TEMP);
-	vos_free(iohook, M_TEMP);
+	free(iohead, M_TEMP);
+	free(iohook, M_TEMP);
 
 	return (error);
 }
@@ -632,19 +632,19 @@ restart:
 		return (0);
 	}
 
-	iohook = vos_malloc(sizeof(*iohook) * nhooks, M_TEMP, M_WAITOK);
+	iohook = malloc(sizeof(*iohook) * nhooks, M_TEMP, M_WAITOK);
 
 	hk = 0;
 	PFIL_LOCK();
 	LIST_FOREACH(hook, &V_pfil_hook_list, hook_list) {
 		if (hk + 1 > nhooks) {
 			/* Configuration changed during malloc(). */
-			vos_free(iohook, M_TEMP);
+			free(iohook, M_TEMP);
 			goto restart;
 		}
-		vos_strlcpy(iohook[hk].pio_module, hook->hook_modname,
+		strlcpy(iohook[hk].pio_module, hook->hook_modname,
 		    sizeof(iohook[0].pio_module));
-		vos_strlcpy(iohook[hk].pio_ruleset, hook->hook_rulname,
+		strlcpy(iohook[hk].pio_ruleset, hook->hook_rulname,
 		    sizeof(iohook[0].pio_ruleset));
 		iohook[hk].pio_type = hook->hook_type;
 		iohook[hk].pio_flags = hook->hook_flags;
@@ -655,7 +655,7 @@ restart:
 	error = copyout(iohook, req->pio_hooks,
 	    sizeof(*iohook) * min(req->pio_nhooks, hk));
 	req->pio_nhooks = hk;
-	vos_free(iohook, M_TEMP);
+	free(iohook, M_TEMP);
 
 	return (error);
 }
@@ -666,7 +666,7 @@ pfilioc_link(struct pfilioc_link *req)
 	struct pfil_link_args args;
 
 	if (req->pio_flags & ~(PFIL_IN | PFIL_OUT | PFIL_UNLINK | PFIL_APPEND))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	args.pa_version = PFIL_VERSION;
 	args.pa_flags = req->pio_flags;

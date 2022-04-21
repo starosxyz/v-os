@@ -186,7 +186,7 @@ kproc_suspend(struct proc* p, int timo)
 	PROC_LOCK(p);
 	if ((p->p_flag & P_KPROC) == 0) {
 		PROC_UNLOCK(p);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	SIGADDSET(p->p_siglist, SIGSTOP);
 	wakeup(p);
@@ -203,7 +203,7 @@ kproc_resume(struct proc* p)
 	PROC_LOCK(p);
 	if ((p->p_flag & P_KPROC) == 0) {
 		PROC_UNLOCK(p);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	SIGDELSET(p->p_siglist, SIGSTOP);
 	PROC_UNLOCK(p);
@@ -268,7 +268,7 @@ kthread_add(void (*func)(void*), void* arg, struct proc* p,
 	/* Initialize our new td  */
 	newtd = thread_alloc(pages);
 	if (newtd == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	PROC_LOCK(p);
 	oldtd = FIRST_THREAD_IN_PROC(p);
@@ -377,7 +377,7 @@ kthread_suspend(struct thread* td, int timo)
 	 * thread's lifetime, it is OK to check its state.
 	 */
 	if ((td->td_pflags & TDP_KTHREAD) == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * The caller of the primitive should have already checked that the
@@ -408,7 +408,7 @@ kthread_resume(struct thread* td)
 	 * thread's lifetime, it is OK to check its state.
 	 */
 	if ((td->td_pflags & TDP_KTHREAD) == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	PROC_LOCK(p);
 	thread_lock(td);

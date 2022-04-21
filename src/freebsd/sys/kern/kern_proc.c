@@ -136,16 +136,16 @@ uma_zone_t pgrp_zone;
  * These are used by kernel debuggers to enumerate kernel threads and
  * processes.
  */
-const int proc_off_p_pid = vos_offsetof(struct proc, p_pid);
-const int proc_off_p_comm = vos_offsetof(struct proc, p_comm);
-const int proc_off_p_list = vos_offsetof(struct proc, p_list);
-const int proc_off_p_hash = vos_offsetof(struct proc, p_hash);
-const int proc_off_p_threads = vos_offsetof(struct proc, p_threads);
-const int thread_off_td_tid = vos_offsetof(struct thread, td_tid);
-const int thread_off_td_name = vos_offsetof(struct thread, td_name);
-const int thread_off_td_oncpu = vos_offsetof(struct thread, td_oncpu);
-const int thread_off_td_pcb = vos_offsetof(struct thread, td_pcb);
-const int thread_off_td_plist = vos_offsetof(struct thread, td_plist);
+const int proc_off_p_pid = offsetof(struct proc, p_pid);
+const int proc_off_p_comm = offsetof(struct proc, p_comm);
+const int proc_off_p_list = offsetof(struct proc, p_list);
+const int proc_off_p_hash = offsetof(struct proc, p_hash);
+const int proc_off_p_threads = offsetof(struct proc, p_threads);
+const int thread_off_td_tid = offsetof(struct thread, td_tid);
+const int thread_off_td_name = offsetof(struct thread, td_name);
+const int thread_off_td_oncpu = offsetof(struct thread, td_oncpu);
+const int thread_off_td_pcb = offsetof(struct thread, td_pcb);
+const int thread_off_td_plist = offsetof(struct thread, td_plist);
 
 EVENTHANDLER_LIST_DEFINE(process_ctor);
 EVENTHANDLER_LIST_DEFINE(process_dtor);
@@ -185,7 +185,7 @@ procinit(void)
 	pidhashlock = (pidhash + 1) / 64;
 	if (pidhashlock > 0)
 		pidhashlock--;
-	pidhashtbl_lock = vos_malloc(sizeof(*pidhashtbl_lock) * (pidhashlock + 1),
+	pidhashtbl_lock = malloc(sizeof(*pidhashtbl_lock) * (pidhashlock + 1),
 	    M_PROC, M_WAITOK | M_ZERO);
 	for (i = 0; i < pidhashlock + 1; i++)
 		sx_init_flags(&pidhashtbl_lock[i], "pidhash", SX_DUPOK);
@@ -521,7 +521,7 @@ pget(pid_t pid, int flags, struct proc **pp)
 				p = td1->td_proc;
 		}
 		if (p == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		if ((flags & PGET_CANSEE) != 0) {
 			error = p_cansee(curthread, p);
 			if (error != 0)
@@ -534,19 +534,19 @@ pget(pid_t pid, int flags, struct proc **pp)
 			goto errout;
 	}
 	if ((flags & PGET_ISCURRENT) != 0 && curproc != p) {
-		error = VOS_EPERM;
+		error = EPERM;
 		goto errout;
 	}
 	if ((flags & PGET_NOTWEXIT) != 0 && (p->p_flag & P_WEXIT) != 0) {
-		error = VOS_ESRCH;
+		error = ESRCH;
 		goto errout;
 	}
 	if ((flags & PGET_NOTINEXEC) != 0 && (p->p_flag & P_INEXEC) != 0) {
 		/*
-		 * XXXRW: Not clear VOS_ESRCH is the right error during proc
+		 * XXXRW: Not clear ESRCH is the right error during proc
 		 * execve().
 		 */
-		error = VOS_ESRCH;
+		error = ESRCH;
 		goto errout;
 	}
 	if ((flags & PGET_HOLD) != 0) {
@@ -964,7 +964,7 @@ sess_release(struct session *s)
 		}
 		proc_id_clear(PROC_ID_SESSION, s->s_sid);
 		mtx_destroy(&s->s_mtx);
-		vos_free(s, M_SESSION);
+		free(s, M_SESSION);
 	}
 }
 
@@ -1078,7 +1078,7 @@ fill_kinfo_proc_only(struct proc *p, struct kinfo_proc *kp)
 			if (cred->cr_prison != curthread->td_ucred->cr_prison)
 				kp->ki_jid = cred->cr_prison->pr_id;
 		}
-		vos_strlcpy(kp->ki_loginclass, cred->cr_loginclass->lc_name,
+		strlcpy(kp->ki_loginclass, cred->cr_loginclass->lc_name,
 		    sizeof(kp->ki_loginclass));
 	}
 	ps = p->p_sigacts;
@@ -1131,10 +1131,10 @@ fill_kinfo_proc_only(struct proc *p, struct kinfo_proc *kp)
 		kp->ki_cow += td0->td_cow;
 
 	if (p->p_comm[0] != '\0')
-		vos_strlcpy(kp->ki_comm, p->p_comm, sizeof(kp->ki_comm));
+		strlcpy(kp->ki_comm, p->p_comm, sizeof(kp->ki_comm));
 	if (p->p_sysent && p->p_sysent->sv_name != NULL &&
 	    p->p_sysent->sv_name[0] != '\0')
-		vos_strlcpy(kp->ki_emul, p->p_sysent->sv_name, sizeof(kp->ki_emul));
+		strlcpy(kp->ki_emul, p->p_sysent->sv_name, sizeof(kp->ki_emul));
 	kp->ki_siglist = p->p_siglist;
 	kp->ki_xstat = KW_EXITCODE(p->p_xexit, p->p_xsig);
 	kp->ki_acflag = p->p_acflag;
@@ -1172,7 +1172,7 @@ fill_kinfo_proc_pgrp(struct proc *p, struct kinfo_proc *kp)
 	if (sp != NULL) {
 		kp->ki_sid = sp->s_sid;
 		SESS_LOCK(sp);
-		vos_strlcpy(kp->ki_login, sp->s_login, sizeof(kp->ki_login));
+		strlcpy(kp->ki_login, sp->s_login, sizeof(kp->ki_login));
 		if (sp->s_ttyvp)
 			kp->ki_kiflag |= KI_CTTY;
 		if (SESS_LEADER(p))
@@ -1212,12 +1212,12 @@ fill_kinfo_thread(struct thread *td, struct kinfo_proc *kp, int preferthread)
 		PROC_STATLOCK(p);
 	thread_lock(td);
 	if (td->td_wmesg != NULL)
-		vos_strlcpy(kp->ki_wmesg, td->td_wmesg, sizeof(kp->ki_wmesg));
+		strlcpy(kp->ki_wmesg, td->td_wmesg, sizeof(kp->ki_wmesg));
 	else
 		bzero(kp->ki_wmesg, sizeof(kp->ki_wmesg));
-	if (vos_strlcpy(kp->ki_tdname, td->td_name, sizeof(kp->ki_tdname)) >=
+	if (strlcpy(kp->ki_tdname, td->td_name, sizeof(kp->ki_tdname)) >=
 	    sizeof(kp->ki_tdname)) {
-		vos_strlcpy(kp->ki_moretdname,
+		strlcpy(kp->ki_moretdname,
 		    td->td_name + sizeof(kp->ki_tdname) - 1,
 		    sizeof(kp->ki_moretdname));
 	} else {
@@ -1225,7 +1225,7 @@ fill_kinfo_thread(struct thread *td, struct kinfo_proc *kp, int preferthread)
 	}
 	if (TD_ON_LOCK(td)) {
 		kp->ki_kiflag |= KI_LOCKBLOCK;
-		vos_strlcpy(kp->ki_lockname, td->td_lockname,
+		strlcpy(kp->ki_lockname, td->td_lockname,
 		    sizeof(kp->ki_lockname));
 	} else {
 		kp->ki_kiflag &= ~KI_LOCKBLOCK;
@@ -1326,7 +1326,7 @@ struct pstats *
 pstats_alloc(void)
 {
 
-	return (vos_malloc(sizeof(struct pstats), M_SUBPROC, M_ZERO|M_WAITOK));
+	return (malloc(sizeof(struct pstats), M_SUBPROC, M_ZERO|M_WAITOK));
 }
 
 /*
@@ -1346,7 +1346,7 @@ void
 pstats_free(struct pstats *ps)
 {
 
-	vos_free(ps, M_SUBPROC);
+	free(ps, M_SUBPROC);
 }
 
 #ifdef COMPAT_FREEBSD32
@@ -1507,11 +1507,11 @@ kern_proc_out(struct proc *p, struct sbuf *sb, int flags)
 		if ((flags & KERN_PROC_MASK32) != 0) {
 			freebsd32_kinfo_proc_out(&ki, &ki32);
 			if (sbuf_bcat(sb, &ki32, sizeof(ki32)) != 0)
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 		} else
 #endif
 			if (sbuf_bcat(sb, &ki, sizeof(ki)) != 0)
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 	} else {
 		FOREACH_THREAD_IN_PROC(p, td) {
 			fill_kinfo_thread(td, &ki, 1);
@@ -1519,11 +1519,11 @@ kern_proc_out(struct proc *p, struct sbuf *sb, int flags)
 			if ((flags & KERN_PROC_MASK32) != 0) {
 				freebsd32_kinfo_proc_out(&ki, &ki32);
 				if (sbuf_bcat(sb, &ki32, sizeof(ki32)) != 0)
-					error = VOS_ENOMEM;
+					error = ENOMEM;
 			} else
 #endif
 				if (sbuf_bcat(sb, &ki, sizeof(ki)) != 0)
-					error = VOS_ENOMEM;
+					error = ENOMEM;
 			if (error != 0)
 				break;
 		}
@@ -1699,7 +1699,7 @@ sysctl_kern_proc(SYSCTL_HANDLER_ARGS)
 #endif
 	if (oid_number == KERN_PROC_PID) {
 		if (namelen != 1)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		error = sysctl_wire_old_buffer(req, 0);
 		if (error)
 			return (error);
@@ -1714,15 +1714,15 @@ sysctl_kern_proc(SYSCTL_HANDLER_ARGS)
 	switch (oid_number) {
 	case KERN_PROC_ALL:
 		if (namelen != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		break;
 	case KERN_PROC_PROC:
 		if (namelen != 0 && namelen != 1)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		break;
 	default:
 		if (namelen != 1)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		break;
 	}
 
@@ -1749,7 +1749,7 @@ pargs_alloc(int len)
 {
 	struct pargs *pa;
 
-	pa = vos_malloc(sizeof(struct pargs) + len, M_PARGS,
+	pa = malloc(sizeof(struct pargs) + len, M_PARGS,
 		M_WAITOK);
 	refcount_init(&pa->ar_ref, 1);
 	pa->ar_length = len;
@@ -1760,7 +1760,7 @@ static void
 pargs_free(struct pargs *pa)
 {
 
-	vos_free(pa, M_PARGS);
+	free(pa, M_PARGS);
 }
 
 void
@@ -1795,7 +1795,7 @@ proc_read_string(struct thread *td, struct proc *p, const char *sptr, char *buf,
 	 */
 	n = proc_readmem(td, p, (vm_offset_t)sptr, buf, len);
 	if (n <= 0)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	return (0);
 }
 
@@ -1823,47 +1823,47 @@ get_proc_vector32(struct thread *td, struct proc *p, char ***proc_vectorp,
 	error = 0;
 	if (proc_readmem(td, p, (vm_offset_t)p->p_sysent->sv_psstrings, &pss,
 	    sizeof(pss)) != sizeof(pss))
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	switch (type) {
 	case PROC_ARG:
 		vptr = (vm_offset_t)PTRIN(pss.ps_argvstr);
 		vsize = pss.ps_nargvstr;
 		if (vsize > ARG_MAX)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		size = vsize * sizeof(int32_t);
 		break;
 	case PROC_ENV:
 		vptr = (vm_offset_t)PTRIN(pss.ps_envstr);
 		vsize = pss.ps_nenvstr;
 		if (vsize > ARG_MAX)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		size = vsize * sizeof(int32_t);
 		break;
 	case PROC_AUX:
 		vptr = (vm_offset_t)PTRIN(pss.ps_envstr) +
 		    (pss.ps_nenvstr + 1) * sizeof(int32_t);
 		if (vptr % 4 != 0)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		for (ptr = vptr, i = 0; i < PROC_AUXV_MAX; i++) {
 			if (proc_readmem(td, p, ptr, &aux, sizeof(aux)) !=
 			    sizeof(aux))
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			if (aux.a_type == AT_NULL)
 				break;
 			ptr += sizeof(aux);
 		}
 		if (aux.a_type != AT_NULL)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		vsize = i + 1;
 		size = vsize * sizeof(aux);
 		break;
 	default:
 		KASSERT(0, ("Wrong proc vector type: %d", type));
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
-	proc_vector32 = vos_malloc(size, M_TEMP, M_WAITOK);
+	proc_vector32 = malloc(size, M_TEMP, M_WAITOK);
 	if (proc_readmem(td, p, vptr, proc_vector32, size) != size) {
-		error = VOS_ENOMEM;
+		error = ENOMEM;
 		goto done;
 	}
 	if (type == PROC_AUX) {
@@ -1871,13 +1871,13 @@ get_proc_vector32(struct thread *td, struct proc *p, char ***proc_vectorp,
 		*vsizep = vsize;
 		return (0);
 	}
-	proc_vector = vos_malloc(vsize * sizeof(char *), M_TEMP, M_WAITOK);
+	proc_vector = malloc(vsize * sizeof(char *), M_TEMP, M_WAITOK);
 	for (i = 0; i < (int)vsize; i++)
 		proc_vector[i] = PTRIN(proc_vector32[i]);
 	*proc_vectorp = proc_vector;
 	*vsizep = vsize;
 done:
-	vos_free(proc_vector32, M_TEMP);
+	free(proc_vector32, M_TEMP);
 	return (error);
 }
 #endif
@@ -1899,20 +1899,20 @@ get_proc_vector(struct thread *td, struct proc *p, char ***proc_vectorp,
 #endif
 	if (proc_readmem(td, p, (vm_offset_t)p->p_sysent->sv_psstrings, &pss,
 	    sizeof(pss)) != sizeof(pss))
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	switch (type) {
 	case PROC_ARG:
 		vptr = (vm_offset_t)pss.ps_argvstr;
 		vsize = pss.ps_nargvstr;
 		if (vsize > ARG_MAX)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		size = vsize * sizeof(char *);
 		break;
 	case PROC_ENV:
 		vptr = (vm_offset_t)pss.ps_envstr;
 		vsize = pss.ps_nenvstr;
 		if (vsize > ARG_MAX)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		size = vsize * sizeof(char *);
 		break;
 	case PROC_AUX:
@@ -1927,7 +1927,7 @@ get_proc_vector(struct thread *td, struct proc *p, char ***proc_vectorp,
 #else
 		if (vptr % sizeof(uint32_t) != 0)
 #endif
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		/*
 		 * We count the array size reading the aux vectors from the
 		 * stack until AT_NULL vector is returned.  So (to keep the code
@@ -1938,7 +1938,7 @@ get_proc_vector(struct thread *td, struct proc *p, char ***proc_vectorp,
 		for (ptr = vptr, i = 0; i < PROC_AUXV_MAX; i++) {
 			if (proc_readmem(td, p, ptr, &aux, sizeof(aux)) !=
 			    sizeof(aux))
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			if (aux.a_type == AT_NULL)
 				break;
 			ptr += sizeof(aux);
@@ -1950,18 +1950,18 @@ get_proc_vector(struct thread *td, struct proc *p, char ***proc_vectorp,
 		 * been modified. Return the error in this case.
 		 */
 		if (aux.a_type != AT_NULL)
-			return (VOS_ENOEXEC);
+			return (ENOEXEC);
 		vsize = i + 1;
 		size = vsize * sizeof(aux);
 		break;
 	default:
 		KASSERT(0, ("Wrong proc vector type: %d", type));
-		return (VOS_EINVAL); /* In case we are built without INVARIANTS. */
+		return (EINVAL); /* In case we are built without INVARIANTS. */
 	}
-	proc_vector = vos_malloc(size, M_TEMP, M_WAITOK);
+	proc_vector = malloc(size, M_TEMP, M_WAITOK);
 	if (proc_readmem(td, p, vptr, proc_vector, size) != size) {
-		vos_free(proc_vector, M_TEMP);
-		return (VOS_ENOMEM);
+		free(proc_vector, M_TEMP);
+		return (ENOMEM);
 	}
 	*proc_vectorp = proc_vector;
 	*vsizep = vsize;
@@ -2003,7 +2003,7 @@ get_ps_strings(struct thread *td, struct proc *p, struct sbuf *sb,
 			    sizeof(pss_string));
 			if (error != 0)
 				goto done;
-			len = vos_strnlen(pss_string, GET_PS_STRINGS_CHUNK_SZ);
+			len = strnlen(pss_string, GET_PS_STRINGS_CHUNK_SZ);
 			if (done + len >= nchr)
 				len = nchr - done - 1;
 			sbuf_bcat(sb, pss_string, len);
@@ -2015,7 +2015,7 @@ get_ps_strings(struct thread *td, struct proc *p, struct sbuf *sb,
 		done += len + 1;
 	}
 done:
-	vos_free(proc_vector, M_TEMP);
+	free(proc_vector, M_TEMP);
 	return (error);
 }
 
@@ -2049,8 +2049,8 @@ proc_getauxv(struct thread *td, struct proc *p, struct sbuf *sb)
 #endif
 			size = vsize * sizeof(Elf_Auxinfo);
 		if (sbuf_bcat(sb, auxv, size) != 0)
-			error = VOS_ENOMEM;
-		vos_free(auxv, M_TEMP);
+			error = ENOMEM;
+		free(auxv, M_TEMP);
 	}
 	return (error);
 }
@@ -2073,7 +2073,7 @@ sysctl_kern_proc_args(SYSCTL_HANDLER_ARGS)
 	pid_t pid;
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	p = curproc;
 	pid = (pid_t)name[0];
@@ -2120,7 +2120,7 @@ sysctl_kern_proc_args(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (req->newlen > ps_arg_cache_limit - sizeof(struct pargs))
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	if (req->newlen == 0) {
 		/*
@@ -2157,7 +2157,7 @@ sysctl_kern_proc_env(SYSCTL_HANDLER_ARGS)
 	int error, error2;
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = pget((pid_t)name[0], PGET_WANTREAD, &p);
 	if (error != 0)
@@ -2190,7 +2190,7 @@ sysctl_kern_proc_auxv(SYSCTL_HANDLER_ARGS)
 	int error, error2;
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = pget((pid_t)name[0], PGET_WANTREAD, &p);
 	if (error != 0)
@@ -2223,7 +2223,7 @@ sysctl_kern_proc_pathname(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (arglen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (*pidp == -1) {	/* -1 means this process */
 		p = req->td->td_proc;
 	} else {
@@ -2245,8 +2245,8 @@ sysctl_kern_proc_pathname(SYSCTL_HANDLER_ARGS)
 	vrele(vp);
 	if (error)
 		return (error);
-	error = SYSCTL_OUT(req, retbuf, vos_strlen(retbuf) + 1);
-	vos_free(freebuf, M_TEMP);
+	error = SYSCTL_OUT(req, retbuf, strlen(retbuf) + 1);
+	free(freebuf, M_TEMP);
 	return (error);
 }
 
@@ -2261,7 +2261,7 @@ sysctl_kern_proc_sv_name(SYSCTL_HANDLER_ARGS)
 
 	namelen = arg2;
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	name = (int *)arg1;
 	error = pget((pid_t)name[0], PGET_CANSEE, &p);
@@ -2299,9 +2299,9 @@ sysctl_kern_proc_ovmmap(SYSCTL_HANDLER_ARGS)
 	vm = vmspace_acquire_ref(p);
 	if (vm == NULL) {
 		PRELE(p);
-		return (VOS_ESRCH);
+		return (ESRCH);
 	}
-	kve = vos_malloc(sizeof(*kve), M_TEMP, M_WAITOK);
+	kve = malloc(sizeof(*kve), M_TEMP, M_WAITOK);
 
 	map = &vm->vm_map;
 	vm_map_lock_read(map);
@@ -2395,9 +2395,9 @@ sysctl_kern_proc_ovmmap(SYSCTL_HANDLER_ARGS)
 			kve->kve_shadow_count = 0;
 		}
 
-		vos_strlcpy(kve->kve_path, fullpath, sizeof(kve->kve_path));
+		strlcpy(kve->kve_path, fullpath, sizeof(kve->kve_path));
 		if (freepath != NULL)
-			vos_free(freepath, M_TEMP);
+			free(freepath, M_TEMP);
 
 		error = SYSCTL_OUT(req, kve, sizeof(*kve));
 		vm_map_lock_read(map);
@@ -2411,7 +2411,7 @@ sysctl_kern_proc_ovmmap(SYSCTL_HANDLER_ARGS)
 	vm_map_unlock_read(map);
 	vmspace_free(vm);
 	PRELE(p);
-	vos_free(kve, M_TEMP);
+	free(kve, M_TEMP);
 	return (error);
 }
 #endif	/* COMPAT_FREEBSD7 */
@@ -2510,9 +2510,9 @@ kern_proc_vmmap_out(struct proc *p, struct sbuf *sb, ssize_t maxlen, int flags)
 	vm = vmspace_acquire_ref(p);
 	if (vm == NULL) {
 		PRELE(p);
-		return (VOS_ESRCH);
+		return (ESRCH);
 	}
-	kve = vos_malloc(sizeof(*kve), M_TEMP, M_WAITOK | M_ZERO);
+	kve = malloc(sizeof(*kve), M_TEMP, M_WAITOK | M_ZERO);
 
 	error = 0;
 	map = &vm->vm_map;
@@ -2612,15 +2612,15 @@ kern_proc_vmmap_out(struct proc *p, struct sbuf *sb, ssize_t maxlen, int flags)
 			kve->kve_shadow_count = 0;
 		}
 
-		vos_strlcpy(kve->kve_path, fullpath, sizeof(kve->kve_path));
+		strlcpy(kve->kve_path, fullpath, sizeof(kve->kve_path));
 		if (freepath != NULL)
-			vos_free(freepath, M_TEMP);
+			free(freepath, M_TEMP);
 
 		/* Pack record size down */
 		if ((flags & KERN_VMMAP_PACK_KINFO) != 0)
 			kve->kve_structsize =
-			vos_offsetof(struct kinfo_vmentry, kve_path) +
-			vos_strlen(kve->kve_path) + 1;
+			    offsetof(struct kinfo_vmentry, kve_path) +
+			    strlen(kve->kve_path) + 1;
 		else
 			kve->kve_structsize = sizeof(*kve);
 		kve->kve_structsize = roundup(kve->kve_structsize,
@@ -2635,7 +2635,7 @@ kern_proc_vmmap_out(struct proc *p, struct sbuf *sb, ssize_t maxlen, int flags)
 			maxlen -= kve->kve_structsize;
 
 		if (sbuf_bcat(sb, kve, kve->kve_structsize) != 0)
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 		vm_map_lock_read(map);
 		if (error != 0)
 			break;
@@ -2647,7 +2647,7 @@ kern_proc_vmmap_out(struct proc *p, struct sbuf *sb, ssize_t maxlen, int flags)
 	vm_map_unlock_read(map);
 	vmspace_free(vm);
 	PRELE(p);
-	vos_free(kve, M_TEMP);
+	free(kve, M_TEMP);
 	return (error);
 }
 
@@ -2689,19 +2689,19 @@ sysctl_kern_proc_kstack(SYSCTL_HANDLER_ARGS)
 	if (error != 0)
 		return (error);
 
-	kkstp = vos_malloc(sizeof(*kkstp), M_TEMP, M_WAITOK);
+	kkstp = malloc(sizeof(*kkstp), M_TEMP, M_WAITOK);
 	st = stack_create(M_WAITOK);
 
 	lwpidarray = NULL;
 	PROC_LOCK(p);
 	do {
 		if (lwpidarray != NULL) {
-			vos_free(lwpidarray, M_TEMP);
+			free(lwpidarray, M_TEMP);
 			lwpidarray = NULL;
 		}
 		numthreads = p->p_numthreads;
 		PROC_UNLOCK(p);
-		lwpidarray = vos_malloc(sizeof(*lwpidarray) * numthreads, M_TEMP,
+		lwpidarray = malloc(sizeof(*lwpidarray) * numthreads, M_TEMP,
 		    M_WAITOK | M_ZERO);
 		PROC_LOCK(p);
 	} while (numthreads < p->p_numthreads);
@@ -2751,9 +2751,9 @@ sysctl_kern_proc_kstack(SYSCTL_HANDLER_ARGS)
 	}
 	PRELE(p);
 	if (lwpidarray != NULL)
-		vos_free(lwpidarray, M_TEMP);
+		free(lwpidarray, M_TEMP);
 	stack_destroy(st);
-	vos_free(kkstp, M_TEMP);
+	free(kkstp, M_TEMP);
 	return (error);
 }
 #endif
@@ -2772,7 +2772,7 @@ sysctl_kern_proc_groups(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (arglen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (*pidp == -1) {	/* -1 means this process */
 		p = req->td->td_proc;
 		PROC_LOCK(p);
@@ -2806,14 +2806,14 @@ sysctl_kern_proc_rlimit(SYSCTL_HANDLER_ARGS)
 	int flags, error;
 
 	if (namelen != 2)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	which = (u_int)name[1];
 	if (which >= RLIM_NLIMITS)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (req->newptr != NULL && req->newlen != sizeof(rlim))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	flags = PGET_HOLD | PGET_NOTWEXIT;
 	if (req->newptr != NULL)
@@ -2867,7 +2867,7 @@ sysctl_kern_proc_ps_strings(SYSCTL_HANDLER_ARGS)
 #endif
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = pget((pid_t)name[0], PGET_CANDEBUG, &p);
 	if (error != 0)
@@ -2905,7 +2905,7 @@ sysctl_kern_proc_umask(SYSCTL_HANDLER_ARGS)
 	pid_t pid;
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	pid = (pid_t)name[0];
 	p = curproc;
@@ -2938,10 +2938,10 @@ sysctl_kern_proc_osrel(SYSCTL_HANDLER_ARGS)
 	int flags, error, osrel;
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (req->newptr != NULL && req->newlen != sizeof(osrel))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	flags = PGET_HOLD | PGET_NOTWEXIT;
 	if (req->newptr != NULL)
@@ -2961,7 +2961,7 @@ sysctl_kern_proc_osrel(SYSCTL_HANDLER_ARGS)
 		if (error != 0)
 			goto errout;
 		if (osrel < 0) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto errout;
 		}
 		p->p_osrel = osrel;
@@ -2985,7 +2985,7 @@ sysctl_kern_proc_sigtramp(SYSCTL_HANDLER_ARGS)
 #endif
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = pget((pid_t)name[0], PGET_CANDEBUG, &p);
 	if (error != 0)
@@ -3040,7 +3040,7 @@ sysctl_kern_proc_sigfastblk(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (namelen != 1 || req->newptr != NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	pid = (pid_t)name[0];
 	error = pget(pid, PGET_HOLD | PGET_NOTWEXIT | PGET_CANDEBUG, &p);
@@ -3051,7 +3051,7 @@ sysctl_kern_proc_sigfastblk(SYSCTL_HANDLER_ARGS)
 #ifdef COMPAT_FREEBSD32
 	if (SV_CURPROC_FLAG(SV_ILP32)) {
 		if (!SV_PROC_FLAG(p, SV_ILP32)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto errlocked;
 		}
 	}
@@ -3065,7 +3065,7 @@ sysctl_kern_proc_sigfastblk(SYSCTL_HANDLER_ARGS)
 		}
 	}
 	if (td1 == NULL) {
-		error = VOS_ESRCH;
+		error = ESRCH;
 		goto errlocked;
 	}
 	/*
@@ -3078,7 +3078,7 @@ sysctl_kern_proc_sigfastblk(SYSCTL_HANDLER_ARGS)
 	if ((td1->td_pflags & TDP_SIGFASTBLOCK) != 0)
 		addr = (uintptr_t)td1->td_sigblock_ptr;
 	else
-		error = VOS_ENOTTY;
+		error = ENOTTY;
 
 errlocked:
 	_PRELE(p);

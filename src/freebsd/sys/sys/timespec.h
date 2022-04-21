@@ -58,8 +58,8 @@
  * timespecs. Used in the timer_*() system calls.
  */
 struct itimerspec {
-	struct vos_timespec  it_interval;
-	struct vos_timespec  it_value;
+	struct timespec  it_interval;
+	struct timespec  it_value;
 };
 
 #endif /* _SYS_TIMESPEC_H_ */

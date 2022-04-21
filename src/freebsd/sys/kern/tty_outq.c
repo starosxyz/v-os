@@ -115,7 +115,7 @@ ttyoutq_setsize(struct ttyoutq *to, struct tty *tp, size_t size)
 
 		if (tty_gone(tp)) {
 			uma_zfree(ttyoutq_zone, tob);
-			return (VOS_ENXIO);
+			return (ENXIO);
 		}
 
 		TTYOUTQ_INSERT_TAIL(to, tob);

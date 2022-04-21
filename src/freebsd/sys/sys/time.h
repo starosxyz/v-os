@@ -278,7 +278,7 @@ mstosbt(int64_t _ms)
  */
 
 static __inline void
-bintime2timespec(const struct bintime *_bt, struct vos_timespec *_ts)
+bintime2timespec(const struct bintime *_bt, struct timespec *_ts)
 {
 
 	_ts->tv_sec = _bt->sec;
@@ -287,7 +287,7 @@ bintime2timespec(const struct bintime *_bt, struct vos_timespec *_ts)
 }
 
 static __inline void
-timespec2bintime(const struct vos_timespec *_ts, struct bintime *_bt)
+timespec2bintime(const struct timespec *_ts, struct bintime *_bt)
 {
 
 	_bt->sec = _ts->tv_sec;
@@ -312,10 +312,10 @@ timeval2bintime(const struct timeval *_tv, struct bintime *_bt)
 	_bt->frac = _tv->tv_usec * (uint64_t)18446744073709LL;
 }
 
-static __inline struct vos_timespec
+static __inline struct timespec
 sbttots(sbintime_t _sbt)
 {
-	struct vos_timespec _ts;
+	struct timespec _ts;
 
 	_ts.tv_sec = _sbt >> 32;
 	_ts.tv_nsec = sbttons((uint32_t)_sbt);
@@ -323,7 +323,7 @@ sbttots(sbintime_t _sbt)
 }
 
 static __inline sbintime_t
-tstosbt(struct vos_timespec _ts)
+tstosbt(struct timespec _ts)
 {
 
 	return (((sbintime_t)_ts.tv_sec << 32) + nstosbt(_ts.tv_nsec));
@@ -541,7 +541,7 @@ extern volatile int rtc_generation;
  */
 
 void	binuptime(struct bintime *bt);
-void	nanouptime(struct vos_timespec *tsp);
+void	nanouptime(struct timespec *tsp);
 void	microuptime(struct timeval *tvp);
 
 static __inline sbintime_t
@@ -554,11 +554,11 @@ sbinuptime(void)
 }
 
 void	bintime(struct bintime *bt);
-void	nanotime(struct vos_timespec *tsp);
+void	nanotime(struct timespec *tsp);
 void	microtime(struct timeval *tvp);
 
 void	getbinuptime(struct bintime *bt);
-void	getnanouptime(struct vos_timespec *tsp);
+void	getnanouptime(struct timespec *tsp);
 void	getmicrouptime(struct timeval *tvp);
 
 static __inline sbintime_t
@@ -571,7 +571,7 @@ getsbinuptime(void)
 }
 
 void	getbintime(struct bintime *bt);
-void	getnanotime(struct vos_timespec *tsp);
+void	getnanotime(struct timespec *tsp);
 void	getmicrotime(struct timeval *tvp);
 
 void	getboottime(struct timeval *boottime);

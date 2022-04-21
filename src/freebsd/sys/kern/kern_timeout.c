@@ -625,7 +625,7 @@ softclock_call_cc(struct callout* c, struct callout_cpu* cc,
 #endif
 #if defined(DIAGNOSTIC) || defined(CALLOUT_PROFILING) 
 	sbintime_t sbt1, sbt2;
-	struct vos_timespec ts2;
+	struct timespec ts2;
 	static sbintime_t maxdt = 2 * SBT_1MS;	/* 2 msec */
 	static callout_func_t* lastfunc;
 #endif

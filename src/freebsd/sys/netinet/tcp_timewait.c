@@ -568,7 +568,7 @@ tcp_twrespond(struct tcptw *tw, int flags)
 
 	m = m_gethdr(M_NOWAIT, MT_DATA);
 	if (m == NULL)
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 	m->m_data += max_linkhdr;
 
 #ifdef MAC
@@ -618,7 +618,7 @@ tcp_twrespond(struct tcptw *tw, int flags)
 	th->th_flags = flags;
 	th->th_win = htons(tw->last_win);
 
-	m->m_pkthdr.csum_data = vos_offsetof(struct tcphdr, th_sum);
+	m->m_pkthdr.csum_data = offsetof(struct tcphdr, th_sum);
 #ifdef INET6
 	if (isipv6) {
 		m->m_pkthdr.csum_flags = CSUM_TCP_IPV6;

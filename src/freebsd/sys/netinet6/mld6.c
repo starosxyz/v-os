@@ -339,7 +339,7 @@ sysctl_mld_gsr(SYSCTL_HANDLER_ARGS)
 		goto out_locked;
 
 	if (i < -1 || i >= 60) {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto out_locked;
 	}
 
@@ -373,10 +373,10 @@ sysctl_mld_ifinfo(SYSCTL_HANDLER_ARGS)
 	namelen = arg2;
 
 	if (req->newptr != NULL)
-		return (VOS_EPERM);
+		return (EPERM);
 
 	if (namelen != 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = sysctl_wire_old_buffer(req, sizeof(struct mld_ifinfo));
 	if (error)
@@ -387,11 +387,11 @@ sysctl_mld_ifinfo(SYSCTL_HANDLER_ARGS)
 	MLD_LOCK();
 
 	if (name[0] <= 0 || name[0] > V_if_index) {
-		error = VOS_ENOENT;
+		error = ENOENT;
 		goto out_locked;
 	}
 
-	error = VOS_ENOENT;
+	error = ENOENT;
 
 	ifp = ifnet_byindex(name[0]);
 	if (ifp == NULL)
@@ -505,7 +505,7 @@ mli_alloc_locked(/*const*/ struct ifnet *ifp)
 
 	MLD_LOCK_ASSERT();
 
-	mli = vos_malloc(sizeof(struct mld_ifsoftc), M_MLD, M_NOWAIT|M_ZERO);
+	mli = malloc(sizeof(struct mld_ifsoftc), M_MLD, M_NOWAIT|M_ZERO);
 	if (mli == NULL)
 		goto out;
 
@@ -620,7 +620,7 @@ mli_delete_locked(const struct ifnet *ifp)
 
 			LIST_REMOVE(mli, mli_link);
 
-			vos_free(mli, M_MLD);
+			free(mli, M_MLD);
 			return;
 		}
 	}
@@ -682,7 +682,7 @@ mld_v1_input_query(struct ifnet *ifp, const struct ip6_hdr *ip6,
 		dst = ip6->ip6_dst;
 		in6_clearscope(&dst);
 		if (!IN6_ARE_ADDR_EQUAL(&dst, &in6addr_linklocal_allnodes))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		is_general_query = 1;
 	} else {
 		/*
@@ -872,10 +872,10 @@ mld_v2_input_query(struct ifnet *ifp, const struct ip6_hdr *ip6,
 
 	nsrc = ntohs(mld->mld_numsrc);
 	if (nsrc > MLD_MAX_GS_SOURCES)
-		return (VOS_EMSGSIZE);
+		return (EMSGSIZE);
 	if (icmp6len < sizeof(struct mldv2_query) +
 	    (nsrc * sizeof(struct in6_addr)))
-		return (VOS_EMSGSIZE);
+		return (EMSGSIZE);
 
 	/*
 	 * Do further input validation upfront to avoid resetting timers
@@ -887,7 +887,7 @@ mld_v2_input_query(struct ifnet *ifp, const struct ip6_hdr *ip6,
 		 * behaviour; discard it.
 		 */
 		if (nsrc > 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		is_general_query = 1;
 	} else {
 		/*
@@ -1132,7 +1132,7 @@ mld_v1_input_report(struct ifnet *ifp, const struct ip6_hdr *ip6,
 		CTR3(KTR_MLD, "ignore v1 query src %s on ifp %p(%s)",
 		    ip6_sprintf(ip6tbuf, &ip6->ip6_src),
 		    ifp, if_name(ifp));
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	/*
@@ -1146,7 +1146,7 @@ mld_v1_input_report(struct ifnet *ifp, const struct ip6_hdr *ip6,
 		CTR3(KTR_MLD, "ignore v1 query dst %s on ifp %p(%s)",
 		    ip6_sprintf(ip6tbuf, &ip6->ip6_dst),
 		    ifp, if_name(ifp));
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	/*
@@ -1819,14 +1819,14 @@ mld_v1_transmit_report(struct in6_multi *in6m, const int type)
 	if (mh == NULL) {
 		if (ia != NULL)
 			ifa_free(&ia->ia_ifa);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	md = m_get(M_NOWAIT, MT_DATA);
 	if (md == NULL) {
 		m_free(mh);
 		if (ia != NULL)
 			ifa_free(&ia->ia_ifa);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	mh->m_next = md;
 
@@ -2470,7 +2470,7 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 	} else {
 		if (mbufq_full(mq)) {
 			CTR1(KTR_MLD, "%s: outbound queue full", __func__);
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		}
 		m = NULL;
 		m0srcs = (ifp->if_mtu - MLD_MTUSPACE -
@@ -2480,7 +2480,7 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 		if (m == NULL)
 			m = m_gethdr(M_NOWAIT, MT_DATA);
 		if (m == NULL)
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 
 		mld_save_context(m, ifp);
 
@@ -2500,7 +2500,7 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 		if (m != m0)
 			m_freem(m);
 		CTR1(KTR_MLD, "%s: m_append() failed.", __func__);
-		return (-VOS_ENOMEM);
+		return (-ENOMEM);
 	}
 	nbytes += sizeof(struct mldv2_record);
 
@@ -2555,7 +2555,7 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 					m_freem(m);
 				CTR1(KTR_MLD, "%s: m_append() failed.",
 				    __func__);
-				return (-VOS_ENOMEM);
+				return (-ENOMEM);
 			}
 			nbytes += sizeof(struct in6_addr);
 			++msrcs;
@@ -2599,13 +2599,13 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 	while (nims != NULL) {
 		if (mbufq_full(mq)) {
 			CTR1(KTR_MLD, "%s: outbound queue full", __func__);
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		}
 		m = m_getcl(M_NOWAIT, MT_DATA, M_PKTHDR);
 		if (m == NULL)
 			m = m_gethdr(M_NOWAIT, MT_DATA);
 		if (m == NULL)
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		mld_save_context(m, ifp);
 		md = m_getptr(m, 0, &off);
 		pmr = (struct mldv2_record *)(mtod(md, uint8_t *) + off);
@@ -2615,7 +2615,7 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 			if (m != m0)
 				m_freem(m);
 			CTR1(KTR_MLD, "%s: m_append() failed.", __func__);
-			return (-VOS_ENOMEM);
+			return (-ENOMEM);
 		}
 		m->m_pkthdr.PH_vt.vt_nrecs = 1;
 		nbytes += sizeof(struct mldv2_record);
@@ -2646,7 +2646,7 @@ mld_v2_enqueue_group_record(struct mbufq *mq, struct in6_multi *inm,
 					m_freem(m);
 				CTR1(KTR_MLD, "%s: m_append() failed.",
 				    __func__);
-				return (-VOS_ENOMEM);
+				return (-ENOMEM);
 			}
 			++msrcs;
 			if (msrcs == m0srcs)
@@ -2761,7 +2761,7 @@ mld_v2_enqueue_filter_change(struct mbufq *mq, struct in6_multi *inm)
 				if (m == NULL) {
 					CTR1(KTR_MLD,
 					    "%s: m_get*() failed", __func__);
-					return (-VOS_ENOMEM);
+					return (-ENOMEM);
 				}
 				m->m_pkthdr.PH_vt.vt_nrecs = 0;
 				mld_save_context(m, ifp);
@@ -2787,7 +2787,7 @@ mld_v2_enqueue_filter_change(struct mbufq *mq, struct in6_multi *inm)
 					m_freem(m);
 				CTR1(KTR_MLD,
 				    "%s: m_append() failed", __func__);
-				return (-VOS_ENOMEM);
+				return (-ENOMEM);
 			}
 			npbytes += sizeof(struct mldv2_record);
 			if (m != m0) {
@@ -2849,7 +2849,7 @@ mld_v2_enqueue_filter_change(struct mbufq *mq, struct in6_multi *inm)
 						m_freem(m);
 					CTR1(KTR_MLD,
 					    "%s: m_append() failed", __func__);
-					return (-VOS_ENOMEM);
+					return (-ENOMEM);
 				}
 				nallow += !!(crt == REC_ALLOW);
 				nblock += !!(crt == REC_BLOCK);
@@ -2973,7 +2973,7 @@ mld_v2_merge_state_changes(struct in6_multi *inm, struct mbufq *scq)
 			CTR2(KTR_MLD, "%s: copying %p", __func__, m);
 			m0 = m_dup(m, M_NOWAIT);
 			if (m0 == NULL)
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			m0->m_nextpkt = NULL;
 			m = m->m_nextpkt;
 		}
@@ -3338,7 +3338,7 @@ mld_modevent(module_t mod, int type, void *unused __unused)
     case MOD_UNLOAD:
 	break;
     default:
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
     }
     return (0);
 }

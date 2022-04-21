@@ -339,7 +339,7 @@ static void
 print_uptime(void)
 {
 	int f;
-	struct vos_timespec ts;
+	struct timespec ts;
 
 	getnanouptime(&ts);
 	printf("Uptime: ");
@@ -813,7 +813,7 @@ kproc_shutdown(void *arg, int howto)
 	    kproc_shutdown_wait, p->p_comm);
 	error = kproc_suspend(p, kproc_shutdown_wait * hz);
 
-	if (error == VOS_EWOULDBLOCK)
+	if (error == EWOULDBLOCK)
 		printf("timed out\n");
 	else
 		printf("done\n");
@@ -833,7 +833,7 @@ kthread_shutdown(void *arg, int howto)
 	    kproc_shutdown_wait, td->td_name);
 	error = kthread_suspend(td, kproc_shutdown_wait * hz);
 
-	if (error == VOS_EWOULDBLOCK)
+	if (error == EWOULDBLOCK)
 		printf("timed out\n");
 	else
 		printf("done\n");
@@ -883,7 +883,7 @@ kerneldumpcrypto_create(size_t blocksize, uint8_t encryption,
 	uint32_t dumpkeysize;
 
 	dumpkeysize = roundup2(sizeof(*kdk) + encryptedkeysize, blocksize);
-	kdc = vos_malloc(sizeof(*kdc) + dumpkeysize, M_EKCD, M_WAITOK | M_ZERO);
+	kdc = malloc(sizeof(*kdc) + dumpkeysize, M_EKCD, M_WAITOK | M_ZERO);
 
 	arc4rand(kdc->kdc_iv, sizeof(kdc->kdc_iv), 0);
 
@@ -939,7 +939,7 @@ kerneldumpcrypto_init(struct kerneldumpcrypto *kdc)
 	case KERNELDUMP_ENC_AES_256_CBC:
 		if (rijndael_cipherInit(&kdc->kdc_ci, MODE_CBC,
 		    kdc->kdc_iv) <= 0) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto out;
 		}
 		break;
@@ -947,7 +947,7 @@ kerneldumpcrypto_init(struct kerneldumpcrypto *kdc)
 		chacha_ivsetup(&kdc->kdc_chacha, kdc->kdc_iv, NULL);
 		break;
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto out;
 	}
 
@@ -985,15 +985,15 @@ kerneldumpcomp_create(struct dumperinfo *di, uint8_t compression)
 		return (NULL);
 	}
 
-	kdcomp = vos_malloc(sizeof(*kdcomp), M_DUMPER, M_WAITOK | M_ZERO);
+	kdcomp = malloc(sizeof(*kdcomp), M_DUMPER, M_WAITOK | M_ZERO);
 	kdcomp->kdc_format = compression;
 	kdcomp->kdc_stream = compressor_init(kerneldumpcomp_write_cb,
 	    format, di->maxiosize, kerneldump_gzlevel, di);
 	if (kdcomp->kdc_stream == NULL) {
-		vos_free(kdcomp, M_DUMPER);
+		free(kdcomp, M_DUMPER);
 		return (NULL);
 	}
-	kdcomp->kdc_buf = vos_malloc(di->maxiosize, M_DUMPER, M_WAITOK | M_NODUMP);
+	kdcomp->kdc_buf = malloc(di->maxiosize, M_DUMPER, M_WAITOK | M_NODUMP);
 	return (kdcomp);
 }
 
@@ -1007,7 +1007,7 @@ kerneldumpcomp_destroy(struct dumperinfo *di)
 		return;
 	compressor_fini(kdcomp->kdc_stream);
 	zfree(kdcomp->kdc_buf, M_DUMPER);
-	vos_free(kdcomp, M_DUMPER);
+	free(kdcomp, M_DUMPER);
 }
 
 /*
@@ -1048,13 +1048,13 @@ dumper_insert(const struct dumperinfo *di_template, const char *devname,
 	if (error != 0)
 		return (error);
 
-	newdi = vos_malloc(sizeof(*newdi) + vos_strlen(devname) + 1, M_DUMPER, M_WAITOK
+	newdi = malloc(sizeof(*newdi) + strlen(devname) + 1, M_DUMPER, M_WAITOK
 	    | M_ZERO);
 	memcpy(newdi, di_template, sizeof(*newdi));
 	newdi->blockbuf = NULL;
 	newdi->kdcrypto = NULL;
 	newdi->kdcomp = NULL;
-	vos_strcpy(newdi->di_devname, devname);
+	strcpy(newdi->di_devname, devname);
 
 	if (kda->kda_encryption != KERNELDUMP_ENC_NONE) {
 #ifdef EKCD
@@ -1062,11 +1062,11 @@ dumper_insert(const struct dumperinfo *di_template, const char *devname,
 		    kda->kda_encryption, kda->kda_key,
 		    kda->kda_encryptedkeysize, kda->kda_encryptedkey);
 		if (newdi->kdcrypto == NULL) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto cleanup;
 		}
 #else
-		error = VOS_EOPNOTSUPP;
+		error = EOPNOTSUPP;
 		goto cleanup;
 #endif
 	}
@@ -1079,19 +1079,19 @@ dumper_insert(const struct dumperinfo *di_template, const char *devname,
 		 * cipher block size.
 		 */
 		if (kda->kda_encryption == KERNELDUMP_ENC_AES_256_CBC) {
-			error = VOS_EOPNOTSUPP;
+			error = EOPNOTSUPP;
 			goto cleanup;
 		}
 #endif
 		newdi->kdcomp = kerneldumpcomp_create(newdi,
 		    kda->kda_compression);
 		if (newdi->kdcomp == NULL) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto cleanup;
 		}
 	}
 
-	newdi->blockbuf = vos_malloc(newdi->blocksize, M_DUMPER, M_WAITOK | M_ZERO);
+	newdi->blockbuf = malloc(newdi->blocksize, M_DUMPER, M_WAITOK | M_ZERO);
 
 	/* Add the new configuration to the queue */
 	mtx_lock(&dumpconf_list_lk);
@@ -1195,9 +1195,9 @@ dumper_remove(const char *devname, const struct diocskerneldump_arg *kda)
 	}
 	mtx_unlock(&dumpconf_list_lk);
 
-	/* Only produce VOS_ENOENT if a more targeted match didn't match. */
+	/* Only produce ENOENT if a more targeted match didn't match. */
 	if (!found && kda->kda_index == KDA_REMOVE)
-		return (VOS_ENOENT);
+		return (ENOENT);
 	return (0);
 }
 
@@ -1210,24 +1210,24 @@ dump_check_bounds(struct dumperinfo *di, off_t offset, size_t length)
 		if (di->kdcomp != NULL && offset >= di->mediaoffset) {
 			printf(
 		    "Compressed dump failed to fit in device boundaries.\n");
-			return (VOS_E2BIG);
+			return (E2BIG);
 		}
 
 		printf("Attempt to write outside dump device boundaries.\n"
 	    "offset(%jd), mediaoffset(%jd), length(%ju), mediasize(%jd).\n",
 		    (intmax_t)offset, (intmax_t)di->mediaoffset,
 		    (uintmax_t)length, (intmax_t)di->mediasize);
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 	}
 	if (length % di->blocksize != 0) {
 		printf("Attempt to write partial block of length %ju.\n",
 		    (uintmax_t)length);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	if (offset % di->blocksize != 0) {
 		printf("Attempt to write at unaligned offset %jd.\n",
 		    (intmax_t)offset);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	return (0);
@@ -1242,18 +1242,18 @@ dump_encrypt(struct kerneldumpcrypto *kdc, uint8_t *buf, size_t size)
 	case KERNELDUMP_ENC_AES_256_CBC:
 		if (rijndael_blockEncrypt(&kdc->kdc_ci, &kdc->kdc_ki, buf,
 		    8 * size, buf) <= 0) {
-			return (VOS_EIO);
+			return (EIO);
 		}
 		if (rijndael_cipherInit(&kdc->kdc_ci, MODE_CBC,
 		    buf + size - 16 /* IV size for AES-256-CBC */) <= 0) {
-			return (VOS_EIO);
+			return (EIO);
 		}
 		break;
 	case KERNELDUMP_ENC_CHACHA20:
 		chacha_encrypt_bytes(&kdc->kdc_chacha, buf, buf, size);
 		break;
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	return (0);
@@ -1276,7 +1276,7 @@ dump_encrypted_write(struct dumperinfo *di, void *virtual,
 		bcopy(virtual, buf, nbytes);
 
 		if (dump_encrypt(kdc, buf, nbytes) != 0)
-			return (VOS_EIO);
+			return (EIO);
 
 		error = dump_write(di, buf, physical, offset, nbytes);
 		if (error != 0)
@@ -1317,7 +1317,7 @@ kerneldumpcomp_write_cb(void *base, size_t length, off_t offset, void *arg)
 		memmove(di->blockbuf, (uint8_t *)base + rlength, resid);
 		bzero((uint8_t *)di->blockbuf + resid, di->blocksize - resid);
 		di->kdcomp->kdc_resid = resid;
-		return (VOS_EAGAIN);
+		return (EAGAIN);
 	}
 	return (_dump_append(di, base, 0, length));
 }
@@ -1341,7 +1341,7 @@ dump_write_headers(struct dumperinfo *di, struct kerneldumpheader *kdh)
 
 	hdrsz = sizeof(*kdh);
 	if (hdrsz > di->blocksize)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 #ifdef EKCD
 	kdc = di->kdcrypto;
@@ -1438,7 +1438,7 @@ dump_start(struct dumperinfo *di, struct kerneldumpheader *kdh)
 		    keysize;
 		if (di->mediasize < span) {
 			if (di->kdcomp == NULL)
-				return (VOS_E2BIG);
+				return (E2BIG);
 
 			/*
 			 * We don't yet know how much space the compressed dump
@@ -1494,7 +1494,7 @@ dump_append(struct dumperinfo *di, void *virtual, vm_offset_t physical,
 	if (di->kdcomp != NULL) {
 		/* Bounce through a buffer to avoid CRC errors. */
 		if (length > di->maxiosize)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		buf = di->kdcomp->kdc_buf;
 		memmove(buf, virtual, length);
 		return (compressor_write(di->kdcomp->kdc_stream, buf, length));
@@ -1530,7 +1530,7 @@ dump_finish(struct dumperinfo *di, struct kerneldumpheader *kdh)
 
 	if (di->kdcomp != NULL) {
 		error = compressor_flush(di->kdcomp->kdc_stream);
-		if (error == VOS_EAGAIN) {
+		if (error == EAGAIN) {
 			/* We have residual data in di->blockbuf. */
 			error = _dump_append(di, di->blockbuf, 0, di->blocksize);
 			if (error == 0)
@@ -1567,8 +1567,8 @@ dump_init_header(const struct dumperinfo *di, struct kerneldumpheader *kdh,
 	size_t dstsize;
 
 	bzero(kdh, sizeof(*kdh));
-	vos_strlcpy(kdh->magic, magic, sizeof(kdh->magic));
-	vos_strlcpy(kdh->architecture, MACHINE_ARCH, sizeof(kdh->architecture));
+	strlcpy(kdh->magic, magic, sizeof(kdh->magic));
+	strlcpy(kdh->architecture, MACHINE_ARCH, sizeof(kdh->architecture));
 	kdh->version = htod32(KERNELDUMPVERSION);
 	kdh->architectureversion = htod32(archver);
 	kdh->dumplength = htod64(dumplen);
@@ -1580,12 +1580,12 @@ dump_init_header(const struct dumperinfo *di, struct kerneldumpheader *kdh,
 	kdh->dumpkeysize = 0;
 #endif
 	kdh->blocksize = htod32(di->blocksize);
-	vos_strlcpy(kdh->hostname, prison0.pr_hostname, sizeof(kdh->hostname));
+	strlcpy(kdh->hostname, prison0.pr_hostname, sizeof(kdh->hostname));
 	dstsize = sizeof(kdh->versionstring);
-	if (vos_strlcpy(kdh->versionstring, version, dstsize) >= dstsize)
+	if (strlcpy(kdh->versionstring, version, dstsize) >= dstsize)
 		kdh->versionstring[dstsize - 2] = '\n';
 	if (panicstr != NULL)
-		vos_strlcpy(kdh->panicstring, panicstr, sizeof(kdh->panicstring));
+		strlcpy(kdh->panicstring, panicstr, sizeof(kdh->panicstring));
 	if (di->kdcomp != NULL)
 		kdh->compression = di->kdcomp->kdc_format;
 	kdh->parity = kerneldump_parity(kdh);

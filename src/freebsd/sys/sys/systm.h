@@ -124,7 +124,7 @@ extern const void* zero_region;	/* address space maps to a zeroed page	*/
 
 extern int unmapped_buf_allowed;
 
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 #define	IOSIZE_MAX		iosize_max()
 #define	DEVFS_IOSIZE_MAX	devfs_iosize_max()
 #else
@@ -290,19 +290,19 @@ void* memset_early(void* _Nonnull buf, int c, size_t len);
 void* memcpy_early(void* _Nonnull to, const void* _Nonnull from, size_t len);
 void* memmove_early(void* _Nonnull dest, const void* _Nonnull src, size_t n);
 #define bcopy_early(from, to, len) memmove_early((to), (from), (len))
-extern size_t	 vos_strlcpy(char*, const char*, size_t);
+extern size_t	 strlcpy(char*, const char*, size_t);
 static inline int copystr(const char* src, char* dst, size_t len, size_t *outlen)
 {			
 	size_t __r, __len, *__outlen;				
 								
 	__len = (len);						
 	__outlen = (outlen);					
-	__r = vos_strlcpy((dst), (src), __len);
+	__r = strlcpy((dst), (src), __len);			
 	if (__outlen != NULL)
 	{
 		*__outlen = ((__r >= __len) ? __len : __r + 1);
 	}
-	return ((__r >= __len) ? VOS_ENAMETOOLONG : 0);			
+	return ((__r >= __len) ? ENAMETOOLONG : 0);			
 }
 
 int	copyinstr(const void* __restrict udaddr,
@@ -461,7 +461,7 @@ struct cdev;
 dev_t dev2udev(struct cdev* x);
 const char* devtoname(struct cdev* cdev);
 
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 size_t	devfs_iosize_max(void);
 size_t	iosize_max(void);
 #endif
@@ -498,7 +498,7 @@ int alloc_unr_specific(struct unrhdr* uh, u_int item);
 int alloc_unrl(struct unrhdr* uh);
 void free_unr(struct unrhdr* uh, u_int item);
 
-#ifndef __LP64__
+#if !(defined(__LP64__) && defined(_WIN64))
 #define UNR64_LOCKED
 #endif
 

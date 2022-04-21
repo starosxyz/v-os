@@ -83,7 +83,7 @@ __FBSDID("$FreeBSD$");
 u_int   cpu_max_ext_state_size;
 int busdma_swi_pending;
 
-_Static_assert(OFFSETOF_MONITORBUF == vos_offsetof(struct pcpu, pc_monitorbuf),
+_Static_assert(OFFSETOF_MONITORBUF == offsetof(struct pcpu, pc_monitorbuf),
 	"OFFSETOF_MONITORBUF does not correspond with offset of pc_monitorbuf.");
 
 void
@@ -123,7 +123,7 @@ alloc_fpusave(int flags)
 	void* res;
 	struct savefpu_ymm* sf;
 
-	res = vos_malloc(cpu_max_ext_state_size, M_DEVBUF, flags);
+	res = malloc(cpu_max_ext_state_size, M_DEVBUF, flags);
 	if (use_xsave) {
 		sf = (struct savefpu_ymm*)res;
 		bzero(&sf->sv_xstate.sx_hd, sizeof(sf->sv_xstate.sx_hd));
@@ -293,7 +293,7 @@ cpu_procctl_la_ctl(struct proc* p, int val)
 			p->p_md.md_flags |= P_MD_LA57;
 		}
 		else {
-			error = VOS_ENOTSUP;
+			error = ENOTSUP;
 		}
 		break;
 	case PROC_LA_CTL_DEFAULT_ON_EXEC:
@@ -333,7 +333,7 @@ cpu_procctl(struct thread* td, int idtype, id_t id, int com, void* data)
 	case PROC_LA_CTL:
 	case PROC_LA_STATUS:
 		if (idtype != P_PID) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		if (com == PROC_KPTI_CTL) {
@@ -350,14 +350,14 @@ cpu_procctl(struct thread* td, int idtype, id_t id, int com, void* data)
 		if (com == PROC_KPTI_CTL &&
 			val != PROC_KPTI_CTL_ENABLE_ON_EXEC &&
 			val != PROC_KPTI_CTL_DISABLE_ON_EXEC) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		if (com == PROC_LA_CTL &&
 			val != PROC_LA_CTL_LA48_ON_EXEC &&
 			val != PROC_LA_CTL_LA57_ON_EXEC &&
 			val != PROC_LA_CTL_DEFAULT_ON_EXEC) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		error = pget(id, PGET_CANSEE | PGET_NOTWEXIT | PGET_NOTID, &p);
@@ -382,7 +382,7 @@ cpu_procctl(struct thread* td, int idtype, id_t id, int com, void* data)
 			error = copyout(&val, data, sizeof(val));
 		break;
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 	return (error);
@@ -402,7 +402,7 @@ cpu_set_syscall_retval(struct thread* td, int error)
 	}
 
 	switch (error) {
-	case VOS_ERESTART:
+	case ERESTART:
 		/*
 		 * Reconstruct pc, we know that 'syscall' is 2 bytes,
 		 * lcall $X,y is 7 bytes, int 0x80 is 2 bytes.
@@ -420,7 +420,7 @@ cpu_set_syscall_retval(struct thread* td, int error)
 		set_pcb_flags(td->td_pcb, PCB_FULL_IRET);
 		break;
 
-	case VOS_EJUSTRETURN:
+	case EJUSTRETURN:
 		break;
 
 	default:
@@ -511,7 +511,7 @@ cpu_set_user_tls(struct thread* td, void* tls_base)
 	struct pcb* pcb;
 
 	if ((u_int64_t)tls_base >= VM_MAXUSER_ADDRESS)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	pcb = td->td_pcb;
 	set_pcb_flags(pcb, PCB_FULL_IRET);

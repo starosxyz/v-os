@@ -122,10 +122,10 @@ SYSINIT(sleepinit, SI_SUB_KMEM, SI_ORDER_ANY, sleepinit, NULL);
  * runnable with the specified priority.  Sleeps at most sbt units of time
  * (0 means no timeout).  If pri includes the PCATCH flag, let signals
  * interrupt the sleep, otherwise ignore them while sleeping.  Returns 0 if
- * awakened, VOS_EWOULDBLOCK if the timeout expires.  If PCATCH is set and a
- * signal becomes pending, VOS_ERESTART is returned if the current system
- * call should be restarted if possible, and VOS_EINTR is returned if the system
- * call should be interrupted by the signal (return VOS_EINTR).
+ * awakened, EWOULDBLOCK if the timeout expires.  If PCATCH is set and a
+ * signal becomes pending, ERESTART is returned if the current system
+ * call should be restarted if possible, and EINTR is returned if the system
+ * call should be interrupted by the signal (return EINTR).
  *
  * The lock argument is unlocked before the caller is suspended, and
  * re-locked before _sleep() returns.  If priority includes the PDROP
@@ -135,7 +135,7 @@ int
 __sleep(const void* ident, struct lock_object* lock, int priority,
 	const char* wmesg, sbintime_t sbt, sbintime_t pr, int flags)
 {
-	return (VOS_EWOULDBLOCK);
+	return (EWOULDBLOCK);
 }
 #if 0
 int
@@ -344,7 +344,7 @@ pause_sbt(const char* wmesg, sbintime_t sbt, sbintime_t pr, int flags)
 		sbt = howmany(sbt, SBT_1US);
 		if (sbt > 0)
 			DELAY(sbt);
-		return (VOS_EWOULDBLOCK);
+		return (EWOULDBLOCK);
 	}
 	return (__sleep(&pause_wchan[curcpu], NULL,
 		(flags & C_CATCH) ? PCATCH : 0, wmesg, sbt, pr, flags));
@@ -416,7 +416,7 @@ _blockcount_wakeup(blockcount_t* bc, u_int old)
  * blockcount_wait() with an interlock.
  *
  * If there is no work to wait for, return 0.  If the sleep was interrupted by a
- * signal, return VOS_EINTR or VOS_ERESTART, and return VOS_EAGAIN otherwise.
+ * signal, return EINTR or ERESTART, and return EAGAIN otherwise.
  */
 int
 _blockcount_sleep(blockcount_t* bc, struct lock_object* lock, const char* wmesg,
@@ -471,7 +471,7 @@ _blockcount_sleep(blockcount_t* bc, struct lock_object* lock, const char* wmesg,
 	else
 		sleepq_wait(wchan, prio);
 	if (ret == 0)
-		ret = VOS_EAGAIN;
+		ret = EAGAIN;
 
 out:
 	PICKUP_GIANT();
@@ -568,7 +568,7 @@ loadav(void* arg)
 
 	for (i = 0; i < 3; i++)
 		avg->ldavg[i] = (cexp[i] * avg->ldavg[i] +
-			nrun * FSCALE * (FSCALE - cexp[i])) >> VOS_FSHIFT;
+			nrun * FSCALE * (FSCALE - cexp[i])) >> FSHIFT;
 
 	/*
 	 * Schedule the next update to occur after 5 seconds, but add a

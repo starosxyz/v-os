@@ -268,7 +268,7 @@ frag6_freef(struct ip6q *q6, uint32_t bucket)
 		} else
 			m_freem(m);
 
-		vos_free(af6, M_FRAG6);
+		free(af6, M_FRAG6);
 	}
 
 	TAILQ_REMOVE(IP6QB_HEAD(bucket), q6, ip6q_tq);
@@ -277,7 +277,7 @@ frag6_freef(struct ip6q *q6, uint32_t bucket)
 #ifdef MAC
 	mac_ip6q_destroy(q6);
 #endif
-	vos_free(q6, M_FRAG6);
+	free(q6, M_FRAG6);
 	atomic_subtract_int(&V_frag6_nfragpackets, 1);
 }
 
@@ -420,7 +420,7 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 	if ((ip6f->ip6f_offlg & IP6F_MORE_FRAG) &&
 	    (((ntohs(ip6->ip6_plen) - offset) & 0x7) != 0)) {
 		icmp6_error(m, ICMP6_PARAM_PROB, ICMP6_PARAMPROB_HEADER,
-			vos_offsetof(struct ip6_hdr, ip6_plen));
+		    offsetof(struct ip6_hdr, ip6_plen));
 		in6_ifstat_inc(dstifp, ifs6_reass_fail);
 		*mp = NULL;
 		return (IPPROTO_DONE);
@@ -463,7 +463,7 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 	frgpartlen = sizeof(struct ip6_hdr) + ntohs(ip6->ip6_plen) - offset;
 	if (frgpartlen == 0) {
 		icmp6_error(m, ICMP6_PARAM_PROB, ICMP6_PARAMPROB_HEADER,
-			vos_offsetof(struct ip6_hdr, ip6_plen));
+		    offsetof(struct ip6_hdr, ip6_plen));
 		in6_ifstat_inc(dstifp, ifs6_reass_fail);
 		IP6STAT_INC(ip6s_fragdropped);
 		*mp = NULL;
@@ -537,13 +537,13 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 			goto dropfrag;
 
 		/* Allocate IPv6 fragement packet queue entry. */
-		q6 = (struct ip6q *)vos_malloc(sizeof(struct ip6q), M_FRAG6,
+		q6 = (struct ip6q *)malloc(sizeof(struct ip6q), M_FRAG6,
 		    M_NOWAIT | M_ZERO);
 		if (q6 == NULL)
 			goto dropfrag;
 #ifdef MAC
 		if (mac_ip6q_init(q6, M_NOWAIT) != 0) {
-			vos_free(q6, M_FRAG6);
+			free(q6, M_FRAG6);
 			goto dropfrag;
 		}
 		mac_ip6q_create(m, q6);
@@ -595,12 +595,12 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 #ifdef MAC
 				mac_ip6q_destroy(q6);
 #endif
-				vos_free(q6, M_FRAG6);
+				free(q6, M_FRAG6);
 			}
 			IP6QB_UNLOCK(bucket);
 			icmp6_error(m, ICMP6_PARAM_PROB, ICMP6_PARAMPROB_HEADER,
 			    offset - sizeof(struct ip6_frag) +
-				vos_offsetof(struct ip6_frag, ip6f_offlg));
+			    offsetof(struct ip6_frag, ip6f_offlg));
 			*mp = NULL;
 			return (IPPROTO_DONE);
 		}
@@ -612,12 +612,12 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 #ifdef MAC
 			mac_ip6q_destroy(q6);
 #endif
-			vos_free(q6, M_FRAG6);
+			free(q6, M_FRAG6);
 		}
 		IP6QB_UNLOCK(bucket);
 		icmp6_error(m, ICMP6_PARAM_PROB, ICMP6_PARAMPROB_HEADER,
 		    offset - sizeof(struct ip6_frag) +
-			vos_offsetof(struct ip6_frag, ip6f_offlg));
+		    offsetof(struct ip6_frag, ip6f_offlg));
 		*mp = NULL;
 		return (IPPROTO_DONE);
 	}
@@ -641,7 +641,7 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 				TAILQ_REMOVE(&q6->ip6q_frags, af6, ip6af_tq);
 				q6->ip6q_nfrag--;
 				atomic_subtract_int(&frag6_nfrags, 1);
-				vos_free(af6, M_FRAG6);
+				free(af6, M_FRAG6);
 
 				/* Set a valid receive interface pointer. */
 				merr->m_pkthdr.rcvif = srcifp;
@@ -659,13 +659,13 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 				icmp6_error(merr, ICMP6_PARAM_PROB,
 				    ICMP6_PARAMPROB_HEADER,
 				    erroff - sizeof(struct ip6_frag) +
-					vos_offsetof(struct ip6_frag, ip6f_offlg));
+				    offsetof(struct ip6_frag, ip6f_offlg));
 			}
 		}
 	}
 
 	/* Allocate an IPv6 fragement queue entry for this fragmented part. */
-	ip6af = (struct ip6asfrag *)vos_malloc(sizeof(struct ip6asfrag), M_FRAG6,
+	ip6af = (struct ip6asfrag *)malloc(sizeof(struct ip6asfrag), M_FRAG6,
 	    M_NOWAIT | M_ZERO);
 	if (ip6af == NULL)
 		goto dropfrag;
@@ -694,14 +694,14 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 	ecn0 = q6->ip6q_ecn;
 	if (ecn == IPTOS_ECN_CE) {
 		if (ecn0 == IPTOS_ECN_NOTECT) {
-			vos_free(ip6af, M_FRAG6);
+			free(ip6af, M_FRAG6);
 			goto dropfrag;
 		}
 		if (ecn0 != IPTOS_ECN_CE)
 			q6->ip6q_ecn = IPTOS_ECN_CE;
 	}
 	if (ecn == IPTOS_ECN_NOTECT && ecn0 != IPTOS_ECN_NOTECT) {
-		vos_free(ip6af, M_FRAG6);
+		free(ip6af, M_FRAG6);
 		goto dropfrag;
 	}
 
@@ -728,7 +728,7 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 			if (af6tmp->ip6af_off != ip6af->ip6af_off ||
 			    af6tmp->ip6af_frglen != ip6af->ip6af_frglen)
 				frag6_freef(q6, bucket);
-			vos_free(ip6af, M_FRAG6);
+			free(ip6af, M_FRAG6);
 			goto dropfrag;
 		}
 	}
@@ -738,7 +738,7 @@ frag6_input(struct mbuf **mp, int *offp, int proto)
 			if (af6->ip6af_off != ip6af->ip6af_off ||
 			    af6->ip6af_frglen != ip6af->ip6af_frglen)
 				frag6_freef(q6, bucket);
-			vos_free(ip6af, M_FRAG6);
+			free(ip6af, M_FRAG6);
 			goto dropfrag;
 		}
 	}
@@ -799,7 +799,7 @@ postinsert:
 		m_adj(af6->ip6af_m, af6->ip6af_offset);
 		m_demote_pkthdr(af6->ip6af_m);
 		m_cat(t, af6->ip6af_m);
-		vos_free(af6, M_FRAG6);
+		free(af6, M_FRAG6);
 	}
 
 	while (m->m_pkthdr.csum_data & 0xffff0000)
@@ -808,7 +808,7 @@ postinsert:
 
 	/* Adjust offset to point where the original next header starts. */
 	offset = ip6af->ip6af_offset - sizeof(struct ip6_frag);
-	vos_free(ip6af, M_FRAG6);
+	free(ip6af, M_FRAG6);
 	ip6 = mtod(m, struct ip6_hdr *);
 	ip6->ip6_plen = htons((u_short)plen + offset - sizeof(struct ip6_hdr));
 	if (q6->ip6q_ecn == IPTOS_ECN_CE)
@@ -829,7 +829,7 @@ postinsert:
 	mac_ip6q_reassemble(q6, m);
 	mac_ip6q_destroy(q6);
 #endif
-	vos_free(q6, M_FRAG6);
+	free(q6, M_FRAG6);
 	atomic_subtract_int(&V_frag6_nfragpackets, 1);
 
 	if (m->m_flags & M_PKTHDR) { /* Isn't it always true? */

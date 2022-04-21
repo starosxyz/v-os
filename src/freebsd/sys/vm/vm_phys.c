@@ -997,19 +997,19 @@ vm_phys_fictitious_reg_range(vm_paddr_t start, vm_paddr_t end,
 		 * Trying to register a fictitious range that expands before
 		 * and after vm_page_array.
 		 */
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	else {
 	alloc:
 #endif
-		fp = vos_malloc(page_count * sizeof(struct vm_page), M_FICT_PAGES,
+		fp = malloc(page_count * sizeof(struct vm_page), M_FICT_PAGES,
 			M_WAITOK);
 #ifdef VM_PHYSSEG_DENSE
 	}
 #endif
 	vm_phys_fictitious_init_range(fp, start, page_count, memattr);
 
-	seg = vos_malloc(sizeof(*seg), M_FICT_PAGES, M_WAITOK | M_ZERO);
+	seg = malloc(sizeof(*seg), M_FICT_PAGES, M_WAITOK | M_ZERO);
 	seg->start = start;
 	seg->end = end;
 	seg->first_page = fp;
@@ -1081,8 +1081,8 @@ vm_phys_fictitious_unreg_range(vm_paddr_t start, vm_paddr_t end)
 	}
 	RB_REMOVE(fict_tree, &vm_phys_fictitious_tree, seg);
 	rw_wunlock(&vm_phys_fictitious_reg_lock);
-	vos_free(seg->first_page, M_FICT_PAGES);
-	vos_free(seg, M_FICT_PAGES);
+	free(seg->first_page, M_FICT_PAGES);
+	free(seg, M_FICT_PAGES);
 }
 
 /*
@@ -1592,7 +1592,7 @@ vm_phys_avail_split(vm_paddr_t pa, int i)
 		panic("vm_phys_avail_split: invalid address");
 	cnt = vm_phys_avail_count();
 	if (cnt >= PHYS_AVAIL_ENTRIES)
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 	memmove(&phys_avail[i + 2], &phys_avail[i],
 		(cnt - i) * sizeof(phys_avail[0]));
 	phys_avail[i + 1] = pa;

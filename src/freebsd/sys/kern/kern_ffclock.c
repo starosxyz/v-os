@@ -178,7 +178,7 @@ sysctl_kern_sysclock_available(SYSCTL_HANDLER_ARGS)
 	s = sbuf_new_for_sysctl(NULL, NULL,
 		MAX_SYSCLOCK_NAME_LEN * NUM_SYSCLOCKS, req);
 	if (s == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	for (clk = 0; clk < NUM_SYSCLOCKS; clk++) {
 		sbuf_cat(s, sysclocks[clk]);
@@ -210,7 +210,7 @@ sysctl_kern_sysclock_active(SYSCTL_HANDLER_ARGS)
 	int clk;
 
 	/* Return the name of the current active sysclock. */
-	vos_strlcpy(newclock, sysclocks[sysclock_active], sizeof(newclock));
+	strlcpy(newclock, sysclocks[sysclock_active], sizeof(newclock));
 	error = sysctl_handle_string(oidp, newclock, sizeof(newclock), req);
 
 	/* Check for error or no change */
@@ -218,9 +218,9 @@ sysctl_kern_sysclock_active(SYSCTL_HANDLER_ARGS)
 		goto done;
 
 	/* Change the active sysclock to the user specified one: */
-	error = VOS_EINVAL;
+	error = EINVAL;
 	for (clk = 0; clk < NUM_SYSCLOCKS; clk++) {
-		if (vos_strncmp(newclock, sysclocks[clk],
+		if (strncmp(newclock, sysclocks[clk],
 			MAX_SYSCLOCK_NAME_LEN - 1)) {
 			continue;
 		}
@@ -253,7 +253,7 @@ ffclock_bintime(struct bintime* bt)
 }
 
 void
-ffclock_nanotime(struct vos_timespec* tsp)
+ffclock_nanotime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -279,7 +279,7 @@ ffclock_getbintime(struct bintime* bt)
 }
 
 void
-ffclock_getnanotime(struct vos_timespec* tsp)
+ffclock_getnanotime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -306,7 +306,7 @@ ffclock_binuptime(struct bintime* bt)
 }
 
 void
-ffclock_nanouptime(struct vos_timespec* tsp)
+ffclock_nanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -332,7 +332,7 @@ ffclock_getbinuptime(struct bintime* bt)
 }
 
 void
-ffclock_getnanouptime(struct vos_timespec* tsp)
+ffclock_getnanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -359,7 +359,7 @@ ffclock_bindifftime(ffcounter ffdelta, struct bintime* bt)
 }
 
 void
-ffclock_nanodifftime(ffcounter ffdelta, struct vos_timespec* tsp)
+ffclock_nanodifftime(ffcounter ffdelta, struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -395,7 +395,7 @@ sys_ffclock_getcounter(struct thread* td, struct ffclock_getcounter_args* uap)
 	ffcount = 0;
 	ffclock_read_counter(&ffcount);
 	if (ffcount == 0)
-		return (VOS_EAGAIN);
+		return (EAGAIN);
 	error = copyout(&ffcount, uap->ffcount, sizeof(ffcounter));
 
 	return (error);
@@ -466,21 +466,21 @@ int
 sys_ffclock_getcounter(struct thread* td, struct ffclock_getcounter_args* uap)
 {
 
-	return (VOS_ENOSYS);
+	return (ENOSYS);
 }
 
 int
 sys_ffclock_setestimate(struct thread* td, struct ffclock_setestimate_args* uap)
 {
 
-	return (VOS_ENOSYS);
+	return (ENOSYS);
 }
 
 int
 sys_ffclock_getestimate(struct thread* td, struct ffclock_getestimate_args* uap)
 {
 
-	return (VOS_ENOSYS);
+	return (ENOSYS);
 }
 
 #endif /* FFCLOCK */

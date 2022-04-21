@@ -153,10 +153,10 @@ VNET_PCPUSTAT_DECLARE(struct ipstat, ipstat);
  */
 void	kmod_ipstat_inc(int statnum);
 #define	KMOD_IPSTAT_INC(name)	\
-    kmod_ipstat_inc(vos_offsetof(struct ipstat, name) / sizeof(uint64_t))
+    kmod_ipstat_inc(offsetof(struct ipstat, name) / sizeof(uint64_t))
 void	kmod_ipstat_dec(int statnum);
 #define	KMOD_IPSTAT_DEC(name)	\
-    kmod_ipstat_dec(vos_offsetof(struct ipstat, name) / sizeof(uint64_t))
+    kmod_ipstat_dec(offsetof(struct ipstat, name) / sizeof(uint64_t))
 
 /* flags passed to ip_output as last parameter */
 #define	IP_FORWARDING		0x1		/* most of ip header exists */

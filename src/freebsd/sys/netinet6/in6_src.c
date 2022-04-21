@@ -256,7 +256,7 @@ in6_selectsrc(uint32_t fibnum, struct sockaddr_in6 *dstsock,
 			    IN6_IFF_NOTREADY))) {
 				if (ia != NULL)
 					ifa_free(&ia->ia_ifa);
-				return (VOS_EADDRNOTAVAIL);
+				return (EADDRNOTAVAIL);
 			}
 			bcopy(&ia->ia_addr.sin6_addr, srcp, sizeof(*srcp));
 			ifa_free(&ia->ia_ifa);
@@ -504,7 +504,7 @@ in6_selectsrc(uint32_t fibnum, struct sockaddr_in6 *dstsock,
 	if ((ia = ia_best) == NULL) {
 		IN6_IFADDR_RUNLOCK(&in6_ifa_tracker);
 		IP6STAT_INC(ip6s_sources_none);
-		return (VOS_EADDRNOTAVAIL);
+		return (EADDRNOTAVAIL);
 	}
 
 	/*
@@ -521,7 +521,7 @@ in6_selectsrc(uint32_t fibnum, struct sockaddr_in6 *dstsock,
 	    (inp->inp_flags & IN6P_IPV6_V6ONLY) != 0)) != 0) {
 		IN6_IFADDR_RUNLOCK(&in6_ifa_tracker);
 		IP6STAT_INC(ip6s_sources_none);
-		return (VOS_EADDRNOTAVAIL);
+		return (EADDRNOTAVAIL);
 	}
 
 	if (ifpp)
@@ -725,7 +725,7 @@ selectroute(struct sockaddr_in6 *dstsock, struct ip6_pktopts *opts,
 		 */
 		if (ron->ro_nh == NULL ||
 		    (ron->ro_nh->nh_flags & NHF_GATEWAY) != 0)
-			error = VOS_EHOSTUNREACH;
+			error = EHOSTUNREACH;
 		else {
 			nh = ron->ro_nh;
 			ifp = nh->nh_ifp;
@@ -784,7 +784,7 @@ selectroute(struct sockaddr_in6 *dstsock, struct ip6_pktopts *opts,
 		if (ro->ro_nh)
 			ifp = ro->ro_nh->nh_ifp;
 		else
-			error = VOS_EHOSTUNREACH;
+			error = EHOSTUNREACH;
 		nh = ro->ro_nh;
 
 		/*
@@ -799,7 +799,7 @@ selectroute(struct sockaddr_in6 *dstsock, struct ip6_pktopts *opts,
 			if (!(ifp->if_flags & IFF_LOOPBACK) &&
 			    ifp->if_index !=
 			    opts->ip6po_pktinfo->ipi6_ifindex) {
-				error = VOS_EHOSTUNREACH;
+				error = EHOSTUNREACH;
 				goto done;
 			}
 		}
@@ -811,9 +811,9 @@ selectroute(struct sockaddr_in6 *dstsock, struct ip6_pktopts *opts,
 		 * This can happen if the caller did not pass a cached route
 		 * nor any other hints.  We treat this case an error.
 		 */
-		error = VOS_EHOSTUNREACH;
+		error = EHOSTUNREACH;
 	}
-	if (error == VOS_EHOSTUNREACH)
+	if (error == EHOSTUNREACH)
 		IP6STAT_INC(ip6s_noroute);
 
 	if (retifp != NULL) {
@@ -879,7 +879,7 @@ in6_selectif(struct sockaddr_in6 *dstsock, struct ip6_pktopts *opts,
 	 */
 
 	if (nh_flags & (NHF_REJECT | NHF_BLACKHOLE)) {
-		error = (nh_flags & NHF_HOST ? VOS_EHOSTUNREACH : VOS_ENETUNREACH);
+		error = (nh_flags & NHF_HOST ? EHOSTUNREACH : ENETUNREACH);
 		return (error);
 	}
 
@@ -965,7 +965,7 @@ in6_pcbsetport(struct in6_addr *laddr, struct inpcb *inp, struct ucred *cred)
 	if (in_pcbinshash(inp) != 0) {
 		inp->in6p_laddr = in6addr_any;
 		inp->inp_lport = 0;
-		return (VOS_EAGAIN);
+		return (EAGAIN);
 	}
 
 	return (0);
@@ -1024,7 +1024,7 @@ in6_src_sysctl(SYSCTL_HANDLER_ARGS)
 	struct walkarg w;
 
 	if (req->newptr)
-		return VOS_EPERM;
+		return EPERM;
 
 	bzero(&w, sizeof(w));
 	w.w_req = req;
@@ -1038,15 +1038,15 @@ in6_src_ioctl(u_long cmd, caddr_t data)
 	struct in6_addrpolicy ent0;
 
 	if (cmd != SIOCAADDRCTL_POLICY && cmd != SIOCDADDRCTL_POLICY)
-		return (VOS_EOPNOTSUPP); /* check for safety */
+		return (EOPNOTSUPP); /* check for safety */
 
 	ent0 = *(struct in6_addrpolicy *)data;
 
 	if (ent0.label == ADDR_LABEL_NOTAPP)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	/* check if the prefix mask is consecutive. */
 	if (in6_mask2len(&ent0.addrmask.sin6_addr, NULL) < 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	/* clear trailing garbages (if any) of the prefix address. */
 	IN6_MASK_ADDR(&ent0.addr.sin6_addr, &ent0.addrmask.sin6_addr);
 	ent0.use = 0;
@@ -1089,7 +1089,7 @@ add_addrsel_policyent(struct in6_addrpolicy *newpolicy)
 {
 	struct addrsel_policyent *new, *pol;
 
-	new = vos_malloc(sizeof(*new), M_IFADDR,
+	new = malloc(sizeof(*new), M_IFADDR,
 	       M_WAITOK);
 	ADDRSEL_XLOCK();
 	ADDRSEL_LOCK();
@@ -1102,8 +1102,8 @@ add_addrsel_policyent(struct in6_addrpolicy *newpolicy)
 				       &pol->ape_policy.addrmask.sin6_addr)) {
 			ADDRSEL_UNLOCK();
 			ADDRSEL_XUNLOCK();
-			vos_free(new, M_IFADDR);
-			return (VOS_EEXIST);	/* or override it? */
+			free(new, M_IFADDR);
+			return (EEXIST);	/* or override it? */
 		}
 	}
 
@@ -1139,13 +1139,13 @@ delete_addrsel_policyent(struct in6_addrpolicy *key)
 	if (pol == NULL) {
 		ADDRSEL_UNLOCK();
 		ADDRSEL_XUNLOCK();
-		return (VOS_ESRCH);
+		return (ESRCH);
 	}
 
 	TAILQ_REMOVE(&V_addrsel_policytab, pol, ape_entry);
 	ADDRSEL_UNLOCK();
 	ADDRSEL_XUNLOCK();
-	vos_free(pol, M_IFADDR);
+	free(pol, M_IFADDR);
 
 	return (0);
 }

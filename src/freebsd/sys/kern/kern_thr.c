@@ -110,7 +110,7 @@ thr_create_initthr(struct thread *td, void *thunk)
 	/* Copy out the child tid. */
 	args = thunk;
 	if (args->tid != NULL && suword_lwpid(args->tid, td->td_tid))
-		return (VOS_EFAULT);
+		return (EFAULT);
 
 
 	return (set_mcontext(td, &args->ctx.uc_mcontext));
@@ -137,7 +137,7 @@ sys_thr_new(struct thread *td, struct thr_new_args *uap)
 	int error;
 
 	if (uap->param_size < 0 || uap->param_size > sizeof(param))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	bzero(&param, sizeof(param));
 	if ((error = copyin(uap->param, &param, uap->param_size)))
 		return (error);
@@ -162,7 +162,7 @@ thr_new_initthr(struct thread *td, void *thunk)
 	    suword_lwpid(param->child_tid, td->td_tid)) ||
 	    (param->parent_tid != NULL &&
 	    suword_lwpid(param->parent_tid, td->td_tid)))
-		return (VOS_EFAULT);
+		return (EFAULT);
 
 	/* Set up our machine context. */
 	stack.ss_sp = param->stack_base;
@@ -205,15 +205,15 @@ thread_create(struct thread *td, struct rtprio *rtp,
 		case RTP_PRIO_FIFO:
 			/* Only root can set scheduler policy */
 			if (priv_check(td, PRIV_SCHED_SETPOLICY) != 0)
-				return (VOS_EPERM);
+				return (EPERM);
 			if (rtp->prio > RTP_PRIO_MAX)
-				return (VOS_EINVAL);
+				return (EINVAL);
 			break;
 		case RTP_PRIO_NORMAL:
 			rtp->prio = 0;
 			break;
 		default:
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 	}
 
@@ -223,7 +223,7 @@ thread_create(struct thread *td, struct rtprio *rtp,
 		error = racct_add(p, RACCT_NTHR, 1);
 		PROC_UNLOCK(p);
 		if (error != 0)
-			return (VOS_EPROCLIM);
+			return (EPROCLIM);
 	}
 #endif
 
@@ -302,7 +302,7 @@ sys_thr_self(struct thread *td, struct thr_self_args *uap)
 
 	error = suword_lwpid(uap->id, (unsigned)td->td_tid);
 	if (error == -1)
-		return (VOS_EFAULT);
+		return (EFAULT);
 	return (0);
 }
 
@@ -402,9 +402,9 @@ sys_thr_kill(struct thread *td, struct thr_kill_args *uap)
 	ksi.ksi_uid = td->td_ucred->cr_ruid;
 	if (uap->id == -1) {
 		if (uap->sig != 0 && !_SIG_VALID(uap->sig)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		} else {
-			error = VOS_ESRCH;
+			error = ESRCH;
 			PROC_LOCK(p);
 			FOREACH_THREAD_IN_PROC(p, ttd) {
 				if (ttd != td) {
@@ -420,11 +420,11 @@ sys_thr_kill(struct thread *td, struct thr_kill_args *uap)
 		error = 0;
 		ttd = tdfind((lwpid_t)uap->id, p->p_pid);
 		if (ttd == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		if (uap->sig == 0)
 			;
 		else if (!_SIG_VALID(uap->sig))
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else 
 			tdksignal(ttd, uap->sig, &ksi);
 		PROC_UNLOCK(ttd->td_proc);
@@ -450,7 +450,7 @@ sys_thr_kill2(struct thread *td, struct thr_kill2_args *uap)
 	ksi.ksi_uid = td->td_ucred->cr_ruid;
 	if (uap->id == -1) {
 		if ((p = pfind(uap->pid)) == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		AUDIT_ARG_PROCESS(p);
 		error = p_cansignal(td, p, uap->sig);
 		if (error) {
@@ -458,9 +458,9 @@ sys_thr_kill2(struct thread *td, struct thr_kill2_args *uap)
 			return (error);
 		}
 		if (uap->sig != 0 && !_SIG_VALID(uap->sig)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		} else {
-			error = VOS_ESRCH;
+			error = ESRCH;
 			FOREACH_THREAD_IN_PROC(p, ttd) {
 				if (ttd != td) {
 					error = 0;
@@ -474,14 +474,14 @@ sys_thr_kill2(struct thread *td, struct thr_kill2_args *uap)
 	} else {
 		ttd = tdfind((lwpid_t)uap->id, uap->pid);
 		if (ttd == NULL)
-			return (VOS_ESRCH);
+			return (ESRCH);
 		p = ttd->td_proc;
 		AUDIT_ARG_PROCESS(p);
 		error = p_cansignal(td, p, uap->sig);
 		if (uap->sig == 0)
 			;
 		else if (!_SIG_VALID(uap->sig))
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			tdksignal(ttd, uap->sig, &ksi);
 		PROC_UNLOCK(p);
@@ -491,9 +491,9 @@ sys_thr_kill2(struct thread *td, struct thr_kill2_args *uap)
 
 int
 sys_thr_suspend(struct thread *td, struct thr_suspend_args *uap)
-	/* const struct vos_timespec *timeout */
+	/* const struct timespec *timeout */
 {
-	struct vos_timespec ts, *tsp;
+	struct timespec ts, *tsp;
 	int error;
 
 	tsp = NULL;
@@ -508,7 +508,7 @@ sys_thr_suspend(struct thread *td, struct thr_suspend_args *uap)
 }
 
 int
-kern_thr_suspend(struct thread *td, struct vos_timespec *tsp)
+kern_thr_suspend(struct thread *td, struct timespec *tsp)
 {
 	struct proc *p = td->td_proc;
 	struct timeval tv;
@@ -522,7 +522,7 @@ kern_thr_suspend(struct thread *td, struct vos_timespec *tsp)
 
 	if (tsp != NULL) {
 		if (tsp->tv_sec == 0 && tsp->tv_nsec == 0)
-			error = VOS_EWOULDBLOCK;
+			error = EWOULDBLOCK;
 		else {
 			TIMESPEC_TO_TIMEVAL(&tv, tsp);
 			timo = tvtohz(&tv);
@@ -542,11 +542,11 @@ kern_thr_suspend(struct thread *td, struct vos_timespec *tsp)
 		return (0);
 	}
 	PROC_UNLOCK(p);
-	if (error == VOS_EWOULDBLOCK)
-		error = VOS_ETIMEDOUT;
-	else if (error == VOS_ERESTART) {
+	if (error == EWOULDBLOCK)
+		error = ETIMEDOUT;
+	else if (error == ERESTART) {
 		if (timo != 0)
-			error = VOS_EINTR;
+			error = EINTR;
 	}
 	return (error);
 }
@@ -566,7 +566,7 @@ sys_thr_wake(struct thread *td, struct thr_wake_args *uap)
 	p = td->td_proc;
 	ttd = tdfind((lwpid_t)uap->id, p->p_pid);
 	if (ttd == NULL)
-		return (VOS_ESRCH);
+		return (ESRCH);
 	thread_lock(ttd);
 	ttd->td_flags |= TDF_THRWAKEUP;
 	thread_unlock(ttd);
@@ -587,7 +587,7 @@ sys_thr_set_name(struct thread *td, struct thr_set_name_args *uap)
 	name[0] = '\0';
 	if (uap->name != NULL) {
 		error = copyinstr(uap->name, name, sizeof(name), NULL);
-		if (error == VOS_ENAMETOOLONG) {
+		if (error == ENAMETOOLONG) {
 			error = copyin(uap->name, name, sizeof(name) - 1);
 			name[sizeof(name) - 1] = '\0';
 		}
@@ -597,8 +597,8 @@ sys_thr_set_name(struct thread *td, struct thr_set_name_args *uap)
 	p = td->td_proc;
 	ttd = tdfind((lwpid_t)uap->id, p->p_pid);
 	if (ttd == NULL)
-		return (VOS_ESRCH);
-	vos_strcpy(ttd->td_name, name);
+		return (ESRCH);
+	strcpy(ttd->td_name, name);
 #ifdef HWPMC_HOOKS
 	if (PMC_PROC_IS_USING_PMCS(p) || PMC_SYSTEM_SAMPLING_ACTIVE())
 		PMC_CALL_HOOK_UNLOCKED(ttd, PMC_FN_THR_CREATE_LOG, NULL);
@@ -617,12 +617,12 @@ kern_thr_alloc(struct proc *p, int pages, struct thread **ntd)
 	/* Have race condition but it is cheap. */
 	if (p->p_numthreads >= max_threads_per_proc) {
 		++max_threads_hits;
-		return (VOS_EPROCLIM);
+		return (EPROCLIM);
 	}
 
 	*ntd = thread_alloc(pages);
 	if (*ntd == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	return (0);
 }

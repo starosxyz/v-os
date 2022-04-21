@@ -598,7 +598,7 @@ tcp_reass(struct tcpcb *tp, struct tcphdr *th, tcp_seq *seq_start,
 		if ((s = tcp_log_addrs(&tp->t_inpcb->inp_inc, th, NULL, NULL))) {
 			log(LOG_DEBUG, "%s; %s: mbuf count limit reached, "
 			    "segment dropped\n", s, __func__);
-			vos_free(s, M_TCPLOG);
+			free(s, M_TCPLOG);
 		}
 		m_freem(m);
 		*tlenp = 0;
@@ -978,7 +978,7 @@ new_entry:
 			if ((s = tcp_log_addrs(&tp->t_inpcb->inp_inc, th, NULL, NULL))) {
 				log(LOG_DEBUG, "%s; %s: queue limit reached, "
 				    "segment dropped\n", s, __func__);
-				vos_free(s, M_TCPLOG);
+				free(s, M_TCPLOG);
 			}
 			m_freem(m);
 #ifdef TCP_REASS_LOGGING
@@ -994,7 +994,7 @@ new_entry:
 			if ((s = tcp_log_addrs(&tp->t_inpcb->inp_inc, th, NULL, NULL))) {
 				log(LOG_DEBUG, "%s; %s: queue limit reached, "
 				    "segment dropped\n", s, __func__);
-				vos_free(s, M_TCPLOG);
+				free(s, M_TCPLOG);
 			}
 			m_freem(m);
 #ifdef TCP_REASS_LOGGING
@@ -1016,7 +1016,7 @@ new_entry:
 				       NULL))) {
 			log(LOG_DEBUG, "%s; %s: global zone limit "
 			    "reached, segment dropped\n", s, __func__);
-			vos_free(s, M_TCPLOG);
+			free(s, M_TCPLOG);
 		}
 		return (0);
 	}

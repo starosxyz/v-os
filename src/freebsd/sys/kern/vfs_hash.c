@@ -91,7 +91,7 @@ vfs_hash_get(const struct mount *mp, u_int hash, int flags, struct thread *td,
 			vs = vget_prep(vp);
 			rw_runlock(&vfs_hash_lock);
 			error = vget_finish(vp, flags, vs);
-			if (error == VOS_ENOENT && (flags & LK_NOWAIT) == 0)
+			if (error == ENOENT && (flags & LK_NOWAIT) == 0)
 				break;
 			if (error)
 				return (error);
@@ -167,7 +167,7 @@ vfs_hash_insert(struct vnode *vp, u_int hash, int flags, struct thread *td,
 			vs = vget_prep(vp2);
 			rw_wunlock(&vfs_hash_lock);
 			error = vget_finish(vp2, flags, vs);
-			if (error == VOS_ENOENT && (flags & LK_NOWAIT) == 0)
+			if (error == ENOENT && (flags & LK_NOWAIT) == 0)
 				break;
 			rw_wlock(&vfs_hash_lock);
 			LIST_INSERT_HEAD(&vfs_hash_side, vp, v_hashlist);
@@ -210,7 +210,7 @@ vfs_hash_changesize(u_long newmaxvnodes)
 		&vfs_hash_newmask);
 	/* If same hash table size, nothing to do */
 	if (vfs_hash_mask == vfs_hash_newmask) {
-		vos_free(vfs_hash_newtbl, M_VFS_HASH);
+		free(vfs_hash_newtbl, M_VFS_HASH);
 		return;
 	}
 	/*
@@ -232,5 +232,5 @@ vfs_hash_changesize(u_long newmaxvnodes)
 		}
 	}
 	rw_wunlock(&vfs_hash_lock);
-	vos_free(vfs_hash_oldtbl, M_VFS_HASH);
+	free(vfs_hash_oldtbl, M_VFS_HASH);
 }

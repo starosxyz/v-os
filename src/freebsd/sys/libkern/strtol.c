@@ -48,8 +48,8 @@ __FBSDID("$FreeBSD$");
  * Ignores `locale' stuff.  Assumes that the upper and lower case
  * alphabets and digits are each contiguous.
  */
-long
-xos_strtol(const char *nptr, char **endptr, int base)
+long long
+strtol(const char *nptr, char **endptr, int base)
 {
 	const char *s = nptr;
 	unsigned long long acc;
@@ -64,7 +64,7 @@ xos_strtol(const char *nptr, char **endptr, int base)
 	 */
 	do {
 		c = *s++;
-	} while (vos_isspace(c));
+	} while (isspace(c));
 	if (c == '-') {
 		neg = 1;
 		c = *s++;
@@ -100,12 +100,12 @@ xos_strtol(const char *nptr, char **endptr, int base)
 	cutlim = cutoff % (unsigned long long)base;
 	cutoff /= (unsigned long long)base;
 	for (acc = 0, any = 0;; c = *s++) {
-		if (!vos_isascii(c))
+		if (!isascii(c))
 			break;
-		if (vos_isdigit(c))
+		if (isdigit(c))
 			c -= '0';
-		else if (vos_isalpha(c))
-			c -= vos_isupper(c) ? 'A' - 10 : 'a' - 10;
+		else if (isalpha(c))
+			c -= isupper(c) ? 'A' - 10 : 'a' - 10;
 		else
 			break;
 		if (c >= base)

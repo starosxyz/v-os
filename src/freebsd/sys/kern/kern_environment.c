@@ -121,10 +121,10 @@ sys_kenv(td, uap)
 			buflen = KENV_SIZE * (KENV_MNAMELEN +
 			    kenv_mvallen + 2);
 		if (uap->len > 0 && uap->value != NULL)
-			buffer = vos_malloc(buflen, M_TEMP, M_WAITOK|M_ZERO);
+			buffer = malloc(buflen, M_TEMP, M_WAITOK|M_ZERO);
 		mtx_lock(&kenv_lock);
 		for (i = 0; kenvp[i] != NULL; i++) {
-			len = vos_strlen(kenvp[i]) + 1;
+			len = strlen(kenvp[i]) + 1;
 			needed += len;
 			len = min(len, buflen - done);
 			/*
@@ -139,7 +139,7 @@ sys_kenv(td, uap)
 		mtx_unlock(&kenv_lock);
 		if (buffer != NULL) {
 			error = copyout(buffer, uap->value, done);
-			vos_free(buffer, M_TEMP);
+			free(buffer, M_TEMP);
 		}
 		td->td_retval[0] = ((done == needed) ? 0 : needed);
 		return (error);
@@ -159,7 +159,7 @@ sys_kenv(td, uap)
 		break;
 	}
 
-	name = vos_malloc(KENV_MNAMELEN + 1, M_TEMP, M_WAITOK);
+	name = malloc(KENV_MNAMELEN + 1, M_TEMP, M_WAITOK);
 
 	error = copyinstr(uap->name, name, KENV_MNAMELEN + 1, NULL);
 	if (error)
@@ -174,10 +174,10 @@ sys_kenv(td, uap)
 #endif
 		value = kern_getenv(name);
 		if (value == NULL) {
-			error = VOS_ENOENT;
+			error = ENOENT;
 			goto done;
 		}
-		len = vos_strlen(value) + 1;
+		len = strlen(value) + 1;
 		if (len > uap->len)
 			len = uap->len;
 		error = copyout(value, uap->value, len);
@@ -189,15 +189,15 @@ sys_kenv(td, uap)
 	case KENV_SET:
 		len = uap->len;
 		if (len < 1) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto done;
 		}
 		if (len > kenv_mvallen + 1)
 			len = kenv_mvallen + 1;
-		value = vos_malloc(len, M_TEMP, M_WAITOK);
+		value = malloc(len, M_TEMP, M_WAITOK);
 		error = copyinstr(uap->value, value, len, NULL);
 		if (error) {
-			vos_free(value, M_TEMP);
+			free(value, M_TEMP);
 			goto done;
 		}
 #ifdef MAC
@@ -205,7 +205,7 @@ sys_kenv(td, uap)
 		if (error == 0)
 #endif
 			kern_setenv(name, value);
-		vos_free(value, M_TEMP);
+		free(value, M_TEMP);
 		break;
 	case KENV_UNSET:
 #ifdef MAC
@@ -215,14 +215,14 @@ sys_kenv(td, uap)
 #endif
 		error = kern_unsetenv(name);
 		if (error)
-			error = VOS_ENOENT;
+			error = ENOENT;
 		break;
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 done:
-	vos_free(name, M_TEMP);
+	free(name, M_TEMP);
 	return (error);
 }
 
@@ -329,7 +329,7 @@ init_dynamic_kenv_from(char *init_env, int *curpos)
 		i = *curpos;
 		for (cp = init_env; cp != NULL; cp = cpnext) {
 			cpnext = kernenv_next(cp);
-			len = vos_strlen(cp) + 1;
+			len = strlen(cp) + 1;
 			if (len > KENV_MNAMELEN + 1 + kenv_mvallen + 1) {
 				printf(
 				"WARNING: too long kenv string, ignoring %s\n",
@@ -362,8 +362,8 @@ init_dynamic_kenv_from(char *init_env, int *curpos)
 				goto sanitize;
 			}
 
-			kenvp[i] = vos_malloc(len, M_KENV, M_WAITOK);
-			vos_strcpy(kenvp[i++], cp);
+			kenvp[i] = malloc(len, M_KENV, M_WAITOK);
+			strcpy(kenvp[i++], cp);
 sanitize:
 			explicit_bzero(cp, len - 1);
 		}
@@ -386,7 +386,7 @@ init_dynamic_kenv(void *data __unused)
 	kenv_zone = uma_zcreate("kenv", size, NULL, NULL, NULL, NULL,
 	    UMA_ALIGN_PTR, 0);
 
-	kenvp = vos_malloc((KENV_SIZE + 1) * sizeof(char *), M_KENV,
+	kenvp = malloc((KENV_SIZE + 1) * sizeof(char *), M_KENV,
 		M_WAITOK | M_ZERO);
 
 	dynamic_envpos = 0;
@@ -404,7 +404,7 @@ freeenv(char *env)
 {
 
 	if (dynamic_kenv && env != NULL) {
-		explicit_bzero(env, vos_strlen(env));
+		explicit_bzero(env, strlen(env));
 		uma_zfree(kenv_zone, env);
 	}
 }
@@ -418,9 +418,9 @@ _getenv_dynamic_locked(const char *name, int *idx)
 	char *cp;
 	int len, i;
 
-	len = vos_strlen(name);
+	len = strlen(name);
 	for (cp = kenvp[0], i = 0; cp != NULL; cp = kenvp[++i]) {
-		if ((vos_strncmp(cp, name, len) == 0) &&
+		if ((strncmp(cp, name, len) == 0) &&
 		    (cp[len] == '=')) {
 			if (idx != NULL)
 				*idx = i;
@@ -451,7 +451,7 @@ _getenv_static_from(char *chkenv, const char *name)
 			continue;
 		len = ep - cp;
 		ep++;
-		if (!vos_strncmp(name, cp, len) && name[len] == 0)
+		if (!strncmp(name, cp, len) && name[len] == 0)
 			return (ep);
 	}
 	return (NULL);
@@ -489,7 +489,7 @@ kern_getenv(const char *name)
 		mtx_lock(&kenv_lock);
 		cp = _getenv_dynamic(name, NULL);
 		if (cp != NULL)
-			vos_strlcpy(ret, cp, len);
+			strlcpy(ret, cp, len);
 		mtx_unlock(&kenv_lock);
 		if (cp == NULL) {
 			uma_zfree(kenv_zone, ret);
@@ -531,7 +531,7 @@ setenv_static(const char *name, const char *value)
 		return (-1);
 
 	/* Check space for x=y and two nuls */
-	len = vos_strlen(name) + vos_strlen(value);
+	len = strlen(name) + strlen(value);
 	if (len + 3 < md_env_len - md_env_pos) {
 		len = sprintf(&md_envp[md_env_pos], "%s=%s", name, value);
 		md_env_pos += len+1;
@@ -556,13 +556,13 @@ kern_setenv(const char *name, const char *value)
 
 	KENV_CHECK;
 
-	namelen = vos_strlen(name) + 1;
+	namelen = strlen(name) + 1;
 	if (namelen > KENV_MNAMELEN + 1)
 		return (-1);
-	vallen = vos_strlen(value) + 1;
+	vallen = strlen(value) + 1;
 	if (vallen > kenv_mvallen + 1)
 		return (-1);
-	buf = vos_malloc(namelen + vallen, M_KENV, M_WAITOK);
+	buf = malloc(namelen + vallen, M_KENV, M_WAITOK);
 	sprintf(buf, "%s=%s", name, value);
 
 	mtx_lock(&kenv_lock);
@@ -571,7 +571,7 @@ kern_setenv(const char *name, const char *value)
 		oldenv = kenvp[i];
 		kenvp[i] = buf;
 		mtx_unlock(&kenv_lock);
-		vos_free(oldenv, M_KENV);
+		free(oldenv, M_KENV);
 	} else {
 		/* We add the option if it wasn't found */
 		for (i = 0; (cp = kenvp[i]) != NULL; i++)
@@ -579,7 +579,7 @@ kern_setenv(const char *name, const char *value)
 
 		/* Bounds checking */
 		if (i < 0 || i >= KENV_SIZE) {
-			vos_free(buf, M_KENV);
+			free(buf, M_KENV);
 			mtx_unlock(&kenv_lock);
 			return (-1);
 		}
@@ -658,7 +658,7 @@ getenv_string(const char *name, char *data, int size)
 	cp = kenv_acquire(name);
 
 	if (cp != NULL)
-		vos_strlcpy(data, cp, size);
+		strlcpy(data, cp, size);
 
 	kenv_release(cp);
 

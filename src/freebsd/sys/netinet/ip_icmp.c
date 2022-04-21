@@ -952,15 +952,15 @@ icmp_verify_redirect_gateway(struct sockaddr_in *src, struct sockaddr_in *dst,
 
 	/* Verify the gateway is directly reachable. */
 	if ((ifa = ifa_ifwithnet((struct sockaddr *)gateway, 0, fibnum))==NULL)
-		return (VOS_ENETUNREACH);
+		return (ENETUNREACH);
 
 	/* TODO: fib-aware. */
 	if (ifa_ifwithaddr_check((struct sockaddr *)gateway))
-		return (VOS_EHOSTUNREACH);
+		return (EHOSTUNREACH);
 
 	nh = fib4_lookup(fibnum, dst->sin_addr, 0, NHR_NONE, 0);
 	if (nh == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * If the redirect isn't from our current router for this dst,
@@ -969,17 +969,17 @@ icmp_verify_redirect_gateway(struct sockaddr_in *src, struct sockaddr_in *dst,
 	 * going down recently.
 	 */
 	if (!sa_equal((struct sockaddr *)src, &nh->gw_sa))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (nh->nh_ifa != ifa && ifa->ifa_addr->sa_family != AF_LINK)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* If host route already exists, ignore redirect. */
 	if (nh->nh_flags & NHF_HOST)
-		return (VOS_EEXIST);
+		return (EEXIST);
 
 	/* If the prefix is directly reachable, ignore redirect. */
 	if (!(nh->nh_flags & NHF_GATEWAY))
-		return (VOS_EEXIST);
+		return (EEXIST);
 
 	return (0);
 }

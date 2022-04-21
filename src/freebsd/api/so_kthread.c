@@ -48,7 +48,7 @@ kthread_add_(void (*func)(void*), void* arg, struct proc* p,
 	/* Initialize our new td  */
 	newtd = thread_alloc(pages);
 	if (newtd == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	PROC_LOCK(p);
 	oldtd = FIRST_THREAD_IN_PROC(p);

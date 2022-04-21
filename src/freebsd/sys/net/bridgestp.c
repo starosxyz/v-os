@@ -1476,10 +1476,10 @@ bstp_set_htime(struct bstp_state *bs, int t)
 
 	/* value can only be changed in leagacy stp mode */
 	if (bs->bs_protover != BSTP_PROTO_STP)
-		return (VOS_EPERM);
+		return (EPERM);
 
 	if (t < BSTP_MIN_HELLO_TIME || t > BSTP_MAX_HELLO_TIME)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	BSTP_LOCK(bs);
 	bs->bs_bridge_htime = t;
@@ -1495,7 +1495,7 @@ bstp_set_fdelay(struct bstp_state *bs, int t)
 	t *= BSTP_TICK_VAL;
 
 	if (t < BSTP_MIN_FORWARD_DELAY || t > BSTP_MAX_FORWARD_DELAY)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	BSTP_LOCK(bs);
 	bs->bs_bridge_fdelay = t;
@@ -1511,7 +1511,7 @@ bstp_set_maxage(struct bstp_state *bs, int t)
 	t *= BSTP_TICK_VAL;
 
 	if (t < BSTP_MIN_MAX_AGE || t > BSTP_MAX_MAX_AGE)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	BSTP_LOCK(bs);
 	bs->bs_bridge_max_age = t;
@@ -1527,7 +1527,7 @@ bstp_set_holdcount(struct bstp_state *bs, int count)
 
 	if (count < BSTP_MIN_HOLD_COUNT ||
 	    count > BSTP_MAX_HOLD_COUNT)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	BSTP_LOCK(bs);
 	bs->bs_txholdcount = count;
@@ -1549,7 +1549,7 @@ bstp_set_protocol(struct bstp_state *bs, int proto)
 			break;
 
 		default:
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 
 	BSTP_LOCK(bs);
@@ -1573,7 +1573,7 @@ int
 bstp_set_priority(struct bstp_state *bs, int pri)
 {
 	if (pri < 0 || pri > BSTP_MAX_PRIORITY)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* Limit to steps of 4096 */
 	pri -= pri % 4096;
@@ -1591,7 +1591,7 @@ bstp_set_port_priority(struct bstp_port *bp, int pri)
 	struct bstp_state *bs = bp->bp_bs;
 
 	if (pri < 0 || pri > BSTP_MAX_PORT_PRIORITY)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* Limit to steps of 16 */
 	pri -= pri % 16;
@@ -1609,7 +1609,7 @@ bstp_set_path_cost(struct bstp_port *bp, uint32_t path_cost)
 	struct bstp_state *bs = bp->bp_bs;
 
 	if (path_cost > BSTP_MAX_PATH_COST)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* STP compat mode only uses 16 bits of the 32 */
 	if (bp->bp_protover == BSTP_PROTO_STP && path_cost > 65535)
@@ -2120,7 +2120,7 @@ bstp_modevent(module_t mod, int type, void *data)
 		mtx_destroy(&bstp_list_mtx);
 		break;
 	default:
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	return (0);
 }
@@ -2235,7 +2235,7 @@ bstp_enable(struct bstp_port *bp)
 			break;
 		default:
 			/* Nothing else can. */
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 
 	BSTP_LOCK(bs);

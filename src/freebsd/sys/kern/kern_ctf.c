@@ -64,7 +64,7 @@ link_elf_ctf_get(linker_file_t lf, linker_ctf_t *lc)
 	int error = 0;
 
 	if (lf == NULL || lc == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* Set the defaults for no CTF present. That's not a crime! */
 	bzero(lc, sizeof(*lc));
@@ -307,7 +307,7 @@ out:
 	if (raw != NULL)
 		free(raw, M_LINKER);
 #else
-	error = VOS_EOPNOTSUPP;
+	error = EOPNOTSUPP;
 #endif
 
 	return (error);

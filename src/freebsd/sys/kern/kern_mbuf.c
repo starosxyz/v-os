@@ -128,7 +128,7 @@ sysctl_mb_use_ext_pgs(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_int(oidp, &extpg, 0, req);
 	if (error == 0 && req->newptr != NULL) {
 		if (extpg != 0 && !PMAP_HAS_DMAP)
-			error = VOS_EOPNOTSUPP;
+			error = EOPNOTSUPP;
 		else
 			mb_use_ext_pgs = extpg != 0;
 	}
@@ -220,7 +220,7 @@ sysctl_nmbclusters(SYSCTL_HANDLER_ARGS)
 			EVENTHANDLER_INVOKE(nmbclusters_change);
 		}
 		else
-			error = VOS_EINVAL;
+			error = EINVAL;
 	}
 	return (error);
 }
@@ -243,7 +243,7 @@ sysctl_nmbjumbop(SYSCTL_HANDLER_ARGS)
 			nmbjumbop = uma_zone_set_max(zone_jumbop, nmbjumbop);
 		}
 		else
-			error = VOS_EINVAL;
+			error = EINVAL;
 	}
 	return (error);
 }
@@ -266,7 +266,7 @@ sysctl_nmbjumbo9(SYSCTL_HANDLER_ARGS)
 			nmbjumbo9 = uma_zone_set_max(zone_jumbo9, nmbjumbo9);
 		}
 		else
-			error = VOS_EINVAL;
+			error = EINVAL;
 	}
 	return (error);
 }
@@ -289,7 +289,7 @@ sysctl_nmbjumbo16(SYSCTL_HANDLER_ARGS)
 			nmbjumbo16 = uma_zone_set_max(zone_jumbo16, nmbjumbo16);
 		}
 		else
-			error = VOS_EINVAL;
+			error = EINVAL;
 	}
 	return (error);
 }
@@ -312,7 +312,7 @@ sysctl_nmbufs(SYSCTL_HANDLER_ARGS)
 			EVENTHANDLER_INVOKE(nmbufs_change);
 		}
 		else
-			error = VOS_EINVAL;
+			error = EINVAL;
 	}
 	return (error);
 }
@@ -773,7 +773,7 @@ mb_zinit_pack(void* mem, int size, int how)
 	m = (struct mbuf*)mem;		/* m is virgin. */
 	if (uma_zalloc_arg(zone_clust, m, how) == NULL ||
 		m->m_ext.ext_buf == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	m->m_ext.ext_type = EXT_PACKET;	/* Override. */
 #ifdef INVARIANTS
 	trash_init(m->m_ext.ext_buf, MCLBYTES, how);
@@ -908,7 +908,7 @@ mb_unmapped_compress(struct mbuf* m)
 	}
 
 	if (*refcnt != 1)
-		return (VOS_EBUSY);
+		return (EBUSY);
 
 	m_copydata(m, 0, m->m_len, buf);
 
@@ -1586,7 +1586,7 @@ m_snd_tag_alloc(struct ifnet* ifp, union if_snd_tag_alloc_params* params,
 {
 
 	if (ifp->if_snd_tag_alloc == NULL)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	return (ifp->if_snd_tag_alloc(ifp, params, mstp));
 }
 

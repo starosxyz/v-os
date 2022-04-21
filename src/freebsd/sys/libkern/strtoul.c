@@ -49,7 +49,7 @@ __FBSDID("$FreeBSD$");
  * alphabets and digits are each contiguous.
  */
 unsigned long long
-xos_strtoul(const char *nptr, char **endptr, int base)
+strtoul(const char *nptr, char **endptr, int base)
 {
 	const char *s = nptr;
 	unsigned long long acc;
@@ -62,7 +62,7 @@ xos_strtoul(const char *nptr, char **endptr, int base)
 	 */
 	do {
 		c = *s++;
-	} while (vos_isspace(c));
+	} while (isspace(c));
 	if (c == '-') {
 		neg = 1;
 		c = *s++;
@@ -79,12 +79,12 @@ xos_strtoul(const char *nptr, char **endptr, int base)
 	cutoff = (unsigned long long)ULONG_MAX / (unsigned long long)base;
 	cutlim = (unsigned long long)ULONG_MAX % (unsigned long long)base;
 	for (acc = 0, any = 0;; c = *s++) {
-		if (!vos_isascii(c))
+		if (!isascii(c))
 			break;
-		if (vos_isdigit(c))
+		if (isdigit(c))
 			c -= '0';
-		else if (vos_isalpha(c))
-			c -= vos_isupper(c) ? 'A' - 10 : 'a' - 10;
+		else if (isalpha(c))
+			c -= isupper(c) ? 'A' - 10 : 'a' - 10;
 		else
 			break;
 		if (c >= base)

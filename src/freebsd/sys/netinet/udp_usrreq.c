@@ -247,7 +247,7 @@ udp_newudpcb(struct inpcb *inp)
 
 	up = uma_zalloc(V_udpcb_zone, M_NOWAIT | M_ZERO);
 	if (up == NULL)
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 	inp->inp_ppcb = up;
 	return (0);
 }
@@ -763,8 +763,8 @@ udp_notify(struct inpcb *inp, int errno)
 {
 
 	INP_WLOCK_ASSERT(inp);
-	if ((errno == VOS_EHOSTUNREACH || errno == VOS_ENETUNREACH ||
-	     errno == VOS_EHOSTDOWN) && inp->inp_route.ro_nh) {
+	if ((errno == EHOSTUNREACH || errno == ENETUNREACH ||
+	     errno == EHOSTDOWN) && inp->inp_route.ro_nh) {
 		NH_FREE(inp->inp_route.ro_nh);
 		inp->inp_route.ro_nh = (struct nhop_object *)NULL;
 	}
@@ -790,8 +790,8 @@ udp_common_ctlinput(int cmd, struct sockaddr *sa, void *vip,
 		return;
 
 	if (PRC_IS_REDIRECT(cmd)) {
-		/* signal VOS_EHOSTDOWN, as it flushes the cached route */
-		in_pcbnotifyall(&V_udbinfo, faddr, VOS_EHOSTDOWN, udp_notify);
+		/* signal EHOSTDOWN, as it flushes the cached route */
+		in_pcbnotifyall(&V_udbinfo, faddr, EHOSTDOWN, udp_notify);
 		return;
 	}
 
@@ -860,7 +860,7 @@ udp_pcblist(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (req->newptr != 0)
-		return (VOS_EPERM);
+		return (EPERM);
 
 	if (req->oldptr == 0) {
 		int n;
@@ -947,14 +947,14 @@ udp_getcred(SYSCTL_HANDLER_ARGS)
 	if (inp != NULL) {
 		INP_RLOCK_ASSERT(inp);
 		if (inp->inp_socket == NULL)
-			error = VOS_ENOENT;
+			error = ENOENT;
 		if (error == 0)
 			error = cr_canseeinpcb(req->td->td_ucred, inp);
 		if (error == 0)
 			cru2x(inp->inp_cred, &xuc);
 		INP_RUNLOCK(inp);
 	} else
-		error = VOS_ENOENT;
+		error = ENOENT;
 	if (error == 0)
 		error = SYSCTL_OUT(req, &xuc, sizeof(struct xucred));
 	return (error);
@@ -1005,7 +1005,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 		case UDP_ENCAP:
 			if (!IPSEC_ENABLED(ipv4)) {
 				INP_WUNLOCK(inp);
-				return (VOS_ENOPROTOOPT);
+				return (ENOPROTOOPT);
 			}
 			error = UDPENCAP_PCBCTL(inp, sopt);
 			break;
@@ -1015,7 +1015,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 		case UDPLITE_RECV_CSCOV:
 			if (!isudplite) {
 				INP_WUNLOCK(inp);
-				error = VOS_ENOPROTOOPT;
+				error = ENOPROTOOPT;
 				break;
 			}
 			INP_WUNLOCK(inp);
@@ -1030,7 +1030,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 			KASSERT(up != NULL, ("%s: up == NULL", __func__));
 			if ((optval != 0 && optval < 8) || (optval > 65535)) {
 				INP_WUNLOCK(inp);
-				error = VOS_EINVAL;
+				error = EINVAL;
 				break;
 			}
 			if (sopt->sopt_name == UDPLITE_SEND_CSCOV)
@@ -1041,7 +1041,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 			break;
 		default:
 			INP_WUNLOCK(inp);
-			error = VOS_ENOPROTOOPT;
+			error = ENOPROTOOPT;
 			break;
 		}
 		break;
@@ -1052,7 +1052,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 		case UDP_ENCAP:
 			if (!IPSEC_ENABLED(ipv4)) {
 				INP_WUNLOCK(inp);
-				return (VOS_ENOPROTOOPT);
+				return (ENOPROTOOPT);
 			}
 			error = UDPENCAP_PCBCTL(inp, sopt);
 			break;
@@ -1062,7 +1062,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 		case UDPLITE_RECV_CSCOV:
 			if (!isudplite) {
 				INP_WUNLOCK(inp);
-				error = VOS_ENOPROTOOPT;
+				error = ENOPROTOOPT;
 				break;
 			}
 			up = intoudpcb(inp);
@@ -1076,7 +1076,7 @@ udp_ctloutput(struct socket *so, struct sockopt *sopt)
 			break;
 		default:
 			INP_WUNLOCK(inp);
-			error = VOS_ENOPROTOOPT;
+			error = ENOPROTOOPT;
 			break;
 		}
 		break;
@@ -1107,27 +1107,27 @@ udp_v4mapped_pktinfo(struct cmsghdr *cm, struct sockaddr_in * src,
 
 	if (cm->cmsg_len !=
 	    CMSG_LEN(sizeof(struct in6_pktinfo)))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	pktinfo = (struct in6_pktinfo *)CMSG_DATA(cm);
 	if (!IN6_IS_ADDR_V4MAPPED(&pktinfo->ipi6_addr) &&
 	    !IN6_IS_ADDR_UNSPECIFIED(&pktinfo->ipi6_addr))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* Validate the interface index if specified. */
 	if (pktinfo->ipi6_ifindex > V_if_index)
-		return (VOS_ENXIO);
+		return (ENXIO);
 
 	ifp = NULL;
 	if (pktinfo->ipi6_ifindex) {
 		ifp = ifnet_byindex(pktinfo->ipi6_ifindex);
 		if (ifp == NULL)
-			return (VOS_ENXIO);
+			return (ENXIO);
 	}
 	if (ifp != NULL && !IN6_IS_ADDR_UNSPECIFIED(&pktinfo->ipi6_addr)) {
 		ia.s_addr = pktinfo->ipi6_addr.s6_addr32[3];
 		if (in_ifhasaddr(ifp, ia) == 0)
-			return (VOS_EADDRNOTAVAIL);
+			return (EADDRNOTAVAIL);
 	}
 
 	bzero(src, sizeof(*src));
@@ -1165,7 +1165,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 		if (control)
 			m_freem(control);
 		m_freem(m);
-		return (VOS_EMSGSIZE);
+		return (EMSGSIZE);
 	}
 
 	src.sin_family = 0;
@@ -1194,7 +1194,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 		 */
 		if (control->m_next) {
 			m_freem(control);
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto release;
 		}
 		for (; control->m_len > 0;
@@ -1203,7 +1203,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 			cm = mtod(control, struct cmsghdr *);
 			if (control->m_len < sizeof(*cm) || cm->cmsg_len == 0
 			    || cm->cmsg_len > control->m_len) {
-				error = VOS_EINVAL;
+				error = EINVAL;
 				break;
 			}
 #ifdef INET6
@@ -1218,7 +1218,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 			case IP_SENDSRCADDR:
 				if (cm->cmsg_len !=
 				    CMSG_LEN(sizeof(struct in_addr))) {
-					error = VOS_EINVAL;
+					error = EINVAL;
 					break;
 				}
 				bzero(&src, sizeof(src));
@@ -1231,7 +1231,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 
 			case IP_TOS:
 				if (cm->cmsg_len != CMSG_LEN(sizeof(u_char))) {
-					error = VOS_EINVAL;
+					error = EINVAL;
 					break;
 				}
 				tos = *(u_char *)CMSG_DATA(cm);
@@ -1239,7 +1239,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 
 			case IP_FLOWID:
 				if (cm->cmsg_len != CMSG_LEN(sizeof(uint32_t))) {
-					error = VOS_EINVAL;
+					error = EINVAL;
 					break;
 				}
 				flowid = *(uint32_t *) CMSG_DATA(cm);
@@ -1247,7 +1247,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 
 			case IP_FLOWTYPE:
 				if (cm->cmsg_len != CMSG_LEN(sizeof(uint32_t))) {
-					error = VOS_EINVAL;
+					error = EINVAL;
 					break;
 				}
 				flowtype = *(uint32_t *) CMSG_DATA(cm);
@@ -1256,14 +1256,14 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 #ifdef	RSS
 			case IP_RSSBUCKETID:
 				if (cm->cmsg_len != CMSG_LEN(sizeof(uint32_t))) {
-					error = VOS_EINVAL;
+					error = EINVAL;
 					break;
 				}
 				/* This is just a placeholder for now */
 				break;
 #endif	/* RSS */
 			default:
-				error = VOS_ENOPROTOOPT;
+				error = ENOPROTOOPT;
 				break;
 			}
 			if (error)
@@ -1289,7 +1289,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 		if ((lport == 0) ||
 		    (laddr.s_addr == INADDR_ANY &&
 		     src.sin_addr.s_addr == INADDR_ANY)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto release;
 		}
 		error = in_pcbbind_setup(inp, (struct sockaddr *)&src,
@@ -1309,7 +1309,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 	if (sin != NULL) {
 		INP_LOCK_ASSERT(inp);
 		if (inp->inp_faddr.s_addr != INADDR_ANY) {
-			error = VOS_EISCONN;
+			error = EISCONN;
 			goto release;
 		}
 
@@ -1363,7 +1363,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 				INP_HASH_WUNLOCK(pcbinfo);
 				if (error != 0) {
 					inp->inp_lport = 0;
-					error = VOS_EAGAIN;
+					error = EAGAIN;
 					goto release;
 				}
 				inp->inp_flags |= INP_ANONPORT;
@@ -1377,7 +1377,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 		faddr = inp->inp_faddr;
 		fport = inp->inp_fport;
 		if (faddr.s_addr == INADDR_ANY) {
-			error = VOS_ENOTCONN;
+			error = ENOTCONN;
 			goto release;
 		}
 	}
@@ -1389,7 +1389,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 	 */
 	M_PREPEND(m, sizeof(struct udpiphdr) + max_linkhdr, M_NOWAIT);
 	if (m == NULL) {
-		error = VOS_ENOBUFS;
+		error = ENOBUFS;
 		goto release;
 	}
 	m->m_data += max_linkhdr;
@@ -1468,7 +1468,7 @@ udp_output(struct inpcb *inp, struct mbuf *m, struct sockaddr *addr,
 		ui->ui_sum = in_pseudo(ui->ui_src.s_addr, faddr.s_addr,
 		    htons((u_short)len + sizeof(struct udphdr) + pr));
 		m->m_pkthdr.csum_flags = CSUM_UDP;
-		m->m_pkthdr.csum_data = vos_offsetof(struct udphdr, uh_sum);
+		m->m_pkthdr.csum_data = offsetof(struct udphdr, uh_sum);
 	}
 	((struct ip *)ui)->ip_len = htons(sizeof(struct udpiphdr) + len);
 	((struct ip *)ui)->ip_ttl = inp->inp_ip_ttl;	/* XXX */
@@ -1603,7 +1603,7 @@ udp_set_kernel_tunneling(struct socket *so, udp_tun_func_t f, udp_tun_icmp_t i, 
 	if ((up->u_tun_func != NULL) ||
 	    (up->u_icmp_func != NULL)) {
 		INP_WUNLOCK(inp);
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 	up->u_tun_func = f;
 	up->u_icmp_func = i;
@@ -1666,7 +1666,7 @@ udp_connect(struct socket *so, struct sockaddr *nam, struct thread *td)
 	INP_WLOCK(inp);
 	if (inp->inp_faddr.s_addr != INADDR_ANY) {
 		INP_WUNLOCK(inp);
-		return (VOS_EISCONN);
+		return (EISCONN);
 	}
 	sin = (struct sockaddr_in *)nam;
 	error = prison_remote_ip4(td->td_ucred, &sin->sin_addr);
@@ -1720,7 +1720,7 @@ udp_disconnect(struct socket *so)
 	INP_WLOCK(inp);
 	if (inp->inp_faddr.s_addr == INADDR_ANY) {
 		INP_WUNLOCK(inp);
-		return (VOS_ENOTCONN);
+		return (ENOTCONN);
 	}
 	INP_HASH_WLOCK(pcbinfo);
 	in_pcbdisconnect(inp);

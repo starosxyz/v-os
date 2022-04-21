@@ -7572,11 +7572,11 @@ pmap_vmspace_copy(pmap_t dst_pmap, pmap_t src_pmap)
 		}
 		error = pmap_pkru_copy(dst_pmap, src_pmap);
 		/* Clean up partial copy on failure due to no memory. */
-		if (error == VOS_ENOMEM)
+		if (error == ENOMEM)
 			pmap_pkru_deassign_all(dst_pmap);
 		PMAP_UNLOCK(src_pmap);
 		PMAP_UNLOCK(dst_pmap);
-		if (error != VOS_ENOMEM)
+		if (error != ENOMEM)
 			break;
 		vm_wait(NULL);
 	}
@@ -8990,9 +8990,9 @@ pmap_page_set_memattr_noflush(vm_page_t m, vm_memattr_t ma)
  * behavior of their processors as "undefined" if two or more mappings to the
  * same physical page have different memory types.
  *
- * Returns zero if the change completed successfully, and either VOS_EINVAL or
- * VOS_ENOMEM if the change failed.  Specifically, VOS_EINVAL is returned if some part
- * of the virtual address range was not mapped, and VOS_ENOMEM is returned if
+ * Returns zero if the change completed successfully, and either EINVAL or
+ * ENOMEM if the change failed.  Specifically, EINVAL is returned if some part
+ * of the virtual address range was not mapped, and ENOMEM is returned if
  * there was insufficient memory available to complete the change.  In the
  * latter case, the memory type may have been changed on some part of the
  * virtual address range or the direct map.
@@ -9023,7 +9023,7 @@ pmap_change_prot(vm_offset_t va, vm_size_t size, vm_prot_t prot)
 
 	/* Only supported within the kernel map. */
 	if (va < VM_MIN_KERNEL_ADDRESS)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	PMAP_LOCK(kernel_pmap);
 	error = pmap_change_props_locked(va, size, prot, -1,
@@ -9054,7 +9054,7 @@ pmap_change_props_locked(vm_offset_t va, vm_size_t size, vm_prot_t prot,
 	 * map but excluding the recursive map.
 	 */
 	if (base < DMAP_MIN_ADDRESS)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * Construct our flag sets and masks.  "bits" is the subset of
@@ -9093,7 +9093,7 @@ pmap_change_props_locked(vm_offset_t va, vm_size_t size, vm_prot_t prot,
 		if (pdpe == NULL || *pdpe == 0) {
 			KASSERT((flags & MAPDEV_ASSERTVALID) == 0,
 				("%s: addr %#lx is not mapped", __func__, tmpva));
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 		if (*pdpe & PG_PS) {
 			/*
@@ -9117,13 +9117,13 @@ pmap_change_props_locked(vm_offset_t va, vm_size_t size, vm_prot_t prot,
 				continue;
 			}
 			if (!pmap_demote_pdpe(kernel_pmap, pdpe, tmpva))
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 		}
 		pde = pmap_pdpe_to_pde(pdpe, tmpva);
 		if (*pde == 0) {
 			KASSERT((flags & MAPDEV_ASSERTVALID) == 0,
 				("%s: addr %#lx is not mapped", __func__, tmpva));
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 		if (*pde & PG_PS) {
 			/*
@@ -9147,13 +9147,13 @@ pmap_change_props_locked(vm_offset_t va, vm_size_t size, vm_prot_t prot,
 				continue;
 			}
 			if (!pmap_demote_pde(kernel_pmap, pde, tmpva))
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 		}
 		pte = pmap_pde_to_pte(pde, tmpva);
 		if (*pte == 0) {
 			KASSERT((flags & MAPDEV_ASSERTVALID) == 0,
 				("%s: addr %#lx is not mapped", __func__, tmpva));
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 		tmpva += PAGE_SIZE;
 	}
@@ -10092,7 +10092,7 @@ pmap_large_map(vm_paddr_t spa, vm_size_t len, void** addr,
 	int error;
 
 	if (len == 0 || spa + len < spa)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* See if DMAP can serve. */
 	if (spa + len <= dmaplimit) {
@@ -10106,7 +10106,7 @@ pmap_large_map(vm_paddr_t spa, vm_size_t len, void** addr,
 	 * alignment for superpages.  Fall back to worse align if
 	 * failed.
 	 */
-	error = VOS_ENOMEM;
+	error = ENOMEM;
 	if ((amd_feature & AMDID_PAGE1GB) != 0 && rounddown2(spa + len,
 		NBPDP) >= roundup2(spa, NBPDP) + NBPDP)
 		error = pmap_large_map_getva(len, NBPDP, spa & PDPMASK,
@@ -10766,10 +10766,10 @@ pmap_pkru_assign(pmap_t pmap, vm_offset_t sva, vm_offset_t eva, u_int keyidx,
 	MPASS((cpu_stdext_feature2 & CPUID_STDEXT2_PKU) != 0);
 	if ((flags & AMD64_PKRU_EXCL) != 0 &&
 		!rangeset_check_empty(&pmap->pm_pkru, sva, eva))
-		return (VOS_EBUSY);
+		return (EBUSY);
 	ppr = uma_zalloc(pmap_pkru_ranges_zone, M_NOWAIT);
 	if (ppr == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	ppr->pkru_keyidx = keyidx;
 	ppr->pkru_flags = flags & AMD64_PKRU_PERSIST;
 	error = rangeset_insert(&pmap->pm_pkru, sva, eva, ppr);
@@ -10961,11 +10961,11 @@ pmap_pkru_check_uargs(pmap_t pmap, vm_offset_t sva, vm_offset_t eva,
 
 	if (pmap->pm_type != PT_X86 || keyidx > PMAP_MAX_PKRU_IDX ||
 		(flags & ~(AMD64_PKRU_PERSIST | AMD64_PKRU_EXCL)) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (eva <= sva || eva > VM_MAXUSER_ADDRESS)
-		return (VOS_EFAULT);
+		return (EFAULT);
 	if ((cpu_stdext_feature2 & CPUID_STDEXT2_PKU) == 0)
-		return (VOS_ENOTSUP);
+		return (ENOTSUP);
 	return (0);
 }
 
@@ -10986,7 +10986,7 @@ pmap_pkru_set(pmap_t pmap, vm_offset_t sva, vm_offset_t eva, u_int keyidx,
 		if (error == 0)
 			pmap_pkru_update_range(pmap, sva, eva, keyidx);
 		PMAP_UNLOCK(pmap);
-		if (error != VOS_ENOMEM)
+		if (error != ENOMEM)
 			break;
 		vm_wait(NULL);
 	}
@@ -11009,7 +11009,7 @@ pmap_pkru_clear(pmap_t pmap, vm_offset_t sva, vm_offset_t eva)
 		if (error == 0)
 			pmap_pkru_update_range(pmap, sva, eva, 0);
 		PMAP_UNLOCK(pmap);
-		if (error != VOS_ENOMEM)
+		if (error != ENOMEM)
 			break;
 		vm_wait(NULL);
 	}

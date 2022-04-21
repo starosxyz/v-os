@@ -141,7 +141,7 @@ intr_register_pic(struct pic *pic)
 
 	mtx_lock(&intrpic_lock);
 	if (intr_pic_registered(pic))
-		error = VOS_EBUSY;
+		error = EBUSY;
 	else {
 		TAILQ_INSERT_TAIL(&pics, pic, pics);
 		error = 0;
@@ -219,7 +219,7 @@ intr_register_source(struct intsrc *isrc)
 	KASSERT(vector < num_io_irqs, ("IRQ %d too large (%u irqs)", vector,
 	    num_io_irqs));
 	if (interrupt_sources[vector] != NULL)
-		return (VOS_EEXIST);
+		return (EEXIST);
 	error = intr_event_create(&isrc->is_event, isrc, 0, vector,
 	    intr_disable_src, (mask_fn)isrc->is_pic->pic_enable_source,
 	    (mask_fn)isrc->is_pic->pic_eoi_source, intr_assign_cpu, "irq%d:",
@@ -230,7 +230,7 @@ intr_register_source(struct intsrc *isrc)
 	if (interrupt_sources[vector] != NULL) {
 		sx_xunlock(&intrsrc_lock);
 		intr_event_destroy(isrc->is_event);
-		return (VOS_EEXIST);
+		return (EEXIST);
 	}
 	intrcnt_register(isrc);
 	interrupt_sources[vector] = isrc;
@@ -258,7 +258,7 @@ intr_add_handler(const char *name, int vector, driver_filter_t filter,
 
 	isrc = intr_lookup_source(vector);
 	if (isrc == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	error = intr_event_add_handler(isrc->is_event, name, filter, handler,
 	    arg, intr_priority(flags), flags, cookiep);
 	if (error == 0) {
@@ -303,7 +303,7 @@ intr_config_intr(int vector, enum intr_trigger trig, enum intr_polarity pol)
 
 	isrc = intr_lookup_source(vector);
 	if (isrc == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	return (isrc->is_pic->pic_config_intr(isrc, trig, pol));
 }
 
@@ -415,7 +415,7 @@ intr_assign_cpu(void *arg, int cpu)
 		error = 0;
 	return (error);
 #else
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 #endif
 }
 
@@ -509,7 +509,7 @@ intr_describe(u_int vector, void *ih, const char *descr)
 
 	isrc = intr_lookup_source(vector);
 	if (isrc == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	error = intr_event_describe_handler(isrc->is_event, ih, descr);
 	if (error)
 		return (error);
@@ -616,7 +616,7 @@ intr_bind(u_int vector, u_char cpu)
 
 	isrc = intr_lookup_source(vector);
 	if (isrc == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	return (intr_event_bind(isrc->is_event, cpu));
 }
 
@@ -774,7 +774,7 @@ intr_balance(void *dummy __unused, int pending __unused)
 	sx_xlock(&intrsrc_lock);
 	memcpy(interrupt_sorted, interrupt_sources, num_io_irqs *
 	    sizeof(interrupt_sorted[0]));
-	qsort(interrupt_sorted, num_io_irqs, sizeof(interrupt_sorted[0]),
+	vos_qsort(interrupt_sorted, num_io_irqs, sizeof(interrupt_sorted[0]),
 	    intrcmp);
 
 	/*

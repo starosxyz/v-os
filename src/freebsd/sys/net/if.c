@@ -106,7 +106,7 @@
  * and ifr_ifru when it is used in SIOCGIFCONF.
  */
 _Static_assert(sizeof(((struct ifreq *)0)->ifr_name) ==
-	vos_offsetof(struct ifreq, ifr_ifru), "gap between ifr_name and ifr_ifru");
+    offsetof(struct ifreq, ifr_ifru), "gap between ifr_name and ifr_ifru");
 
 epoch_t net_epoch_preempt;
 #ifdef COMPAT_FREEBSD32
@@ -452,7 +452,7 @@ vnet_if_init(const void *unused __unused)
 	old = if_grow();				/* create initial table */
 	IFNET_WUNLOCK();
 	epoch_wait_preempt(net_epoch_preempt);
-	vos_free(old, M_IFNET);
+	free(old, M_IFNET);
 	vnet_if_clone_init();
 }
 VNET_SYSINIT(vnet_if_init, SI_SUB_INIT_IF, SI_ORDER_SECOND, vnet_if_init,
@@ -468,7 +468,7 @@ vnet_if_uninit(const void *unused __unused)
 	VNET_ASSERT(CK_STAILQ_EMPTY(&V_ifg_head), ("%s:%d tailq &V_ifg_head=%p "
 	    "not empty", __func__, __LINE__, &V_ifg_head));
 
-	vos_free((caddr_t)V_ifindex_table, M_IFNET);
+	free((caddr_t)V_ifindex_table, M_IFNET);
 }
 VNET_SYSUNINIT(vnet_if_uninit, SI_SUB_INIT_IF, SI_ORDER_FIRST,
     vnet_if_uninit, NULL);
@@ -532,7 +532,7 @@ vnet_if_return(const void *unused __unused)
 	 */
 	IFNET_WLOCK();
 
-	pending = vos_malloc(sizeof(struct ifnet *) * curvnet->vnet_ifcnt,
+	pending = malloc(sizeof(struct ifnet *) * curvnet->vnet_ifcnt,
 	    M_IFNET, M_WAITOK | M_ZERO);
 
 	/* Return all inherited interfaces to their parent vnets. */
@@ -550,7 +550,7 @@ vnet_if_return(const void *unused __unused)
 		if_vmove(pending[j], pending[j]->if_home_vnet);
 	}
 
-	vos_free(pending, M_IFNET);
+	free(pending, M_IFNET);
 }
 VNET_SYSUNINIT(vnet_if_return, SI_SUB_VNET_DONE, SI_ORDER_ANY,
     vnet_if_return, NULL);
@@ -569,10 +569,10 @@ if_grow(void)
 	oldlim = V_if_indexlim;
 	IFNET_WUNLOCK();
 	n = (oldlim << 1) * sizeof(*e);
-	e = vos_malloc(n, M_IFNET, M_WAITOK | M_ZERO);
+	e = malloc(n, M_IFNET, M_WAITOK | M_ZERO);
 	IFNET_WLOCK();
 	if (V_if_indexlim != oldlim) {
-		vos_free(e, M_IFNET);
+		free(e, M_IFNET);
 		return (NULL);
 	}
 	if (V_ifindex_table != NULL) {
@@ -598,7 +598,7 @@ if_alloc_domain(u_char type, int numa_domain)
 
 	KASSERT(numa_domain <= IF_NODOM, ("numa_domain too large"));
 	if (numa_domain == IF_NODOM)
-		ifp = vos_malloc(sizeof(struct ifnet), M_IFNET,
+		ifp = malloc(sizeof(struct ifnet), M_IFNET,
 		    M_WAITOK | M_ZERO);
 	else
 		ifp = malloc_domainset(sizeof(struct ifnet), M_IFNET,
@@ -609,7 +609,7 @@ if_alloc_domain(u_char type, int numa_domain)
 	if (__predict_false(idx == USHRT_MAX)) {
 		IFNET_WUNLOCK();
 		epoch_wait_preempt(net_epoch_preempt);
-		vos_free(old, M_IFNET);
+		free(old, M_IFNET);
 		goto restart;
 	}
 	ifnet_setbyindex(idx, IFNET_HOLD);
@@ -624,7 +624,7 @@ if_alloc_domain(u_char type, int numa_domain)
 	if (if_com_alloc[type] != NULL) {
 		ifp->if_l2com = if_com_alloc[type](type, ifp);
 		if (ifp->if_l2com == NULL) {
-			vos_free(ifp, M_IFNET);
+			free(ifp, M_IFNET);
 			ifindex_free(idx);
 			return (NULL);
 		}
@@ -694,9 +694,9 @@ if_free_internal(struct ifnet *ifp)
 	for (int i = 0; i < IFCOUNTERS; i++)
 		counter_u64_free(ifp->if_counters[i]);
 
-	vos_free(ifp->if_description, M_IFDESCR);
-	vos_free(ifp->if_hw_addr, M_IFADDR);
-	vos_free(ifp, M_IFNET);
+	free(ifp->if_description, M_IFDESCR);
+	free(ifp->if_hw_addr, M_IFADDR);
+	free(ifp, M_IFNET);
 }
 
 static void
@@ -902,12 +902,12 @@ if_attach_internal(struct ifnet *ifp, int vmove, struct if_clone *ifc)
 		/*
 		 * Create a Link Level name for this device.
 		 */
-		namelen = vos_strlen(ifp->if_xname);
+		namelen = strlen(ifp->if_xname);
 		/*
 		 * Always save enough space for any possiable name so we
 		 * can do a rename in place later.
 		 */
-		masklen = vos_offsetof(struct sockaddr_dl, sdl_data[0]) + IFNAMSIZ;
+		masklen = offsetof(struct sockaddr_dl, sdl_data[0]) + IFNAMSIZ;
 		socksize = masklen + ifp->if_addrlen;
 		if (socksize < sizeof(*sdl))
 			socksize = sizeof(*sdl);
@@ -934,7 +934,7 @@ if_attach_internal(struct ifnet *ifp, int vmove, struct if_clone *ifc)
 		ifp->if_broadcastaddr = NULL;
 
 		if (ifp->if_type == IFT_ETHER) {
-			ifp->if_hw_addr = vos_malloc(ifp->if_addrlen, M_IFADDR,
+			ifp->if_hw_addr = malloc(ifp->if_addrlen, M_IFADDR,
 			    M_WAITOK | M_ZERO);
 		}
 
@@ -1354,7 +1354,7 @@ if_vmove(struct ifnet *ifp, struct vnet *new_vnet)
 	if (__predict_false(ifp->if_index == USHRT_MAX)) {
 		IFNET_WUNLOCK();
 		epoch_wait_preempt(net_epoch_preempt);
-		vos_free(old, M_IFNET);
+		free(old, M_IFNET);
 		goto restart;
 	}
 	ifnet_setbyindex(ifp->if_index, ifp);
@@ -1388,14 +1388,14 @@ if_vmove_loan(struct thread *td, struct ifnet *ifp, char *ifname, int jid)
 	pr = prison_find_child(td->td_ucred->cr_prison, jid);
 	sx_sunlock(&allprison_lock);
 	if (pr == NULL)
-		return (VOS_ENXIO);
+		return (ENXIO);
 	prison_hold_locked(pr);
 	mtx_unlock(&pr->pr_mtx);
 
 	/* Do not try to move the iface from and to the same prison. */
 	if (pr->pr_vnet == ifp->if_vnet) {
 		prison_free(pr);
-		return (VOS_EEXIST);
+		return (EEXIST);
 	}
 
 	/* Make sure the named iface does not exists in the dst. prison/vnet. */
@@ -1405,7 +1405,7 @@ if_vmove_loan(struct thread *td, struct ifnet *ifp, char *ifname, int jid)
 	if (difp != NULL) {
 		CURVNET_RESTORE();
 		prison_free(pr);
-		return (VOS_EEXIST);
+		return (EEXIST);
 	}
 
 	/* Make sure the VNET is stable. */
@@ -1413,7 +1413,7 @@ if_vmove_loan(struct thread *td, struct ifnet *ifp, char *ifname, int jid)
 	if (shutdown) {
 		CURVNET_RESTORE();
 		prison_free(pr);
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 	CURVNET_RESTORE();
 
@@ -1445,7 +1445,7 @@ if_vmove_reclaim(struct thread *td, char *ifname, int jid)
 	pr = prison_find_child(td->td_ucred->cr_prison, jid);
 	sx_sunlock(&allprison_lock);
 	if (pr == NULL)
-		return (VOS_ENXIO);
+		return (ENXIO);
 	prison_hold_locked(pr);
 	mtx_unlock(&pr->pr_mtx);
 
@@ -1455,7 +1455,7 @@ if_vmove_reclaim(struct thread *td, char *ifname, int jid)
 	if (ifp == NULL) {
 		CURVNET_RESTORE();
 		prison_free(pr);
-		return (VOS_ENXIO);
+		return (ENXIO);
 	}
 
 	/* Do not try to move the iface from and to the same prison. */
@@ -1463,7 +1463,7 @@ if_vmove_reclaim(struct thread *td, char *ifname, int jid)
 	if (vnet_dst == ifp->if_vnet) {
 		CURVNET_RESTORE();
 		prison_free(pr);
-		return (VOS_EEXIST);
+		return (EEXIST);
 	}
 
 	/* Make sure the VNET is stable. */
@@ -1471,7 +1471,7 @@ if_vmove_reclaim(struct thread *td, char *ifname, int jid)
 	if (shutdown) {
 		CURVNET_RESTORE();
 		prison_free(pr);
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 
 	/* Get interface back from child jail/vnet. */
@@ -1500,26 +1500,26 @@ if_addgroup(struct ifnet *ifp, const char *groupname)
 	struct ifg_member	*ifgm;
 	int 			 new = 0;
 
-	if (groupname[0] && groupname[vos_strlen(groupname) - 1] >= '0' &&
-	    groupname[vos_strlen(groupname) - 1] <= '9')
-		return (VOS_EINVAL);
+	if (groupname[0] && groupname[strlen(groupname) - 1] >= '0' &&
+	    groupname[strlen(groupname) - 1] <= '9')
+		return (EINVAL);
 
 	IFNET_WLOCK();
 	CK_STAILQ_FOREACH(ifgl, &ifp->if_groups, ifgl_next)
 		if (!strcmp(ifgl->ifgl_group->ifg_group, groupname)) {
 			IFNET_WUNLOCK();
-			return (VOS_EEXIST);
+			return (EEXIST);
 		}
 
-	if ((ifgl = vos_malloc(sizeof(*ifgl), M_TEMP, M_NOWAIT)) == NULL) {
+	if ((ifgl = malloc(sizeof(*ifgl), M_TEMP, M_NOWAIT)) == NULL) {
 	    	IFNET_WUNLOCK();
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 
-	if ((ifgm = vos_malloc(sizeof(*ifgm), M_TEMP, M_NOWAIT)) == NULL) {
-		vos_free(ifgl, M_TEMP);
+	if ((ifgm = malloc(sizeof(*ifgm), M_TEMP, M_NOWAIT)) == NULL) {
+		free(ifgl, M_TEMP);
 		IFNET_WUNLOCK();
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 
 	CK_STAILQ_FOREACH(ifg, &V_ifg_head, ifg_next)
@@ -1527,13 +1527,13 @@ if_addgroup(struct ifnet *ifp, const char *groupname)
 			break;
 
 	if (ifg == NULL) {
-		if ((ifg = vos_malloc(sizeof(*ifg), M_TEMP, M_NOWAIT)) == NULL) {
-			vos_free(ifgl, M_TEMP);
-			vos_free(ifgm, M_TEMP);
+		if ((ifg = malloc(sizeof(*ifg), M_TEMP, M_NOWAIT)) == NULL) {
+			free(ifgl, M_TEMP);
+			free(ifgm, M_TEMP);
 			IFNET_WUNLOCK();
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		}
-		vos_strlcpy(ifg->ifg_group, groupname, sizeof(ifg->ifg_group));
+		strlcpy(ifg->ifg_group, groupname, sizeof(ifg->ifg_group));
 		ifg->ifg_refcnt = 0;
 		CK_STAILQ_INIT(&ifg->ifg_members);
 		CK_STAILQ_INSERT_TAIL(&V_ifg_head, ifg, ifg_next);
@@ -1595,10 +1595,10 @@ _if_delgroup_locked(struct ifnet *ifp, struct ifg_list *ifgl,
 	epoch_wait_preempt(net_epoch_preempt);
 	if (freeifgl) {
 		EVENTHANDLER_INVOKE(group_detach_event, ifgl->ifgl_group);
-		vos_free(ifgl->ifgl_group, M_TEMP);
+		free(ifgl->ifgl_group, M_TEMP);
 	}
-	vos_free(ifgm, M_TEMP);
-	vos_free(ifgl, M_TEMP);
+	free(ifgm, M_TEMP);
+	free(ifgl, M_TEMP);
 
 	EVENTHANDLER_INVOKE(group_change_event, groupname);
 }
@@ -1617,7 +1617,7 @@ if_delgroup(struct ifnet *ifp, const char *groupname)
 			break;
 	if (ifgl == NULL) {
 		IFNET_WUNLOCK();
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 
 	_if_delgroup_locked(ifp, ifgl, groupname);
@@ -1636,7 +1636,7 @@ if_delgroups(struct ifnet *ifp)
 
 	IFNET_WLOCK();
 	while ((ifgl = CK_STAILQ_FIRST(&ifp->if_groups)) != NULL) {
-		vos_strlcpy(groupname, ifgl->ifgl_group->ifg_group, IFNAMSIZ);
+		strlcpy(groupname, ifgl->ifgl_group->ifg_group, IFNAMSIZ);
 		_if_delgroup_locked(ifp, ifgl, groupname);
 		IFNET_WLOCK();
 	}
@@ -1693,9 +1693,9 @@ if_getgroup(struct ifgroupreq *ifgr, struct ifnet *ifp)
 	/* XXX: wire */
 	CK_STAILQ_FOREACH(ifgl, &ifp->if_groups, ifgl_next) {
 		if (len < sizeof(ifgrq))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		bzero(&ifgrq, sizeof ifgrq);
-		vos_strlcpy(ifgrq.ifgrq_group, ifgl->ifgl_group->ifg_group,
+		strlcpy(ifgrq.ifgrq_group, ifgl->ifgl_group->ifg_group,
 		    sizeof(ifgrq.ifgrq_group));
 		if ((error = copyout(&ifgrq, ifgp, sizeof(struct ifg_req))))
 			return (error);
@@ -1723,7 +1723,7 @@ if_getgroupmembers(struct ifgroupreq *ifgr)
 			break;
 	if (ifg == NULL) {
 		IFNET_RUNLOCK();
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 
 	if (ifgr->ifgr_len == 0) {
@@ -1738,10 +1738,10 @@ if_getgroupmembers(struct ifgroupreq *ifgr)
 	CK_STAILQ_FOREACH(ifgm, &ifg->ifg_members, ifgm_next) {
 		if (len < sizeof(ifgrq)) {
 			IFNET_RUNLOCK();
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 		bzero(&ifgrq, sizeof ifgrq);
-		vos_strlcpy(ifgrq.ifgrq_member, ifgm->ifgm_ifp->if_xname,
+		strlcpy(ifgrq.ifgrq_member, ifgm->ifgm_ifp->if_xname,
 		    sizeof(ifgrq.ifgrq_member));
 		if ((error = copyout(&ifgrq, ifgp, sizeof(struct ifg_req)))) {
 			IFNET_RUNLOCK();
@@ -1826,7 +1826,7 @@ ifa_alloc(size_t size, int flags)
 	KASSERT(size >= sizeof(struct ifaddr),
 	    ("%s: invalid size %zu", __func__, size));
 
-	ifa = vos_malloc(size, M_IFADDR, M_ZERO | flags);
+	ifa = malloc(size, M_IFADDR, M_ZERO | flags);
 	if (ifa == NULL)
 		return (NULL);
 
@@ -1849,7 +1849,7 @@ fail:
 	counter_u64_free(ifa->ifa_ipackets);
 	counter_u64_free(ifa->ifa_obytes);
 	counter_u64_free(ifa->ifa_ibytes);
-	vos_free(ifa, M_IFADDR);
+	free(ifa, M_IFADDR);
 
 	return (NULL);
 }
@@ -1871,7 +1871,7 @@ ifa_destroy(epoch_context_t ctx)
 	counter_u64_free(ifa->ifa_ipackets);
 	counter_u64_free(ifa->ifa_obytes);
 	counter_u64_free(ifa->ifa_ibytes);
-	vos_free(ifa, M_IFADDR);
+	free(ifa, M_IFADDR);
 }
 
 void
@@ -2159,13 +2159,13 @@ struct sockaddr_dl *
 link_alloc_sdl(size_t size, int flags)
 {
 
-	return (vos_malloc(size, M_TEMP, flags));
+	return (malloc(size, M_TEMP, flags));
 }
 
 void
 link_free_sdl(struct sockaddr *sa)
 {
-	vos_free(sa, M_TEMP);
+	free(sa, M_TEMP);
 }
 
 /*
@@ -2361,7 +2361,7 @@ ifunit_ref(const char *name)
 
 	NET_EPOCH_ENTER(et);
 	CK_STAILQ_FOREACH(ifp, &V_ifnet, if_link) {
-		if (vos_strncmp(name, ifp->if_xname, IFNAMSIZ) == 0 &&
+		if (strncmp(name, ifp->if_xname, IFNAMSIZ) == 0 &&
 		    !(ifp->if_flags & IFF_DYING))
 			break;
 	}
@@ -2379,7 +2379,7 @@ ifunit(const char *name)
 
 	NET_EPOCH_ENTER(et);
 	CK_STAILQ_FOREACH(ifp, &V_ifnet, if_link) {
-		if (vos_strncmp(name, ifp->if_xname, IFNAMSIZ) == 0)
+		if (strncmp(name, ifp->if_xname, IFNAMSIZ) == 0)
 			break;
 	}
 	NET_EPOCH_EXIT(et);
@@ -2523,10 +2523,10 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		error = 0;
 		sx_slock(&ifdescr_sx);
 		if (ifp->if_description == NULL)
-			error = VOS_ENOMSG;
+			error = ENOMSG;
 		else {
 			/* space for terminating nul */
-			descrlen = vos_strlen(ifp->if_description) + 1;
+			descrlen = strlen(ifp->if_description) + 1;
 			if (ifr_buffer_get_length(ifr) < descrlen)
 				ifr_buffer_set_buffer_null(ifr);
 			else
@@ -2549,16 +2549,16 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		 * terminating nul in.
 		 */
 		if (ifr_buffer_get_length(ifr) > ifdescr_maxlen)
-			return (VOS_ENAMETOOLONG);
+			return (ENAMETOOLONG);
 		else if (ifr_buffer_get_length(ifr) == 0)
 			descrbuf = NULL;
 		else {
-			descrbuf = vos_malloc(ifr_buffer_get_length(ifr),
+			descrbuf = malloc(ifr_buffer_get_length(ifr),
 			    M_IFDESCR, M_WAITOK | M_ZERO);
 			error = copyin(ifr_buffer_get_buffer(ifr), descrbuf,
 			    ifr_buffer_get_length(ifr) - 1);
 			if (error) {
-				vos_free(descrbuf, M_IFDESCR);
+				free(descrbuf, M_IFDESCR);
 				break;
 			}
 		}
@@ -2569,7 +2569,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		sx_xunlock(&ifdescr_sx);
 
 		getmicrotime(&ifp->if_lastchange);
-		vos_free(odescrbuf, M_IFDESCR);
+		free(odescrbuf, M_IFDESCR);
 		break;
 
 	case SIOCGIFFIB:
@@ -2581,7 +2581,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if (error)
 			return (error);
 		if (ifr->ifr_fib >= rt_numfibs)
-			return (VOS_EINVAL);
+			return (EINVAL);
 
 		ifp->if_fib = ifr->ifr_fib;
 		break;
@@ -2629,9 +2629,9 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if (error)
 			return (error);
 		if (ifp->if_ioctl == NULL)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 		if (ifr->ifr_reqcap & ~ifp->if_capabilities)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
 		if (error == 0)
 			getmicrotime(&ifp->if_lastchange);
@@ -2652,16 +2652,16 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if (error != 0)
 			return (error);
 		if (new_name[0] == '\0')
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if (new_name[IFNAMSIZ-1] != '\0') {
 			new_name[IFNAMSIZ-1] = '\0';
-			if (vos_strlen(new_name) == IFNAMSIZ-1)
-				return (VOS_EINVAL);
+			if (strlen(new_name) == IFNAMSIZ-1)
+				return (EINVAL);
 		}
 		if (strcmp(new_name, ifp->if_xname) == 0)
 			break;
 		if (ifunit(new_name) != NULL)
-			return (VOS_EEXIST);
+			return (EEXIST);
 
 		/*
 		 * XXX: Locking.  Nothing else seems to lock if_flags,
@@ -2678,10 +2678,10 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if_printf(ifp, "changing name to '%s'\n", new_name);
 
 		IF_ADDR_WLOCK(ifp);
-		vos_strlcpy(ifp->if_xname, new_name, sizeof(ifp->if_xname));
+		strlcpy(ifp->if_xname, new_name, sizeof(ifp->if_xname));
 		ifa = ifp->if_addr;
 		sdl = (struct sockaddr_dl *)ifa->ifa_addr;
-		namelen = vos_strlen(new_name);
+		namelen = strlen(new_name);
 		onamelen = sdl->sdl_nlen;
 		/*
 		 * Move the address if needed.  This is safe because we
@@ -2729,7 +2729,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if (error)
 			return (error);
 		if (ifp->if_ioctl == NULL)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
 		if (error == 0)
 			getmicrotime(&ifp->if_lastchange);
@@ -2743,9 +2743,9 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if (error)
 			return (error);
 		if (ifr->ifr_mtu < IF_MINMTU || ifr->ifr_mtu > IF_MAXMTU)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if (ifp->if_ioctl == NULL)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
 		if (error == 0) {
 			getmicrotime(&ifp->if_lastchange);
@@ -2777,11 +2777,11 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 
 		/* Don't allow group membership on non-multicast interfaces. */
 		if ((ifp->if_flags & IFF_MULTICAST) == 0)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 
 		/* Don't let users screw up protocols' entries. */
 		if (ifr->ifr_addr.sa_family != AF_LINK)
-			return (VOS_EINVAL);
+			return (EINVAL);
 
 		if (cmd == SIOCADDMULTI) {
 			struct epoch_tracker et;
@@ -2798,7 +2798,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 			ifma = if_findmulti(ifp, &ifr->ifr_addr);
 			NET_EPOCH_EXIT(et);
 			if (ifma != NULL)
-				error = VOS_EADDRINUSE;
+				error = EADDRINUSE;
 			else
 				error = if_addmulti(ifp, &ifr->ifr_addr, &ifma);
 		} else {
@@ -2819,7 +2819,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		if (error)
 			return (error);
 		if (ifp->if_ioctl == NULL)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
 		if (error == 0)
 			getmicrotime(&ifp->if_lastchange);
@@ -2835,7 +2835,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 	case SIOCGIFRSSHASH:
 	case SIOCGIFDOWNREASON:
 		if (ifp->if_ioctl == NULL)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
 		break;
 
@@ -2880,7 +2880,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		break;
 
 	default:
-		error = VOS_ENOIOCTL;
+		error = ENOIOCTL;
 		break;
 	}
 	return (error);
@@ -2953,7 +2953,7 @@ ifioctl(struct socket *so, u_long cmd, caddr_t data, struct thread *td)
 	shutdown = VNET_IS_SHUTTING_DOWN(so->so_vnet);
 	if (shutdown) {
 		CURVNET_RESTORE();
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 #endif
 
@@ -3032,7 +3032,7 @@ ifioctl(struct socket *so, u_long cmd, caddr_t data, struct thread *td)
 	case SIOCSVH:
 	case SIOCGVH:
 		if (carp_ioctl_p == NULL)
-			error = VOS_EPROTONOSUPPORT;
+			error = EPROTONOSUPPORT;
 		else
 			error = (*carp_ioctl_p)(ifr, cmd, td);
 		goto out_noref;
@@ -3041,23 +3041,23 @@ ifioctl(struct socket *so, u_long cmd, caddr_t data, struct thread *td)
 
 	ifp = ifunit_ref(ifr->ifr_name);
 	if (ifp == NULL) {
-		error = VOS_ENXIO;
+		error = ENXIO;
 		goto out_noref;
 	}
 
 	error = ifhwioctl(cmd, ifp, data, td);
-	if (error != VOS_ENOIOCTL)
+	if (error != ENOIOCTL)
 		goto out_ref;
 
 	oif_flags = ifp->if_flags;
 	if (so->so_proto == NULL) {
-		error = VOS_EOPNOTSUPP;
+		error = EOPNOTSUPP;
 		goto out_ref;
 	}
 
 	/*
 	 * Pass the request on to the socket control method, and if the
-	 * latter returns VOS_EOPNOTSUPP, directly to the interface.
+	 * latter returns EOPNOTSUPP, directly to the interface.
 	 *
 	 * Make an exception for the legacy SIOCSIF* requests.  Drivers
 	 * trust SIOCSIFADDR et al to come from an already privileged
@@ -3066,7 +3066,7 @@ ifioctl(struct socket *so, u_long cmd, caddr_t data, struct thread *td)
 	 */
 	error = ((*so->so_proto->pr_usrreqs->pru_control)(so, cmd, data,
 	    ifp, td));
-	if (error == VOS_EOPNOTSUPP && ifp != NULL && ifp->if_ioctl != NULL &&
+	if (error == EOPNOTSUPP && ifp != NULL && ifp->if_ioctl != NULL &&
 	    cmd != SIOCSIFADDR && cmd != SIOCSIFBRDADDR &&
 	    cmd != SIOCSIFDSTADDR && cmd != SIOCSIFNETMASK)
 		error = (*ifp->if_ioctl)(ifp, cmd, data);
@@ -3148,7 +3148,7 @@ if_setflag(struct ifnet *ifp, int flag, int pflag, int *refcount, int onswitch)
 
 	/* Call down the driver since we've changed interface flags */
 	if (ifp->if_ioctl == NULL) {
-		error = VOS_EOPNOTSUPP;
+		error = EOPNOTSUPP;
 		goto recover;
 	}
 	ifr.ifr_flags = ifp->if_flags & 0xffff;
@@ -3211,7 +3211,7 @@ ifconf(u_long cmd, caddr_t data)
 
 	/* Prevent hostile input from being able to crash the system */
 	if (ifc->ifc_len <= 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 again:
 	if (ifc->ifc_len <= max_len) {
@@ -3233,11 +3233,11 @@ again:
 		 */
 		memset(&ifr, 0, sizeof(ifr));
 
-		if (vos_strlcpy(ifr.ifr_name, ifp->if_xname, sizeof(ifr.ifr_name))
+		if (strlcpy(ifr.ifr_name, ifp->if_xname, sizeof(ifr.ifr_name))
 		    >= sizeof(ifr.ifr_name)) {
 			sbuf_delete(sb);
 			IFNET_RUNLOCK();
-			return (VOS_ENAMETOOLONG);
+			return (ENAMETOOLONG);
 		}
 
 		addrs = 0;
@@ -3260,8 +3260,8 @@ again:
 				max_len += sizeof(ifr);
 			} else {
 				sbuf_bcat(sb, &ifr,
-					vos_offsetof(struct ifreq, ifr_addr));
-				max_len += vos_offsetof(struct ifreq, ifr_addr);
+				    offsetof(struct ifreq, ifr_addr));
+				max_len += offsetof(struct ifreq, ifr_addr);
 				sbuf_bcat(sb, sa, sa->sa_len);
 				max_len += sa->sa_len;
 			}
@@ -3341,14 +3341,14 @@ if_allocmulti(struct ifnet *ifp, struct sockaddr *sa, struct sockaddr *llsa,
 	struct ifmultiaddr *ifma;
 	struct sockaddr *dupsa;
 
-	ifma = vos_malloc(sizeof *ifma, M_IFMADDR, mflags |
+	ifma = malloc(sizeof *ifma, M_IFMADDR, mflags |
 	    M_ZERO);
 	if (ifma == NULL)
 		return (NULL);
 
-	dupsa = vos_malloc(sa->sa_len, M_IFMADDR, mflags);
+	dupsa = malloc(sa->sa_len, M_IFMADDR, mflags);
 	if (dupsa == NULL) {
-		vos_free(ifma, M_IFMADDR);
+		free(ifma, M_IFMADDR);
 		return (NULL);
 	}
 	bcopy(sa, dupsa, sa->sa_len);
@@ -3363,10 +3363,10 @@ if_allocmulti(struct ifnet *ifp, struct sockaddr *sa, struct sockaddr *llsa,
 		return (ifma);
 	}
 
-	dupsa = vos_malloc(llsa->sa_len, M_IFMADDR, mflags);
+	dupsa = malloc(llsa->sa_len, M_IFMADDR, mflags);
 	if (dupsa == NULL) {
-		vos_free(ifma->ifma_addr, M_IFMADDR);
-		vos_free(ifma, M_IFMADDR);
+		free(ifma->ifma_addr, M_IFMADDR);
+		free(ifma, M_IFMADDR);
 		return (NULL);
 	}
 	bcopy(llsa, dupsa, llsa->sa_len);
@@ -3392,13 +3392,13 @@ if_freemulti_internal(struct ifmultiaddr *ifma)
 	    ifma->ifma_refcount));
 
 	if (ifma->ifma_lladdr != NULL)
-		vos_free(ifma->ifma_lladdr, M_IFMADDR);
+		free(ifma->ifma_lladdr, M_IFMADDR);
 #ifdef MCAST_VERBOSE
 	kdb_backtrace();
 	printf("%s freeing ifma: %p\n", __func__, ifma);
 #endif
-	vos_free(ifma->ifma_addr, M_IFMADDR);
-	vos_free(ifma, M_IFMADDR);
+	free(ifma->ifma_addr, M_IFMADDR);
+	free(ifma, M_IFMADDR);
 }
 
 static void
@@ -3492,7 +3492,7 @@ if_addmulti(struct ifnet *ifp, struct sockaddr *sa,
 	 */
 	ifma = if_allocmulti(ifp, sa, llsa, M_NOWAIT);
 	if (ifma == NULL) {
-		error = VOS_ENOMEM;
+		error = ENOMEM;
 		goto free_llsa_out;
 	}
 
@@ -3509,7 +3509,7 @@ if_addmulti(struct ifnet *ifp, struct sockaddr *sa,
 			if (ll_ifma == NULL) {
 				--ifma->ifma_refcount;
 				if_freemulti(ifma);
-				error = VOS_ENOMEM;
+				error = ENOMEM;
 				goto free_llsa_out;
 			}
 			ll_ifma->ifma_flags |= IFMA_F_ENQUEUED;
@@ -3581,7 +3581,7 @@ if_siocaddmulti(void *arg, int pending)
 /*
  * Delete a multicast group membership by network-layer group address.
  *
- * Returns VOS_ENOENT if the entry could not be found. If ifp no longer
+ * Returns ENOENT if the entry could not be found. If ifp no longer
  * exists, results are undefined. This entry point should only be used
  * from subsystems which do appropriate locking to hold ifp for the
  * duration of the call.
@@ -3603,7 +3603,7 @@ if_delmulti(struct ifnet *ifp, struct sockaddr *sa)
 	IF_ADDR_WUNLOCK(ifp);
 
 	if (ifma == NULL)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	if (lastref && ifp->if_ioctl != NULL) {
 		(void)(*ifp->if_ioctl)(ifp, SIOCDELMULTI, 0);
@@ -3790,14 +3790,14 @@ if_setlladdr(struct ifnet *ifp, const u_char *lladdr, int len)
 
 	ifa = ifp->if_addr;
 	if (ifa == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	sdl = (struct sockaddr_dl *)ifa->ifa_addr;
 	if (sdl == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (len != sdl->sdl_alen)	/* don't allow length to change */
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	switch (ifp->if_type) {
 	case IFT_ETHER:
@@ -3808,7 +3808,7 @@ if_setlladdr(struct ifnet *ifp, const u_char *lladdr, int len)
 		bcopy(lladdr, LLADDR(sdl), len);
 		break;
 	default:
-		return (VOS_ENODEV);
+		return (ENODEV);
 	}
 
 	/*
@@ -3841,7 +3841,7 @@ if_setlladdr(struct ifnet *ifp, const u_char *lladdr, int len)
  * address instead of full prepend.
  *
  * This function creates calculated header==MAC for IPv4/IPv6 and
- * returns VOS_EAFNOSUPPORT (which is then handled in ARP code) for other
+ * returns EAFNOSUPPORT (which is then handled in ARP code) for other
  * address families.
  */
 static int
@@ -3849,17 +3849,17 @@ if_requestencap_default(struct ifnet *ifp, struct if_encap_req *req)
 {
 
 	if (req->rtype != IFENCAP_LL)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 
 	if (req->bufsize < req->lladdr_len)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	switch (req->family) {
 	case AF_INET:
 	case AF_INET6:
 		break;
 	default:
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
 	/* Copy lladdr to storage as is */
@@ -3890,7 +3890,7 @@ if_tunnel_check_nesting(struct ifnet *ifp, struct mbuf *m, uint32_t cookie,
 	while ((mtag = m_tag_locate(m, cookie, 0, mtag)) != NULL) {
 		if (*(struct ifnet **)(mtag + 1) == ifp) {
 			log(LOG_NOTICE, "%s: loop detected\n", if_name(ifp));
-			return (VOS_EIO);
+			return (EIO);
 		}
 		count++;
 	}
@@ -3898,11 +3898,11 @@ if_tunnel_check_nesting(struct ifnet *ifp, struct mbuf *m, uint32_t cookie,
 		log(LOG_NOTICE,
 		    "%s: if_output recursively called too many times(%d)\n",
 		    if_name(ifp), count);
-		return (VOS_EIO);
+		return (EIO);
 	}
 	mtag = m_tag_alloc(cookie, 0, sizeof(struct ifnet *), M_NOWAIT);
 	if (mtag == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	*(struct ifnet **)(mtag + 1) = ifp;
 	m_tag_prepend(m, mtag);
 	return (0);
@@ -3919,7 +3919,7 @@ if_gethwaddr(struct ifnet *ifp, struct ifreq *ifr)
 {
 
 	if (ifp->if_hw_addr == NULL)
-		return (VOS_ENODEV);
+		return (ENODEV);
 
 	switch (ifp->if_type) {
 	case IFT_ETHER:
@@ -3927,7 +3927,7 @@ if_gethwaddr(struct ifnet *ifp, struct ifreq *ifr)
 		bcopy(ifp->if_hw_addr, ifr->ifr_addr.sa_data, ifp->if_addrlen);
 		return (0);
 	default:
-		return (VOS_ENODEV);
+		return (ENODEV);
 	}
 }
 
@@ -3945,7 +3945,7 @@ if_initname(struct ifnet *ifp, const char *name, int unit)
 	if (unit != IF_DUNIT_NONE)
 		snprintf(ifp->if_xname, IFNAMSIZ, "%s%d", name, unit);
 	else
-		vos_strlcpy(ifp->if_xname, name, IFNAMSIZ);
+		strlcpy(ifp->if_xname, name, IFNAMSIZ);
 }
 
 int

@@ -82,7 +82,7 @@ static SYSCTL_NODE(_kern_ipc, OID_AUTO, aio, CTLFLAG_RD | CTLFLAG_MPSAFE, NULL,
 
 static int empty_results;
 SYSCTL_INT(_kern_ipc_aio, OID_AUTO, empty_results, CTLFLAG_RD, &empty_results,
-	0, "socket operation returned VOS_EAGAIN");
+	0, "socket operation returned EAGAIN");
 
 static int empty_retries;
 SYSCTL_INT(_kern_ipc_aio, OID_AUTO, empty_retries, CTLFLAG_RD, &empty_retries,
@@ -146,7 +146,7 @@ soo_write(struct file* fp, struct uio* uio, struct ucred* active_cred,
 		return (error);
 #endif
 	error = sosend(so, 0, uio, 0, 0, 0, uio->uio_td);
-	if (error == VOS_EPIPE && (so->so_options & SO_NOSIGPIPE) == 0) {
+	if (error == EPIPE && (so->so_options & SO_NOSIGPIPE) == 0) {
 		PROC_LOCK(uio->uio_td->td_proc);
 		tdsignal(uio->uio_td, SIGPIPE);
 		PROC_UNLOCK(uio->uio_td->td_proc);
@@ -211,7 +211,7 @@ soo_ioctl(struct file* fp, u_long cmd, void* data, struct ucred* active_cred,
 	case FIONREAD:
 		/* Unlocked read. */
 		if (SOLISTENING(so)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		}
 		else {
 			*(int*)data = sbavail(&so->so_rcv);
@@ -221,7 +221,7 @@ soo_ioctl(struct file* fp, u_long cmd, void* data, struct ucred* active_cred,
 	case FIONWRITE:
 		/* Unlocked read. */
 		if (SOLISTENING(so)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		}
 		else {
 			*(int*)data = sbavail(&so->so_snd);
@@ -231,7 +231,7 @@ soo_ioctl(struct file* fp, u_long cmd, void* data, struct ucred* active_cred,
 	case FIONSPACE:
 		/* Unlocked read. */
 		if (SOLISTENING(so)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		}
 		else {
 			if ((so->so_snd.sb_hiwat < sbused(&so->so_snd)) ||
@@ -263,7 +263,7 @@ soo_ioctl(struct file* fp, u_long cmd, void* data, struct ucred* active_cred,
 	case SIOCATMARK:
 		/* Unlocked read. */
 		if (SOLISTENING(so)) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		}
 		else {
 			*(int*)data = (so->so_rcv.sb_state & SBS_RCVATMARK) != 0;
@@ -425,15 +425,15 @@ soo_fill_kinfo(struct file* fp, struct kinfo_file* kif, struct filedesc* fdp)
 	if (error == 0 &&
 		sa->sa_len <= sizeof(kif->kf_un.kf_sock.kf_sa_local)) {
 		bcopy(sa, &kif->kf_un.kf_sock.kf_sa_local, sa->sa_len);
-		vos_free(sa, M_SONAME);
+		free(sa, M_SONAME);
 	}
 	error = so->so_proto->pr_usrreqs->pru_peeraddr(so, &sa);
 	if (error == 0 &&
 		sa->sa_len <= sizeof(kif->kf_un.kf_sock.kf_sa_peer)) {
 		bcopy(sa, &kif->kf_un.kf_sock.kf_sa_peer, sa->sa_len);
-		vos_free(sa, M_SONAME);
+		free(sa, M_SONAME);
 	}
-	vos_strncpy(kif->kf_path, so->so_proto->pr_domain->dom_name,
+	strncpy(kif->kf_path, so->so_proto->pr_domain->dom_name,
 		sizeof(kif->kf_path));
 	CURVNET_RESTORE();
 	return (0);
@@ -515,7 +515,7 @@ soaio_kproc_loop(void* arg)
 		error = mtx_sleep(&soaio_idle, &soaio_jobs_lock, 0, "-",
 			soaio_lifetime);
 		soaio_idle--;
-		if (error == VOS_EWOULDBLOCK && STAILQ_EMPTY(&soaio_jobs) &&
+		if (error == EWOULDBLOCK && STAILQ_EMPTY(&soaio_jobs) &&
 			soaio_num_procs > soaio_target_procs)
 			break;
 	}
@@ -658,7 +658,7 @@ retry:
 				td);
 		if (td->td_ru.ru_msgsnd != ru_before)
 			job->msgsnd = 1;
-		if (error == VOS_EPIPE && (so->so_options & SO_NOSIGPIPE) == 0) {
+		if (error == EPIPE && (so->so_options & SO_NOSIGPIPE) == 0) {
 			PROC_LOCK(job->userproc);
 			kern_psignal(job->userproc, SIGPIPE);
 			PROC_UNLOCK(job->userproc);
@@ -669,7 +669,7 @@ retry:
 	job->aio_done = done;
 	td->td_ucred = td_savedcred;
 
-	if (error == VOS_EWOULDBLOCK) {
+	if (error == EWOULDBLOCK) {
 		/*
 		 * The request was either partially completed or not
 		 * completed at all due to racing with a read() or
@@ -704,8 +704,8 @@ retry:
 		}
 		SOCKBUF_UNLOCK(sb);
 	}
-	if (done != 0 && (error == VOS_ERESTART || error == VOS_EINTR ||
-		error == VOS_EWOULDBLOCK))
+	if (done != 0 && (error == ERESTART || error == EINTR ||
+		error == EWOULDBLOCK))
 		error = 0;
 	if (error)
 		aio_complete(job, -1, error);
@@ -827,7 +827,7 @@ soo_aio_queue(struct file* fp, struct kaiocb* job)
 		sb = &so->so_snd;
 		break;
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	SOCKBUF_LOCK(sb);

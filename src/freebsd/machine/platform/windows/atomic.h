@@ -54,15 +54,9 @@
   * ordering on any architecture.
   */
 
-#ifndef _WIN32
-#define	mb()	__asm __volatile("mfence;" : : : "memory")
-#define	wmb()	__asm __volatile("sfence;" : : : "memory")
-#define	rmb()	__asm __volatile("lfence;" : : : "memory")
-#else
 #define	mb() _mm_mfence
 #define	wmb() _mm_sfence
 #define	rmb() _mm_lfence
-#endif
 
 #ifdef _KERNEL
   /*

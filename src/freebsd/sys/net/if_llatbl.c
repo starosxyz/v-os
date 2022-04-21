@@ -263,8 +263,8 @@ static void
 htable_free_tbl(struct lltable *llt)
 {
 
-	vos_free(llt->lle_head, M_LLTABLE);
-	vos_free(llt, M_LLTABLE);
+	free(llt->lle_head, M_LLTABLE);
+	free(llt, M_LLTABLE);
 }
 
 static void
@@ -531,12 +531,12 @@ lltable_delete_addr(struct lltable *llt, u_int flags,
 
 	if (lle == NULL) {
 		IF_AFDATA_WUNLOCK(ifp);
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 	if ((lle->la_flags & LLE_IFADDR) != 0 && (flags & LLE_IFADDR) == 0) {
 		IF_AFDATA_WUNLOCK(ifp);
 		LLE_WUNLOCK(lle);
-		return (VOS_EPERM);
+		return (EPERM);
 	}
 
 	lltable_unlink_entry(llt, lle);
@@ -569,9 +569,9 @@ lltable_allocate_htbl(uint32_t hsize)
 	struct lltable *llt;
 	int i;
 
-	llt = vos_malloc(sizeof(struct lltable), M_LLTABLE, M_WAITOK | M_ZERO);
+	llt = malloc(sizeof(struct lltable), M_LLTABLE, M_WAITOK | M_ZERO);
 	llt->llt_hsize = hsize;
-	llt->lle_head = vos_malloc(sizeof(struct llentries) * hsize,
+	llt->lle_head = malloc(sizeof(struct llentries) * hsize,
 	    M_LLTABLE, M_WAITOK | M_ZERO);
 
 	for (i = 0; i < llt->llt_hsize; i++)
@@ -691,14 +691,14 @@ lla_rt_output(struct rt_msghdr *rtm, struct rt_addrinfo *info)
 	int error;
 
 	if (dl == NULL || dl->sdl_family != AF_LINK)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/* XXX: should be ntohs() */
 	ifp = ifnet_byindex(dl->sdl_index);
 	if (ifp == NULL) {
 		log(LOG_INFO, "%s: invalid ifp (sdl_index %d)\n",
 		    __func__, dl->sdl_index);
-		return VOS_EINVAL;
+		return EINVAL;
 	}
 
 	/* XXX linked list may be too expensive */
@@ -710,7 +710,7 @@ lla_rt_output(struct rt_msghdr *rtm, struct rt_addrinfo *info)
 	}
 	LLTABLE_LIST_RUNLOCK();
 	if (llt == NULL)
-		return (VOS_ESRCH);
+		return (ESRCH);
 
 	error = 0;
 
@@ -722,12 +722,12 @@ lla_rt_output(struct rt_msghdr *rtm, struct rt_addrinfo *info)
 			laflags = LLE_STATIC;
 		lle = lltable_alloc_entry(llt, laflags, dst);
 		if (lle == NULL)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 
 		linkhdrsize = sizeof(linkhdr);
 		if (lltable_calc_llheader(ifp, dst->sa_family, LLADDR(dl),
 		    linkhdr, &linkhdrsize, &lladdr_off) != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		lltable_set_entry_addr(ifp, lle, linkhdr, linkhdrsize,
 		    lladdr_off);
 		if ((rtm->rtm_flags & RTF_ANNOUNCE))
@@ -747,7 +747,7 @@ lla_rt_output(struct rt_msghdr *rtm, struct rt_addrinfo *info)
 				IF_AFDATA_WUNLOCK(ifp);
 				LLE_WUNLOCK(lle_tmp);
 				lltable_free_entry(llt, lle);
-				return (VOS_EPERM);
+				return (EPERM);
 			}
 			/* Unlink existing entry from table */
 			lltable_unlink_entry(llt, lle_tmp);
@@ -783,7 +783,7 @@ lla_rt_output(struct rt_msghdr *rtm, struct rt_addrinfo *info)
 		return (lltable_delete_addr(llt, 0, dst));
 
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 	}
 
 	return (error);

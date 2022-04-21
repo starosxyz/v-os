@@ -124,15 +124,15 @@ osd_register(u_int type, osd_destructor_t destructor, osd_method_t *methods)
 	if (i == osdm[type].osd_ntslots) {
 		osdm[type].osd_ntslots++;
 		if (osdm[type].osd_nmethods != 0)
-			osdm[type].osd_methods = vos_realloc(osdm[type].osd_methods,
+			osdm[type].osd_methods = realloc(osdm[type].osd_methods,
 			    sizeof(osd_method_t) * osdm[type].osd_ntslots *
 			    osdm[type].osd_nmethods, M_OSD, M_WAITOK);
-		newptr = vos_malloc(sizeof(osd_destructor_t) *
+		newptr = malloc(sizeof(osd_destructor_t) *
 		    osdm[type].osd_ntslots, M_OSD, M_WAITOK);
 		rm_wlock(&osdm[type].osd_object_lock);
 		bcopy(osdm[type].osd_destructors, newptr,
 		    sizeof(osd_destructor_t) * i);
-		vos_free(osdm[type].osd_destructors, M_OSD);
+		free(osdm[type].osd_destructors, M_OSD);
 		osdm[type].osd_destructors = newptr;
 		rm_wunlock(&osdm[type].osd_object_lock);
 		OSD_DEBUG("New slot allocated (type=%u, slot=%u).",
@@ -173,11 +173,11 @@ osd_deregister(u_int type, u_int slot)
 	osdm[type].osd_destructors[slot - 1] = NULL;
 	if (slot == osdm[type].osd_ntslots) {
 		osdm[type].osd_ntslots--;
-		osdm[type].osd_destructors = vos_realloc(osdm[type].osd_destructors,
+		osdm[type].osd_destructors = realloc(osdm[type].osd_destructors,
 		    sizeof(osd_destructor_t) * osdm[type].osd_ntslots, M_OSD,
 		    M_NOWAIT | M_ZERO);
 		if (osdm[type].osd_nmethods != 0)
-			osdm[type].osd_methods = vos_realloc(osdm[type].osd_methods,
+			osdm[type].osd_methods = realloc(osdm[type].osd_methods,
 			    sizeof(osd_method_t) * osdm[type].osd_ntslots *
 			    osdm[type].osd_nmethods, M_OSD, M_NOWAIT | M_ZERO);
 		/*
@@ -211,7 +211,7 @@ osd_reserve(u_int slot)
 	KASSERT(slot > 0, ("Invalid slot."));
 
 	OSD_DEBUG("Reserving slot array (slot=%u).", slot);
-	return (vos_malloc(sizeof(void *) * slot, M_OSD, M_WAITOK | M_ZERO));
+	return (malloc(sizeof(void *) * slot, M_OSD, M_WAITOK | M_ZERO));
 }
 
 int
@@ -251,15 +251,15 @@ osd_set_reserved(u_int type, struct osd *osd, u_int slot, void **rsv,
 			if (osd->osd_nslots != 0) {
 				memcpy(newptr, osd->osd_slots,
 				    sizeof(void *) * osd->osd_nslots);
-				vos_free(osd->osd_slots, M_OSD);
+				free(osd->osd_slots, M_OSD);
 			}
 		} else {
-			newptr = vos_realloc(osd->osd_slots, sizeof(void *) * slot,
+			newptr = realloc(osd->osd_slots, sizeof(void *) * slot,
 			    M_OSD, M_NOWAIT | M_ZERO);
 			if (newptr == NULL) {
 				rm_runlock(&osdm[type].osd_object_lock,
 				    &tracker);
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			}
 		}
 		if (osd->osd_nslots == 0) {
@@ -289,7 +289,7 @@ osd_free_reserved(void **rsv)
 {
 
 	OSD_DEBUG("Discarding reserved slot array.");
-	vos_free(rsv, M_OSD);
+	free(rsv, M_OSD);
 }
 
 void *
@@ -359,12 +359,12 @@ do_osd_del(u_int type, struct osd *osd, u_int slot, int list_locked)
 		LIST_REMOVE(osd, osd_next);
 		if (!list_locked)
 			mtx_unlock(&osdm[type].osd_list_lock);
-		vos_free(osd->osd_slots, M_OSD);
+		free(osd->osd_slots, M_OSD);
 		osd->osd_slots = NULL;
 		osd->osd_nslots = 0;
 	} else if (slot == osd->osd_nslots) {
 		/* This was the last slot. */
-		osd->osd_slots = vos_realloc(osd->osd_slots,
+		osd->osd_slots = realloc(osd->osd_slots,
 		    sizeof(void *) * (i + 1), M_OSD, M_NOWAIT | M_ZERO);
 		/*
 		 * We always reallocate to smaller size, so we assume it will

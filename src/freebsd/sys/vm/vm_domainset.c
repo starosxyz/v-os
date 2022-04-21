@@ -240,7 +240,7 @@ vm_domainset_iter_page(struct vm_domainset_iter *di, struct vm_object *obj,
 
 	/* If we visited all domains and this was a NOWAIT we return error. */
 	if ((di->di_flags & (VM_ALLOC_WAITOK | VM_ALLOC_WAITFAIL)) == 0)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/* Wait for one of the domains to accumulate some free pages. */
 	if (obj != NULL)
@@ -249,7 +249,7 @@ vm_domainset_iter_page(struct vm_domainset_iter *di, struct vm_object *obj,
 	if (obj != NULL)
 		VM_OBJECT_WLOCK(obj);
 	if ((di->di_flags & VM_ALLOC_WAITFAIL) != 0)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/* Restart the search. */
 	vm_domainset_iter_first(di, domain);
@@ -307,7 +307,7 @@ vm_domainset_iter_policy(struct vm_domainset_iter *di, int *domain)
 
 	/* If we visited all domains and this was a NOWAIT we return error. */
 	if ((di->di_flags & M_WAITOK) == 0)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/* Wait for one of the domains to accumulate some free pages. */
 	vm_wait_doms(&di->di_domain->ds_mask, 0);
@@ -325,7 +325,7 @@ vm_domainset_iter_page(struct vm_domainset_iter *di, struct vm_object *obj,
     int *domain)
 {
 
-	return (VOS_EJUSTRETURN);
+	return (EJUSTRETURN);
 }
 
 void

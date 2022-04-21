@@ -195,7 +195,7 @@ epoch_trace_report(const char* fmt, ...)
 	if (RB_FIND(stacktree, &epoch_stacks, &se) != NULL)
 		return;
 
-	new = vos_malloc(sizeof(*new), M_STACK, M_NOWAIT);
+	new = malloc(sizeof(*new), M_STACK, M_NOWAIT);
 	if (new != NULL) {
 		bcopy(&se.se_stack, &new->se_stack, sizeof(struct stack));
 
@@ -203,7 +203,7 @@ epoch_trace_report(const char* fmt, ...)
 		new = RB_INSERT(stacktree, &epoch_stacks, new);
 		mtx_unlock(&epoch_stacks_lock);
 		if (new != NULL)
-			vos_free(new, M_STACK);
+			free(new, M_STACK);
 	}
 
 	va_start(ap, fmt);

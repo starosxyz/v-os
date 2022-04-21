@@ -111,14 +111,14 @@ in_gif_checkdup(const struct gif_softc *sc, in_addr_t src, in_addr_t dst)
 	if (sc->gif_family == AF_INET &&
 	    sc->gif_iphdr->ip_src.s_addr == src &&
 	    sc->gif_iphdr->ip_dst.s_addr == dst)
-		return (VOS_EEXIST);
+		return (EEXIST);
 
 	CK_LIST_FOREACH(tmp, &GIF_HASH(src, dst), chain) {
 		if (tmp == sc)
 			continue;
 		if (tmp->gif_iphdr->ip_src.s_addr == src &&
 		    tmp->gif_iphdr->ip_dst.s_addr == dst)
-			return (VOS_EADDRNOTAVAIL);
+			return (EADDRNOTAVAIL);
 	}
 	return (0);
 }
@@ -201,7 +201,7 @@ in_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 	int error;
 
 	/* NOTE: we are protected with gif_ioctl_sx lock */
-	error = VOS_EINVAL;
+	error = EINVAL;
 	switch (cmd) {
 	case SIOCSIFPHYADDR:
 		src = &((struct in_aliasreq *)data)->ifra_addr;
@@ -215,7 +215,7 @@ in_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 			break;
 		if (src->sin_addr.s_addr == INADDR_ANY ||
 		    dst->sin_addr.s_addr == INADDR_ANY) {
-			error = VOS_EADDRNOTAVAIL;
+			error = EADDRNOTAVAIL;
 			break;
 		}
 		if (V_ipv4_hashtbl == NULL) {
@@ -224,14 +224,14 @@ in_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 		}
 		error = in_gif_checkdup(sc, src->sin_addr.s_addr,
 		    dst->sin_addr.s_addr);
-		if (error == VOS_EADDRNOTAVAIL)
+		if (error == EADDRNOTAVAIL)
 			break;
-		if (error == VOS_EEXIST) {
+		if (error == EEXIST) {
 			/* Addresses are the same. Just return. */
 			error = 0;
 			break;
 		}
-		ip = vos_malloc(sizeof(*ip), M_GIF, M_WAITOK | M_ZERO);
+		ip = malloc(sizeof(*ip), M_GIF, M_WAITOK | M_ZERO);
 		ip->ip_src.s_addr = src->sin_addr.s_addr;
 		ip->ip_dst.s_addr = dst->sin_addr.s_addr;
 		if (sc->gif_family != 0) {
@@ -239,7 +239,7 @@ in_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 			CK_LIST_REMOVE(sc, srchash);
 			CK_LIST_REMOVE(sc, chain);
 			GIF_WAIT();
-			vos_free(sc->gif_hdr, M_GIF);
+			free(sc->gif_hdr, M_GIF);
 			/* XXX: should we notify about link state change? */
 		}
 		sc->gif_family = AF_INET;
@@ -250,7 +250,7 @@ in_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 	case SIOCGIFPSRCADDR:
 	case SIOCGIFPDSTADDR:
 		if (sc->gif_family != AF_INET) {
-			error = VOS_EADDRNOTAVAIL;
+			error = EADDRNOTAVAIL;
 			break;
 		}
 		src = (struct sockaddr_in *)&ifr->ifr_addr;
@@ -283,7 +283,7 @@ in_gif_output(struct ifnet *ifp, struct mbuf *m, int proto, uint8_t ecn)
 #endif
 	M_PREPEND(m, len, M_NOWAIT);
 	if (m == NULL)
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 #ifndef __NO_STRICT_ALIGNMENT
 	if (proto == IPPROTO_ETHERIP) {
 		len = mtod(m, vm_offset_t) & 3;

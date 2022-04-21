@@ -1,6 +1,5 @@
 #include <sys/cdefs.h>
 __FBSDID("$FreeBSD$");
-
 #include "opt_ddb.h"
 #include "opt_kdb.h"
 #include "opt_init_path.h"
@@ -51,6 +50,8 @@ __FBSDID("$FreeBSD$");
 #include <vm/pmap.h>
 #include <vm/vm_map.h>
 #include "compat/user_sysinit.h"
+
+
 void link_after_sys_init_cfunc(const void* arg)
 {
 	printf("link_after_sys_init_cfunc\n");

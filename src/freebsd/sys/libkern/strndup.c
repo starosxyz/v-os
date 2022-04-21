@@ -38,13 +38,13 @@ __FBSDID("$FreeBSD$");
 #include <sys/malloc.h>
 
 char *
-vos_strndup(const char *string, size_t maxlen, struct malloc_type *type)
+strndup(const char *string, size_t maxlen, struct malloc_type *type)
 {
 	size_t len;
 	char *copy;
 
-	len = vos_strnlen(string, maxlen) + 1;
-	copy = vos_malloc(len, type, M_WAITOK);
+	len = strnlen(string, maxlen) + 1;
+	copy = malloc(len, type, M_WAITOK);
 	bcopy(string, copy, len);
 	copy[len - 1] = '\0';
 	return (copy);

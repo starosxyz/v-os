@@ -2576,7 +2576,7 @@ vm_object_list_handler(struct sysctl_req* req, bool swap_only)
 			count * 11 / 10));
 	}
 
-	kvo = vos_malloc(sizeof(*kvo), M_TEMP, M_WAITOK);
+	kvo = malloc(sizeof(*kvo), M_TEMP, M_WAITOK);
 	error = 0;
 
 	/*
@@ -2636,7 +2636,7 @@ vm_object_list_handler(struct sysctl_req* req, bool swap_only)
 			kvo->kvo_me = (uintptr_t)obj;
 			/* tmpfs objs are reported as vnodes */
 			sp = swap_pager_swapped_pages(obj);
-			kvo->kvo_swapped = sp > VOS_UINT32_MAX ? VOS_UINT32_MAX : sp;
+			kvo->kvo_swapped = sp > UINT32_MAX ? UINT32_MAX : sp;
 		}
 		VM_OBJECT_RUNLOCK(obj);
 		if (vp != NULL) {
@@ -2650,13 +2650,13 @@ vm_object_list_handler(struct sysctl_req* req, bool swap_only)
 			vput(vp);
 		}
 
-		vos_strlcpy(kvo->kvo_path, fullpath, sizeof(kvo->kvo_path));
+		strlcpy(kvo->kvo_path, fullpath, sizeof(kvo->kvo_path));
 		if (freepath != NULL)
-			vos_free(freepath, M_TEMP);
+			free(freepath, M_TEMP);
 
 		/* Pack record size down */
-		kvo->kvo_structsize = vos_offsetof(struct kinfo_vmobject, kvo_path)
-			+ vos_strlen(kvo->kvo_path) + 1;
+		kvo->kvo_structsize = offsetof(struct kinfo_vmobject, kvo_path)
+			+ strlen(kvo->kvo_path) + 1;
 		kvo->kvo_structsize = roundup(kvo->kvo_structsize,
 			sizeof(uint64_t));
 		error = SYSCTL_OUT(req, kvo, kvo->kvo_structsize);
@@ -2666,7 +2666,7 @@ vm_object_list_handler(struct sysctl_req* req, bool swap_only)
 			break;
 	}
 	mtx_unlock(&vm_object_list_mtx);
-	vos_free(kvo, M_TEMP);
+	free(kvo, M_TEMP);
 	return (error);
 }
 

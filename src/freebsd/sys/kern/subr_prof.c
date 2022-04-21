@@ -104,13 +104,13 @@ kmupetext(uintfptr_t nhighpc)
 	else if (np.tolimit > MAXARCS)
 		np.tolimit = MAXARCS;
 	np.tossize = np.tolimit * sizeof(struct tostruct);
-	cp = vos_malloc(np.kcountsize + np.fromssize + np.tossize,
+	cp = malloc(np.kcountsize + np.fromssize + np.tossize,
 	    M_GPROF, M_WAITOK);
 	/*
 	 * Check for something else extending highpc while we slept.
 	 */
 	if (np.highpc <= p->highpc) {
-		vos_free(cp, M_GPROF);
+		free(cp, M_GPROF);
 		return;
 	}
 	np.tos = (struct tostruct *)cp;
@@ -135,7 +135,7 @@ kmupetext(uintfptr_t nhighpc)
 	cp = (char *)p->tos;
 	bcopy(&np, p, sizeof(*p));
 	critical_exit();
-	vos_free(cp, M_GPROF);
+	free(cp, M_GPROF);
 }
 
 static void
@@ -172,7 +172,7 @@ kmstartup(void *dummy)
 	else if (p->tolimit > MAXARCS)
 		p->tolimit = MAXARCS;
 	p->tossize = p->tolimit * sizeof(struct tostruct);
-	cp = (char *)vos_malloc(p->kcountsize + p->fromssize + p->tossize,
+	cp = (char *)malloc(p->kcountsize + p->fromssize + p->tossize,
 	    M_GPROF, M_WAITOK | M_ZERO);
 	p->tos = (struct tostruct *)cp;
 	cp += p->tossize;
@@ -333,7 +333,7 @@ sysctl_kern_prof(SYSCTL_HANDLER_ARGS)
 
 	/* all sysctl names at this level are terminal */
 	if (namelen != 1)
-		return (VOS_ENOTDIR);		/* overloaded */
+		return (ENOTDIR);		/* overloaded */
 
 	switch (name[0]) {
 	case GPROF_STATE:
@@ -367,7 +367,7 @@ sysctl_kern_prof(SYSCTL_HANDLER_ARGS)
 			gp->state = state;
 #endif
 		} else if (state != gp->state)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		return (0);
 	case GPROF_COUNT:
 		return (sysctl_handle_opaque(oidp, 
@@ -381,7 +381,7 @@ sysctl_kern_prof(SYSCTL_HANDLER_ARGS)
 	case GPROF_GMONPARAM:
 		return (sysctl_handle_opaque(oidp, gp, sizeof *gp, req));
 	default:
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	/* NOTREACHED */
 }
@@ -413,7 +413,7 @@ sys_profil(struct thread *td, struct profil_args *uap)
 	struct proc *p;
 
 	if (uap->scale > (1 << 16))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	p = td->td_proc;
 	if (uap->scale == 0) {

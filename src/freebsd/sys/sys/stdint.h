@@ -37,25 +37,25 @@
 #include <machine/_stdint.h>
 #include <sys/_stdint.h>
 
-typedef	__int_least8_t		vos_int_least8_t;
-typedef	__int_least16_t		vos_int_least16_t;
-typedef	__int_least32_t		vos_int_least32_t;
-typedef	__int_least64_t		vos_int_least64_t;
+typedef	__int_least8_t		int_least8_t;
+typedef	__int_least16_t		int_least16_t;
+typedef	__int_least32_t		int_least32_t;
+typedef	__int_least64_t		int_least64_t;
 
-typedef	__uint_least8_t		vos_uint_least8_t;
-typedef	__uint_least16_t	vos_uint_least16_t;
-typedef	__uint_least32_t	vos_uint_least32_t;
-typedef	__uint_least64_t	vos_uint_least64_t;
+typedef	__uint_least8_t		uint_least8_t;
+typedef	__uint_least16_t	uint_least16_t;
+typedef	__uint_least32_t	uint_least32_t;
+typedef	__uint_least64_t	uint_least64_t;
 
-typedef	__int_fast8_t		vos_int_fast8_t;
-typedef	__int_fast16_t		vos_int_fast16_t;
-typedef	__int_fast32_t		vos_int_fast32_t;
-typedef	__int_fast64_t		vos_int_fast64_t;
+typedef	__int_fast8_t		int_fast8_t;
+typedef	__int_fast16_t		int_fast16_t;
+typedef	__int_fast32_t		int_fast32_t;
+typedef	__int_fast64_t		int_fast64_t;
 
-typedef	__uint_fast8_t		vos_uint_fast8_t;
-typedef	__uint_fast16_t		vos_uint_fast16_t;
-typedef	__uint_fast32_t		vos_uint_fast32_t;
-typedef	__uint_fast64_t		vos_uint_fast64_t;
+typedef	__uint_fast8_t		uint_fast8_t;
+typedef	__uint_fast16_t		uint_fast16_t;
+typedef	__uint_fast32_t		uint_fast32_t;
+typedef	__uint_fast64_t		uint_fast64_t;
 
 /* GNU and Darwin define this and people seem to think it's portable */
 #if defined(UINTPTR_MAX) && defined(UINT64_MAX) && (UINTPTR_MAX == UINT64_MAX)
@@ -65,8 +65,8 @@ typedef	__uint_fast64_t		vos_uint_fast64_t;
 #endif
 
 /* Limits of wchar_t. */
-#define	VOS_WCHAR_MIN	__WCHAR_MIN
-#define	VOS_WCHAR_MAX	__WCHAR_MAX
+#define	WCHAR_MIN	__WCHAR_MIN
+#define	WCHAR_MAX	__WCHAR_MAX
 
 #if __EXT1_VISIBLE
 /* ISO/IEC 9899:2011 K.3.4.4 */

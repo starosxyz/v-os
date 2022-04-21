@@ -117,7 +117,7 @@ static struct fileops procdesc_ops = {
 };
 
 /*
- * Return a locked process given a process descriptor, or VOS_ESRCH if it has
+ * Return a locked process given a process descriptor, or ESRCH if it has
  * died.
  */
 int
@@ -132,7 +132,7 @@ procdesc_find(struct thread *td, int fd, cap_rights_t *rightsp,
 	if (error)
 		return (error);
 	if (fp->f_type != DTYPE_PROCDESC) {
-		error = VOS_EBADF;
+		error = EBADF;
 		goto out;
 	}
 	pd = fp->f_data;
@@ -141,7 +141,7 @@ procdesc_find(struct thread *td, int fd, cap_rights_t *rightsp,
 		*p = pd->pd_proc;
 		PROC_LOCK(*p);
 	} else
-		error = VOS_ESRCH;
+		error = ESRCH;
 	sx_sunlock(&proctree_lock);
 out:
 	fdrop(fp, td);
@@ -177,7 +177,7 @@ kern_pdgetpid(struct thread *td, int fd, cap_rights_t *rightsp, pid_t *pidp)
 	if (error)
 		return (error);
 	if (fp->f_type != DTYPE_PROCDESC) {
-		error = VOS_EBADF;
+		error = EBADF;
 		goto out;
 	}
 	*pidp = procdesc_pid(fp);
@@ -213,7 +213,7 @@ procdesc_new(struct proc *p, int flags)
 {
 	struct procdesc *pd;
 
-	pd = vos_malloc(sizeof(*pd), M_PROCDESC, M_WAITOK | M_ZERO);
+	pd = malloc(sizeof(*pd), M_PROCDESC, M_WAITOK | M_ZERO);
 	pd->pd_proc = p;
 	pd->pd_pid = p->p_pid;
 	p->p_procdesc = pd;
@@ -274,7 +274,7 @@ procdesc_free(struct procdesc *pd)
 
 		knlist_destroy(&pd->pd_selinfo.si_note);
 		PROCDESC_LOCK_DESTROY(pd);
-		vos_free(pd, M_PROCDESC);
+		free(pd, M_PROCDESC);
 	}
 }
 
@@ -503,7 +503,7 @@ procdesc_kqfilter(struct file *fp, struct knote *kn)
 		knlist_add(&pd->pd_selinfo.si_note, kn, 0);
 		return (0);
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 }
 

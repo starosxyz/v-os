@@ -104,7 +104,7 @@ ifmedia_removeall(struct ifmedia *ifm)
 
 	while ((entry = LIST_FIRST(&ifm->ifm_list)) != NULL) {
 		LIST_REMOVE(entry, ifm_list);
-		vos_free(entry, M_IFADDR);
+		free(entry, M_IFADDR);
 	}
 	ifm->ifm_cur = NULL;
 }
@@ -129,7 +129,7 @@ ifmedia_add(struct ifmedia *ifm, int mword, int data, void *aux)
 	}
 #endif
 
-	entry = vos_malloc(sizeof(*entry), M_IFADDR, M_NOWAIT);
+	entry = malloc(sizeof(*entry), M_IFADDR, M_NOWAIT);
 	if (entry == NULL)
 		panic("ifmedia_add: can't malloc entry");
 
@@ -212,7 +212,7 @@ ifmedia_ioctl(struct ifnet *ifp, struct ifreq *ifr, struct ifmedia *ifm,
 	int error = 0;
 
 	if (ifp == NULL || ifr == NULL || ifm == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	switch (cmd) {
 	/*
@@ -233,7 +233,7 @@ ifmedia_ioctl(struct ifnet *ifp, struct ifreq *ifr, struct ifmedia *ifm,
 				    newmedia, ifm->ifm_mask);
 			}
 #endif
-			return (VOS_ENXIO);
+			return (ENXIO);
 		}
 
 		/*
@@ -280,7 +280,7 @@ ifmedia_ioctl(struct ifnet *ifp, struct ifreq *ifr, struct ifmedia *ifm,
 		int i;
 
 		if (ifmr->ifm_count < 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 
 		if (cmd == SIOCGIFMEDIA) {
 			ifmr->ifm_active = ifmr->ifm_current = ifm->ifm_cur ?
@@ -310,13 +310,13 @@ ifmedia_ioctl(struct ifnet *ifp, struct ifreq *ifr, struct ifmedia *ifm,
 			i++;
 		}
 		if (error == 0 && i > ifmr->ifm_count)
-			error = ifmr->ifm_count != 0 ? VOS_E2BIG : 0;
+			error = ifmr->ifm_count != 0 ? E2BIG : 0;
 		ifmr->ifm_count = i;
 		break;
 	}
 
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	return (error);

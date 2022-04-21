@@ -138,13 +138,13 @@ hhook_add_hook(struct hhook_head *hhh, struct hookinfo *hki, uint32_t flags)
 	error = 0;
 
 	if (hhh == NULL)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
-	hhk = vos_malloc(sizeof(struct hhook), M_HHOOK,
+	hhk = malloc(sizeof(struct hhook), M_HHOOK,
 	    M_ZERO | ((flags & HHOOK_WAITOK) ? M_WAITOK : M_NOWAIT));
 
 	if (hhk == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	hhk->hhk_helper = hki->hook_helper;
 	hhk->hhk_func = hki->hook_func;
@@ -155,7 +155,7 @@ hhook_add_hook(struct hhook_head *hhh, struct hookinfo *hki, uint32_t flags)
 		if (tmp->hhk_func == hki->hook_func &&
 		    tmp->hhk_udata == hki->hook_udata) {
 			/* The helper hook function is already registered. */
-			error = VOS_EEXIST;
+			error = EEXIST;
 			break;
 		}
 	}
@@ -164,7 +164,7 @@ hhook_add_hook(struct hhook_head *hhh, struct hookinfo *hki, uint32_t flags)
 		STAILQ_INSERT_TAIL(&hhh->hhh_hooks, hhk, hhk_next);
 		hhh->hhh_nhooks++;
 	} else
-		vos_free(hhk, M_HHOOK);
+		free(hhk, M_HHOOK);
 
 	HHH_WUNLOCK(hhh);
 
@@ -200,10 +200,10 @@ tryagain:
 	 * nonetheless have to cope with - hence the complex goto logic.
 	 */
 	n_heads_to_hook = n_hhookheads;
-	heads_to_hook = vos_malloc(n_heads_to_hook * sizeof(struct hhook_head *),
+	heads_to_hook = malloc(n_heads_to_hook * sizeof(struct hhook_head *),
 	    M_HHOOK, flags & HHOOK_WAITOK ? M_WAITOK : M_NOWAIT);
 	if (heads_to_hook == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	HHHLIST_LOCK();
 	LIST_FOREACH(hhh, &hhook_head_list, hhh_next) {
@@ -222,7 +222,7 @@ tryagain:
 				 */
 				for (i--; i >= 0; i--)
 					refcount_release(&heads_to_hook[i]->hhh_refcount);
-				vos_free(heads_to_hook, M_HHOOK);
+				free(heads_to_hook, M_HHOOK);
 				HHHLIST_UNLOCK();
 				goto tryagain;
 			}
@@ -236,7 +236,7 @@ tryagain:
 		refcount_release(&heads_to_hook[i]->hhh_refcount);
 	}
 
-	vos_free(heads_to_hook, M_HHOOK);
+	free(heads_to_hook, M_HHOOK);
 
 	return (error);
 }
@@ -250,14 +250,14 @@ hhook_remove_hook(struct hhook_head *hhh, struct hookinfo *hki)
 	struct hhook *tmp;
 
 	if (hhh == NULL)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	HHH_WLOCK(hhh);
 	STAILQ_FOREACH(tmp, &hhh->hhh_hooks, hhk_next) {
 		if (tmp->hhk_func == hki->hook_func &&
 		    tmp->hhk_udata == hki->hook_udata) {
 			STAILQ_REMOVE(&hhh->hhh_hooks, tmp, hhook, hhk_next);
-			vos_free(tmp, M_HHOOK);
+			free(tmp, M_HHOOK);
 			hhh->hhh_nhooks--;
 			break;
 		}
@@ -301,14 +301,14 @@ hhook_head_register(int32_t hhook_type, int32_t hhook_id, struct hhook_head **hh
 	if (tmphhh != NULL) {
 		/* Hook point previously registered. */
 		hhook_head_release(tmphhh);
-		return (VOS_EEXIST);
+		return (EEXIST);
 	}
 
-	tmphhh = vos_malloc(sizeof(struct hhook_head), M_HHOOK,
+	tmphhh = malloc(sizeof(struct hhook_head), M_HHOOK,
 	    M_ZERO | ((flags & HHOOK_WAITOK) ? M_WAITOK : M_NOWAIT));
 
 	if (tmphhh == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	tmphhh->hhh_type = hhook_type;
 	tmphhh->hhh_id = hhook_id;
@@ -355,10 +355,10 @@ hhook_head_destroy(struct hhook_head *hhh)
 #endif
 	HHH_WLOCK(hhh);
 	STAILQ_FOREACH_SAFE(tmp, &hhh->hhh_hooks, hhk_next, tmp2)
-		vos_free(tmp, M_HHOOK);
+		free(tmp, M_HHOOK);
 	HHH_WUNLOCK(hhh);
 	HHH_LOCK_DESTROY(hhh);
-	vos_free(hhh, M_HHOOK);
+	free(hhh, M_HHOOK);
 	n_hhookheads--;
 }
 
@@ -374,9 +374,9 @@ hhook_head_deregister(struct hhook_head *hhh)
 
 	HHHLIST_LOCK();
 	if (hhh == NULL)
-		error = VOS_ENOENT;
+		error = ENOENT;
 	else if (hhh->hhh_refcount > 1)
-		error = VOS_EBUSY;
+		error = EBUSY;
 	else
 		hhook_head_destroy(hhh);
 	HHHLIST_UNLOCK();
@@ -396,7 +396,7 @@ hhook_head_deregister_lookup(int32_t hhook_type, int32_t hhook_id)
 	hhh = hhook_head_get(hhook_type, hhook_id);
 	error = hhook_head_deregister(hhh);
 
-	if (error == VOS_EBUSY)
+	if (error == EBUSY)
 		hhook_head_release(hhh);
 
 	return (error);

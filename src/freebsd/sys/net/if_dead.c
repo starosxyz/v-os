@@ -49,7 +49,7 @@ ifdead_output(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *sa,
 {
 
 	m_freem(m);
-	return (VOS_ENXIO);
+	return (ENXIO);
 }
 
 static void
@@ -69,7 +69,7 @@ static int
 ifdead_ioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 {
 
-	return (VOS_ENXIO);
+	return (ENXIO);
 }
 
 static int
@@ -78,7 +78,7 @@ ifdead_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 {
 
 	*llsa = NULL;
-	return (VOS_ENXIO);
+	return (ENXIO);
 }
 
 static void
@@ -92,7 +92,7 @@ ifdead_transmit(struct ifnet *ifp, struct mbuf *m)
 {
 
 	m_freem(m);
-	return (VOS_ENXIO);
+	return (ENXIO);
 }
 
 static uint64_t
@@ -106,19 +106,19 @@ static int
 ifdead_snd_tag_alloc(struct ifnet *ifp, union if_snd_tag_alloc_params *params,
     struct m_snd_tag **ppmt)
 {
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 static int
 ifdead_snd_tag_modify(struct m_snd_tag *pmt, union if_snd_tag_modify_params *params)
 {
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 static int
 ifdead_snd_tag_query(struct m_snd_tag *pmt, union if_snd_tag_query_params *params)
 {
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 static void

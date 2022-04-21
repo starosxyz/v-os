@@ -127,7 +127,7 @@ vsscanf(const char *inp, char const *fmt0, va_list ap)
 	static short basefix[17] =
 		{ 10, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 };
 
-	inr = vos_strlen(inp);
+	inr = strlen(inp);
 
 	nassigned = 0;
 	nconversions = 0;
@@ -138,8 +138,8 @@ vsscanf(const char *inp, char const *fmt0, va_list ap)
 		c = *fmt++;
 		if (c == 0)
 			return (nassigned);
-		if (vos_isspace(c)) {
-			while (inr > 0 && vos_isspace(*inp))
+		if (isspace(c)) {
+			while (inr > 0 && isspace(*inp))
 				nread++, inr--, inp++;
 			continue;
 		}
@@ -291,7 +291,7 @@ literal:
 		 * that suppress this.
 		 */
 		if ((flags & NOSKIP) == 0) {
-			while (vos_isspace(*inp)) {
+			while (isspace(*inp)) {
 				nread++;
 				if (--inr > 0)
 					inp++;
@@ -389,7 +389,7 @@ literal:
 				width = (size_t)~0;
 			if (flags & SUPPRESS) {
 				n = 0;
-				while (!vos_isspace(*inp)) {
+				while (!isspace(*inp)) {
 					n++, inr--, inp++;
 					if (--width == 0)
 						break;
@@ -399,7 +399,7 @@ literal:
 				nread += n;
 			} else {
 				p0 = p = va_arg(ap, char *);
-				while (!vos_isspace(*inp)) {
+				while (!isspace(*inp)) {
 					inr--;
 					*p++ = *inp++;
 					if (--width == 0)

@@ -80,7 +80,7 @@ struct sgsave {
 /*
  * Append a single (paddr, len) to a sglist.  sg is the list and ss is
  * the current segment in the list.  If we run out of segments then
- * VOS_EFBIG will be returned.
+ * EFBIG will be returned.
  */
 static __inline int
 _sglist_append_range(struct sglist *sg, struct sglist_seg **ssp,
@@ -93,7 +93,7 @@ _sglist_append_range(struct sglist *sg, struct sglist_seg **ssp,
 		ss->ss_len += len;
 	else {
 		if (sg->sg_nseg == sg->sg_maxseg)
-			return (VOS_EFBIG);
+			return (EFBIG);
 		ss++;
 		ss->ss_paddr = paddr;
 		ss->ss_len = len;
@@ -285,7 +285,7 @@ sglist_alloc(int nsegs, int mflags)
 {
 	struct sglist *sg;
 
-	sg = vos_malloc(sizeof(struct sglist) + nsegs * sizeof(struct sglist_seg),
+	sg = malloc(sizeof(struct sglist) + nsegs * sizeof(struct sglist_seg),
 	    M_SGLIST, mflags);
 	if (sg == NULL)
 		return (NULL);
@@ -304,13 +304,13 @@ sglist_free(struct sglist *sg)
 		return;
 
 	if (refcount_release(&sg->sg_refs))
-		vos_free(sg, M_SGLIST);
+		free(sg, M_SGLIST);
 }
 
 /*
  * Append the segments to describe a single kernel virtual address
  * range to a scatter/gather list.  If there are insufficient
- * segments, then this fails with VOS_EFBIG.
+ * segments, then this fails with EFBIG.
  */
 int
 sglist_append(struct sglist *sg, void *buf, size_t len)
@@ -319,7 +319,7 @@ sglist_append(struct sglist *sg, void *buf, size_t len)
 	int error;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	SGLIST_SAVE(sg, save);
 	error = _sglist_append_buf(sg, buf, len, NULL, NULL);
 	if (error)
@@ -329,7 +329,7 @@ sglist_append(struct sglist *sg, void *buf, size_t len)
 
 /*
  * Append the segments to describe a bio's data to a scatter/gather list.
- * If there are insufficient segments, then this fails with VOS_EFBIG.
+ * If there are insufficient segments, then this fails with EFBIG.
  *
  * NOTE: This function expects bio_bcount to be initialized.
  */
@@ -348,7 +348,7 @@ sglist_append_bio(struct sglist *sg, struct bio *bp)
 
 /*
  * Append a single physical address range to a scatter/gather list.
- * If there are insufficient segments, then this fails with VOS_EFBIG.
+ * If there are insufficient segments, then this fails with EFBIG.
  */
 int
 sglist_append_phys(struct sglist *sg, vm_paddr_t paddr, size_t len)
@@ -358,7 +358,7 @@ sglist_append_phys(struct sglist *sg, vm_paddr_t paddr, size_t len)
 	int error;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (len == 0)
 		return (0);
 
@@ -378,7 +378,7 @@ sglist_append_phys(struct sglist *sg, vm_paddr_t paddr, size_t len)
 
 /*
  * Append the segments of single multi-page mbuf.
- * If there are insufficient segments, then this fails with VOS_EFBIG.
+ * If there are insufficient segments, then this fails with EFBIG.
  */
 int
 sglist_append_mbuf_epg(struct sglist *sg, struct mbuf *m, size_t off,
@@ -435,7 +435,7 @@ sglist_append_mbuf_epg(struct sglist *sg, struct mbuf *m, size_t off,
 /*
  * Append the segments that describe a single mbuf chain to a
  * scatter/gather list.  If there are insufficient segments, then this
- * fails with VOS_EFBIG.
+ * fails with EFBIG.
  */
 int
 sglist_append_mbuf(struct sglist *sg, struct mbuf *m0)
@@ -445,7 +445,7 @@ sglist_append_mbuf(struct sglist *sg, struct mbuf *m0)
 	int error;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = 0;
 	SGLIST_SAVE(sg, save);
@@ -482,7 +482,7 @@ sglist_append_vmpages(struct sglist *sg, vm_page_t *m, size_t pgoff,
 	int error, i;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (len == 0)
 		return (0);
 
@@ -514,7 +514,7 @@ sglist_append_vmpages(struct sglist *sg, vm_page_t *m, size_t pgoff,
 /*
  * Append the segments that describe a single user address range to a
  * scatter/gather list.  If there are insufficient segments, then this
- * fails with VOS_EFBIG.
+ * fails with EFBIG.
  */
 int
 sglist_append_user(struct sglist *sg, void *buf, size_t len, struct thread *td)
@@ -523,7 +523,7 @@ sglist_append_user(struct sglist *sg, void *buf, size_t len, struct thread *td)
 	int error;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	SGLIST_SAVE(sg, save);
 	error = _sglist_append_buf(sg, buf, len,
 	    vmspace_pmap(td->td_proc->p_vmspace), NULL);
@@ -535,7 +535,7 @@ sglist_append_user(struct sglist *sg, void *buf, size_t len, struct thread *td)
 /*
  * Append a subset of an existing scatter/gather list 'source' to a
  * the scatter/gather list 'sg'.  If there are insufficient segments,
- * then this fails with VOS_EFBIG.
+ * then this fails with EFBIG.
  */
 int
 sglist_append_sglist(struct sglist *sg, struct sglist *source, size_t offset,
@@ -547,9 +547,9 @@ sglist_append_sglist(struct sglist *sg, struct sglist *source, size_t offset,
 	int error, i;
 
 	if (sg->sg_maxseg == 0 || length == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	SGLIST_SAVE(sg, save);
-	error = VOS_EINVAL;
+	error = EINVAL;
 	ss = &sg->sg_segs[sg->sg_nseg - 1];
 	for (i = 0; i < source->sg_nseg; i++) {
 		if (offset >= source->sg_segs[i].ss_len) {
@@ -569,7 +569,7 @@ sglist_append_sglist(struct sglist *sg, struct sglist *source, size_t offset,
 			break;
 	}
 	if (length != 0)
-		error = VOS_EINVAL;
+		error = EINVAL;
 	if (error)
 		SGLIST_RESTORE(sg, save);
 	return (error);
@@ -578,7 +578,7 @@ sglist_append_sglist(struct sglist *sg, struct sglist *source, size_t offset,
 /*
  * Append the segments that describe a single uio to a scatter/gather
  * list.  If there are insufficient segments, then this fails with
- * VOS_EFBIG.
+ * EFBIG.
  */
 int
 sglist_append_uio(struct sglist *sg, struct uio *uio)
@@ -590,7 +590,7 @@ sglist_append_uio(struct sglist *sg, struct uio *uio)
 	int error, i;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	resid = uio->uio_resid;
 	iov = uio->uio_iov;
@@ -637,7 +637,7 @@ sglist_consume_uio(struct sglist *sg, struct uio *uio, size_t resid)
 	int error, len;
 
 	if (sg->sg_maxseg == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (uio->uio_segflg == UIO_USERSPACE) {
 		KASSERT(uio->uio_td != NULL,
@@ -740,14 +740,14 @@ sglist_length(struct sglist *sg)
  *
  * If '*head' is NULL, then a new list will be allocated using
  * 'mflags'.  If M_NOWAIT is specified and the allocation fails,
- * VOS_ENOMEM will be returned.
+ * ENOMEM will be returned.
  *
  * If '*head' is not NULL, it should point to an empty sglist.  If it
- * does not have enough room for the remaining space, then VOS_EFBIG will
- * be returned.  If '*head' is not empty, then VOS_EINVAL will be
+ * does not have enough room for the remaining space, then EFBIG will
+ * be returned.  If '*head' is not empty, then EINVAL will be
  * returned.
  *
- * If 'original' is shared (refcount > 1), then VOS_EDOOFUS will be
+ * If 'original' is shared (refcount > 1), then EDOOFUS will be
  * returned.
  */
 int
@@ -759,7 +759,7 @@ sglist_split(struct sglist *original, struct sglist **head, size_t length,
 	int count, i;
 
 	if (original->sg_refs > 1)
-		return (VOS_EDOOFUS);
+		return (EDOOFUS);
 
 	/* Figure out how big of a sglist '*head' has to hold. */
 	count = 0;
@@ -787,14 +787,14 @@ sglist_split(struct sglist *original, struct sglist **head, size_t length,
 	if (*head == NULL) {
 		sg = sglist_alloc(count, mflags);
 		if (sg == NULL)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		*head = sg;
 	} else {
 		sg = *head;
 		if (sg->sg_maxseg < count)
-			return (VOS_EFBIG);
+			return (EFBIG);
 		if (sg->sg_nseg != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 
 	/* Copy 'count' entries to 'sg' from 'original'. */
@@ -826,7 +826,7 @@ sglist_split(struct sglist *original, struct sglist **head, size_t length,
 /*
  * Append the scatter/gather list elements in 'second' to the
  * scatter/gather list 'first'.  If there is not enough space in
- * 'first', VOS_EFBIG is returned.
+ * 'first', EFBIG is returned.
  */
 int
 sglist_join(struct sglist *first, struct sglist *second)
@@ -851,7 +851,7 @@ sglist_join(struct sglist *first, struct sglist *second)
 
 	/* Make sure 'first' has enough room. */
 	if (first->sg_nseg + second->sg_nseg - append > first->sg_maxseg)
-		return (VOS_EFBIG);
+		return (EFBIG);
 
 	/* Merge last in 'first' and first in 'second' if needed. */
 	if (append)
@@ -869,16 +869,16 @@ sglist_join(struct sglist *first, struct sglist *second)
  * Generate a new scatter/gather list from a range of an existing
  * scatter/gather list.  The 'offset' and 'length' parameters specify
  * the logical range of the 'original' list to extract.  If that range
- * is not a subset of the length of 'original', then VOS_EINVAL is
+ * is not a subset of the length of 'original', then EINVAL is
  * returned.  The new scatter/gather list is stored in '*slice'.
  *
  * If '*slice' is NULL, then a new list will be allocated using
  * 'mflags'.  If M_NOWAIT is specified and the allocation fails,
- * VOS_ENOMEM will be returned.
+ * ENOMEM will be returned.
  *
  * If '*slice' is not NULL, it should point to an empty sglist.  If it
- * does not have enough room for the remaining space, then VOS_EFBIG will
- * be returned.  If '*slice' is not empty, then VOS_EINVAL will be
+ * does not have enough room for the remaining space, then EFBIG will
+ * be returned.  If '*slice' is not empty, then EINVAL will be
  * returned.
  */
 int
@@ -932,19 +932,19 @@ sglist_slice(struct sglist *original, struct sglist **slice, size_t offset,
 
 	/* If we never hit 'end', then 'length' ran off the end, so fail. */
 	if (space < end)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (*slice == NULL) {
 		sg = sglist_alloc(count, mflags);
 		if (sg == NULL)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		*slice = sg;
 	} else {
 		sg = *slice;
 		if (sg->sg_maxseg < count)
-			return (VOS_EFBIG);
+			return (EFBIG);
 		if (sg->sg_nseg != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 
 	/*

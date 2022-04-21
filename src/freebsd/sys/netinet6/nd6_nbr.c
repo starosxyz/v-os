@@ -1224,7 +1224,7 @@ nd6_dad_rele(struct dadq *dp)
 
 	if (refcount_release(&dp->dad_refcnt)) {
 		ifa_free(dp->dad_ifa);
-		vos_free(dp, M_IP6NDP);
+		free(dp, M_IP6NDP);
 	}
 }
 
@@ -1276,7 +1276,7 @@ nd6_dad_start(struct ifaddr *ifa, int delay)
 		return;
 	}
 
-	dp = vos_malloc(sizeof(*dp), M_IP6NDP, M_NOWAIT | M_ZERO);
+	dp = malloc(sizeof(*dp), M_IP6NDP, M_NOWAIT | M_ZERO);
 	if (dp == NULL) {
 		log(LOG_ERR, "nd6_dad_start: memory allocation failed for "
 			"%s(%s)\n",

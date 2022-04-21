@@ -247,14 +247,14 @@ static inline uint64_t
 racct_get_limit(struct proc *p, int resource)
 {
 
-	return (VOS_UINT64_MAX);
+	return (UINT64_MAX);
 }
 
 static inline uint64_t
 racct_get_available(struct proc *p, int resource)
 {
 
-	return (VOS_UINT64_MAX);
+	return (UINT64_MAX);
 }
 
 #define	racct_create(x)

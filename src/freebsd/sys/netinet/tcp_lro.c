@@ -177,20 +177,20 @@ tcp_lro_init_args(struct lro_ctrl *lc, struct ifnet *ifp,
 	    HASH_NOWAIT);
 	if (lc->lro_hash == NULL) {
 		memset(lc, 0, sizeof(*lc));
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 
 	/* compute size to allocate */
 	size = (lro_mbufs * sizeof(struct lro_mbuf_sort)) +
 	    (lro_entries * sizeof(*le));
 	lc->lro_mbuf_data = (struct lro_mbuf_sort *)
-		vos_malloc(size, M_LRO, M_NOWAIT | M_ZERO);
+	    malloc(size, M_LRO, M_NOWAIT | M_ZERO);
 
 	/* check for out of memory */
 	if (lc->lro_mbuf_data == NULL) {
-		vos_free(lc->lro_hash, M_LRO);
+		free(lc->lro_hash, M_LRO);
 		memset(lc, 0, sizeof(*lc));
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	/* compute offset for LRO entries */
 	le = (struct lro_entry *)
@@ -249,7 +249,7 @@ tcp_lro_free(struct lro_ctrl *lc)
 	}
 
 	/* free hash table */
-	vos_free(lc->lro_hash, M_LRO);
+	free(lc->lro_hash, M_LRO);
 	lc->lro_hash = NULL;
 	lc->lro_hashsz = 0;
 
@@ -259,7 +259,7 @@ tcp_lro_free(struct lro_ctrl *lc)
 	lc->lro_mbuf_count = 0;
 
 	/* free allocated memory, if any */
-	vos_free(lc->lro_mbuf_data, M_LRO);
+	free(lc->lro_mbuf_data, M_LRO);
 	lc->lro_mbuf_data = NULL;
 }
 
@@ -1126,7 +1126,7 @@ done:
 }
 
 static void
-lro_set_mtime(struct timeval *tv, struct vos_timespec *ts)
+lro_set_mtime(struct timeval *tv, struct timespec *ts)
 {
 	tv->tv_sec = ts->tv_sec;
 	tv->tv_usec = ts->tv_nsec / 1000;
@@ -1150,7 +1150,7 @@ tcp_lro_rx2(struct lro_ctrl *lc, struct mbuf *m, uint32_t csum, int use_hash)
 	int error, ip_len, l;
 	uint16_t eh_type, tcp_data_len, need_flush;
 	struct lro_head *bucket;
-	struct vos_timespec arrv;
+	struct timespec arrv;
 
 	/* We expect a contiguous header [eh, ip, tcp]. */
 	if ((m->m_flags & (M_TSTMP_LRO|M_TSTMP)) == 0) {
@@ -1411,7 +1411,7 @@ tcp_lro_rx(struct lro_ctrl *lc, struct mbuf *m, uint32_t csum)
 void
 tcp_lro_queue_mbuf(struct lro_ctrl *lc, struct mbuf *mb)
 {
-	struct vos_timespec arrv;
+	struct timespec arrv;
 
 	/* sanity checks */
 	if (__predict_false(lc->ifp == NULL || lc->lro_mbuf_data == NULL ||

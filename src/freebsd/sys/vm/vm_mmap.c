@@ -124,7 +124,7 @@ int
 sys_sbrk(struct thread *td, struct sbrk_args *uap)
 {
 	/* Not yet implemented */
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 #ifndef _SYS_SYSPROTO_H_
@@ -137,7 +137,7 @@ int
 sys_sstk(struct thread *td, struct sstk_args *uap)
 {
 	/* Not yet implemented */
-	return (VOS_EOPNOTSUPP);
+	return (EOPNOTSUPP);
 }
 
 #if defined(COMPAT_43)
@@ -235,11 +235,11 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 	check_fp_fn = mrp->mr_check_fp_fn;
 
 	if ((prot & ~(_PROT_ALL | PROT_MAX(_PROT_ALL))) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	max_prot = PROT_MAX_EXTRACT(prot);
 	prot = PROT_EXTRACT(prot);
 	if (max_prot != 0 && (max_prot & prot) != prot)
-		return (VOS_ENOTSUP);
+		return (ENOTSUP);
 
 	p = td->td_proc;
 
@@ -271,7 +271,7 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 	if (!SV_CURPROC_FLAG(SV_AOUT)) {
 		if ((len == 0 && p->p_osrel >= P_OSREL_MAP_ANON) ||
 		    ((flags & MAP_ANON) != 0 && (fd != -1 || pos != 0)))
-			return (VOS_EINVAL);
+			return (EINVAL);
 	} else {
 		if ((flags & MAP_ANON) != 0)
 			pos = 0;
@@ -280,7 +280,7 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 	if (flags & MAP_STACK) {
 		if ((fd != -1) ||
 		    ((prot & (PROT_READ | PROT_WRITE)) != (PROT_READ | PROT_WRITE)))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		flags |= MAP_ANON;
 		pos = 0;
 	}
@@ -291,21 +291,21 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 	    MAP_32BIT |
 #endif
 	    MAP_ALIGNMENT_MASK)) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if ((flags & (MAP_EXCL | MAP_FIXED)) == MAP_EXCL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if ((flags & (MAP_SHARED | MAP_PRIVATE)) == (MAP_SHARED | MAP_PRIVATE))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (prot != PROT_NONE &&
 	    (prot & ~(PROT_READ | PROT_WRITE | PROT_EXEC)) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if ((flags & MAP_GUARD) != 0 && (prot != PROT_NONE || fd != -1 ||
 	    pos != 0 || (flags & ~(MAP_FIXED | MAP_GUARD | MAP_EXCL |
 #ifdef MAP_32BIT
 	    MAP_32BIT |
 #endif
 	    MAP_ALIGNMENT_MASK)) != 0))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * Align the file position to a page boundary,
@@ -319,14 +319,14 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 	size = round_page(size);		/* hi end */
 	/* Check for rounding up to zero. */
 	if (len > size)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/* Ensure alignment is at least a page and fits in a pointer. */
 	align = flags & MAP_ALIGNMENT_MASK;
 	if (align != 0 && align != MAP_ALIGNED_SUPER &&
 	    (align >> MAP_ALIGNMENT_SHIFT >= sizeof(void *) * NBBY ||
 	    align >> MAP_ALIGNMENT_SHIFT < PAGE_SHIFT))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * Check for illegal addresses.  Watch out for address wrap... Note
@@ -340,14 +340,14 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 		 */
 		addr -= pageoff;
 		if (addr & PAGE_MASK)
-			return (VOS_EINVAL);
+			return (EINVAL);
 
 		/* Address range must be all in user VM space. */
 		if (!vm_map_range_valid(&vms->vm_map, addr, addr + size))
-			return (VOS_EINVAL);
+			return (EINVAL);
 #ifdef MAP_32BIT
 		if (flags & MAP_32BIT && addr + size > MAP_32BIT_MAX_ADDR)
-			return (VOS_EINVAL);
+			return (EINVAL);
 	} else if (flags & MAP_32BIT) {
 		/*
 		 * For MAP_32BIT, override the hint if it is too high and
@@ -413,7 +413,7 @@ kern_mmap_req(struct thread *td, const struct mmap_req *mrp)
 			goto done;
 		if ((flags & (MAP_SHARED | MAP_PRIVATE)) == 0 &&
 		    p->p_osrel >= P_OSREL_MAP_FSTRICT) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto done;
 		}
 		if (check_fp_fn != NULL) {
@@ -529,10 +529,10 @@ kern_msync(struct thread *td, uintptr_t addr0, size_t size, int flags)
 	size += pageoff;
 	size = (vm_size_t) round_page(size);
 	if (addr + size < addr)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if ((flags & (MS_ASYNC|MS_INVALIDATE)) == (MS_ASYNC|MS_INVALIDATE))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	map = &td->td_proc->p_vmspace->vm_map;
 
@@ -545,13 +545,13 @@ kern_msync(struct thread *td, uintptr_t addr0, size_t size, int flags)
 	case KERN_SUCCESS:
 		return (0);
 	case KERN_INVALID_ADDRESS:
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	case KERN_INVALID_ARGUMENT:
-		return (VOS_EBUSY);
+		return (EBUSY);
 	case KERN_FAILURE:
-		return (VOS_EIO);
+		return (EIO);
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 }
 
@@ -582,7 +582,7 @@ kern_munmap(struct thread *td, uintptr_t addr0, size_t size)
 	int rv;
 
 	if (size == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	addr = addr0;
 	pageoff = (addr & PAGE_MASK);
@@ -592,7 +592,7 @@ kern_munmap(struct thread *td, uintptr_t addr0, size_t size)
 	end = addr + size;
 	map = &td->td_proc->p_vmspace->vm_map;
 	if (!vm_map_range_valid(map, addr, end))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	vm_map_lock(map);
 #ifdef HWPMC_HOOKS
@@ -657,7 +657,7 @@ kern_mprotect(struct thread *td, uintptr_t addr0, size_t size, int prot)
 
 	addr = addr0;
 	if ((prot & ~(_PROT_ALL | PROT_MAX(_PROT_ALL))) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	max_prot = PROT_MAX_EXTRACT(prot);
 	prot = PROT_EXTRACT(prot);
 	pageoff = (addr & PAGE_MASK);
@@ -667,11 +667,11 @@ kern_mprotect(struct thread *td, uintptr_t addr0, size_t size, int prot)
 #ifdef COMPAT_FREEBSD32
 	if (SV_PROC_FLAG(td->td_proc, SV_ILP32)) {
 		if (((addr + size) & 0xffffffff) < addr)
-			return (VOS_EINVAL);
+			return (EINVAL);
 	} else
 #endif
 	if (addr + size < addr)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	flags = VM_MAP_PROTECT_SET_PROT;
 	if (max_prot != 0)
@@ -683,13 +683,13 @@ kern_mprotect(struct thread *td, uintptr_t addr0, size_t size, int prot)
 	case KERN_SUCCESS:
 		return (0);
 	case KERN_PROTECTION_FAILURE:
-		return (VOS_EACCES);
+		return (EACCES);
 	case KERN_RESOURCE_SHORTAGE:
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	case KERN_OUT_OF_BOUNDS:
-		return (VOS_ENOTSUP);
+		return (ENOTSUP);
 	}
-	return (VOS_EINVAL);
+	return (EINVAL);
 }
 
 #ifndef _SYS_SYSPROTO_H_
@@ -723,16 +723,16 @@ kern_minherit(struct thread *td, uintptr_t addr0, size_t len, int inherit0)
 	size += pageoff;
 	size = (vm_size_t) round_page(size);
 	if (addr + size < addr)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	switch (vm_map_inherit(&td->td_proc->p_vmspace->vm_map, addr,
 	    addr + size, inherit)) {
 	case KERN_SUCCESS:
 		return (0);
 	case KERN_PROTECTION_FAILURE:
-		return (VOS_EACCES);
+		return (EACCES);
 	}
-	return (VOS_EINVAL);
+	return (EINVAL);
 }
 
 #ifndef _SYS_SYSPROTO_H_
@@ -774,7 +774,7 @@ kern_madvise(struct thread *td, uintptr_t addr0, size_t len, int behav)
 	map = &td->td_proc->p_vmspace->vm_map;
 	addr = addr0;
 	if (!vm_map_range_valid(map, addr, addr + len))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * Since this routine is only advisory, we default to conservative
@@ -826,7 +826,7 @@ kern_mincore(struct thread *td, uintptr_t addr0, size_t len, char *vec)
 	end = round_page(addr0 + len);
 	map = &td->td_proc->p_vmspace->vm_map;
 	if (end > vm_map_max(map) || end < addr)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	pmap = vmspace_pmap(td->td_proc->p_vmspace);
 
@@ -836,7 +836,7 @@ RestartScan:
 
 	if (!vm_map_lookup_entry(map, addr, &entry)) {
 		vm_map_unlock_read(map);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 
 	/*
@@ -854,7 +854,7 @@ RestartScan:
 		if (current->end < end &&
 		    entry->start > current->end) {
 			vm_map_unlock_read(map);
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		}
 
 		/*
@@ -984,7 +984,7 @@ retry:
 				++lastvecindex;
 				error = subyte(vec + lastvecindex, 0);
 				if (error) {
-					error = VOS_EFAULT;
+					error = EFAULT;
 					goto done2;
 				}
 			}
@@ -994,7 +994,7 @@ retry:
 			 */
 			error = subyte(vec + vecindex, mincoreinfo);
 			if (error) {
-				error = VOS_EFAULT;
+				error = EFAULT;
 				goto done2;
 			}
 
@@ -1024,7 +1024,7 @@ retry:
 		++lastvecindex;
 		error = subyte(vec + lastvecindex, 0);
 		if (error) {
-			error = VOS_EFAULT;
+			error = EFAULT;
 			goto done2;
 		}
 	}
@@ -1073,16 +1073,16 @@ kern_mlock(struct proc *proc, struct ucred *cred, uintptr_t addr0, size_t len)
 	start = trunc_page(addr);
 	end = round_page(last);
 	if (last < addr || end < addr)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	npages = atop(end - start);
 	if (npages > vm_page_max_user_wired)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	map = &proc->p_vmspace->vm_map;
 	PROC_LOCK(proc);
 	nsize = ptoa(npages + pmap_wired_count(map->pmap));
 	if (nsize > lim_cur_proc(proc, RLIMIT_MEMLOCK)) {
 		PROC_UNLOCK(proc);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	PROC_UNLOCK(proc);
 #ifdef RACCT
@@ -1091,7 +1091,7 @@ kern_mlock(struct proc *proc, struct ucred *cred, uintptr_t addr0, size_t len)
 		error = racct_set(proc, RACCT_MEMLOCK, nsize);
 		PROC_UNLOCK(proc);
 		if (error != 0)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 	}
 #endif
 	error = vm_map_wire(map, start, end,
@@ -1108,9 +1108,9 @@ kern_mlock(struct proc *proc, struct ucred *cred, uintptr_t addr0, size_t len)
 	case KERN_SUCCESS:
 		return (0);
 	case KERN_INVALID_ARGUMENT:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	default:
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 }
 
@@ -1132,15 +1132,15 @@ sys_mlockall(struct thread *td, struct mlockall_args *uap)
 		return (error);
 
 	if ((uap->how == 0) || ((uap->how & ~(MCL_CURRENT|MCL_FUTURE)) != 0))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * If wiring all pages in the process would cause it to exceed
-	 * a hard resource limit, return VOS_ENOMEM.
+	 * a hard resource limit, return ENOMEM.
 	 */
 	if (!old_mlock && uap->how & MCL_CURRENT) {
 		if (map->size > lim_cur(td, RLIMIT_MEMLOCK))
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 	}
 #ifdef RACCT
 	if (racct_enable) {
@@ -1148,7 +1148,7 @@ sys_mlockall(struct thread *td, struct mlockall_args *uap)
 		error = racct_set(td->td_proc, RACCT_MEMLOCK, map->size);
 		PROC_UNLOCK(td->td_proc);
 		if (error != 0)
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 	}
 #endif
 
@@ -1171,9 +1171,9 @@ sys_mlockall(struct thread *td, struct mlockall_args *uap)
 		if (error == KERN_SUCCESS)
 			error = 0;
 		else if (error == KERN_RESOURCE_SHORTAGE)
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 		else
-			error = VOS_EAGAIN;
+			error = EAGAIN;
 	}
 #ifdef RACCT
 	if (racct_enable && error != KERN_SUCCESS) {
@@ -1253,7 +1253,7 @@ kern_munlock(struct thread *td, uintptr_t addr0, size_t size)
 	start = trunc_page(addr);
 	end = round_page(last);
 	if (last < addr || end < addr)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	error = vm_map_unwire(&td->td_proc->p_vmspace->vm_map, start, end,
 	    VM_MAP_WIRE_USER | VM_MAP_WIRE_NOHOLES);
 #ifdef RACCT
@@ -1265,7 +1265,7 @@ kern_munlock(struct thread *td, uintptr_t addr0, size_t size)
 		PROC_UNLOCK(td->td_proc);
 	}
 #endif
-	return (error == KERN_SUCCESS ? 0 : VOS_ENOMEM);
+	return (error == KERN_SUCCESS ? 0 : ENOMEM);
 }
 
 /*
@@ -1301,7 +1301,7 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 		 * Get the proper underlying object
 		 */
 		if (obj == NULL) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 			goto done;
 		}
 		if (obj->type == OBJT_VNODE && obj->handle != vp) {
@@ -1320,7 +1320,7 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 			vm_pager_update_writecount(obj, 0, objsize);
 		}
 	} else {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto done;
 	}
 	if ((error = VOP_GETATTR(vp, &va, cred)))
@@ -1334,7 +1334,7 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 	if ((flags & MAP_SHARED) != 0) {
 		if ((va.va_flags & (SF_SNAPSHOT|IMMUTABLE|APPEND)) != 0) {
 			if (prot & VM_PROT_WRITE) {
-				error = VOS_EPERM;
+				error = EPERM;
 				goto done;
 			}
 			*maxprotp &= ~VM_PROT_WRITE;
@@ -1352,7 +1352,7 @@ vm_mmap_vnode(struct thread *td, vm_size_t objsize,
 		obj = vm_pager_allocate(OBJT_VNODE, vp, objsize, prot, foff,
 		    cred);
 		if (obj == NULL) {
-			error = VOS_ENOMEM;
+			error = ENOMEM;
 			goto done;
 		}
 	} else {
@@ -1409,9 +1409,9 @@ vm_mmap_cdev(struct thread *td, vm_size_t objsize, vm_prot_t prot,
 	 */
 	if ((*maxprotp & VM_PROT_WRITE) == 0 &&
 	    (prot & VM_PROT_WRITE) != 0)
-		return (VOS_EACCES);
+		return (EACCES);
 	if (flags & (MAP_PRIVATE|MAP_COPY))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	/*
 	 * Force device mappings to be shared.
 	 */
@@ -1423,7 +1423,7 @@ vm_mmap_cdev(struct thread *td, vm_size_t objsize, vm_prot_t prot,
 #endif
 	/*
 	 * First, try d_mmap_single().  If that is not implemented
-	 * (returns VOS_ENODEV), fall back to using the device pager.
+	 * (returns ENODEV), fall back to using the device pager.
 	 * Note that d_mmap_single() must return a reference to the
 	 * object (it needs to bump the reference count of the object
 	 * it returns somehow).
@@ -1431,12 +1431,12 @@ vm_mmap_cdev(struct thread *td, vm_size_t objsize, vm_prot_t prot,
 	 * XXX assumes VM_PROT_* == PROT_*
 	 */
 	error = dsw->d_mmap_single(cdev, foff, objsize, objp, (int)prot);
-	if (error != VOS_ENODEV)
+	if (error != ENODEV)
 		return (error);
 	obj = vm_pager_allocate(OBJT_DEVICE, cdev, objsize, prot, *foff,
 	    td->td_ucred);
 	if (obj == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	*objp = obj;
 	*flagsp = flags;
 	return (0);
@@ -1461,7 +1461,7 @@ vm_mmap(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 	boolean_t writecounted;
 
 	if (size == 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	size = round_page(size);
 	object = NULL;
@@ -1479,7 +1479,7 @@ vm_mmap(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 		cdev = handle;
 		dsw = dev_refthread(cdev, &ref);
 		if (dsw == NULL)
-			return (VOS_ENXIO);
+			return (ENXIO);
 		error = vm_mmap_cdev(td, size, prot, &maxprot, &flags, cdev,
 		    dsw, &foff, &object);
 		dev_relthread(cdev, ref);
@@ -1496,7 +1496,7 @@ vm_mmap(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 		}
 		/* FALLTHROUGH */
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	}
 	if (error)
@@ -1524,18 +1524,18 @@ kern_mmap_racct_check(struct thread *td, vm_map_t map, vm_size_t size)
 	RACCT_PROC_LOCK(td->td_proc);
 	if (map->size + size > lim_cur(td, RLIMIT_VMEM)) {
 		RACCT_PROC_UNLOCK(td->td_proc);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	if (racct_set(td->td_proc, RACCT_VMEM, map->size + size)) {
 		RACCT_PROC_UNLOCK(td->td_proc);
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	}
 	if (!old_mlock && map->flags & MAP_WIREFUTURE) {
 		if (ptoa(pmap_wired_count(map->pmap)) + size >
 		    lim_cur(td, RLIMIT_MEMLOCK)) {
 			racct_set_force(td->td_proc, RACCT_VMEM, map->size);
 			RACCT_PROC_UNLOCK(td->td_proc);
-			return (VOS_ENOMEM);
+			return (ENOMEM);
 		}
 		error = racct_set(td->td_proc, RACCT_MEMLOCK,
 		    ptoa(pmap_wired_count(map->pmap)) + size);
@@ -1578,20 +1578,20 @@ vm_mmap_object(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 	 * exec).
 	 */
 	if (foff & PAGE_MASK)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if ((flags & MAP_FIXED) == 0) {
 		fitit = TRUE;
 		*addr = round_page(*addr);
 	} else {
 		if (*addr != trunc_page(*addr))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		fitit = FALSE;
 	}
 
 	if (flags & MAP_ANON) {
 		if (object != NULL || foff != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		docow = 0;
 	} else if (flags & MAP_PREFAULT_READ)
 		docow = MAP_PREFAULT;
@@ -1611,7 +1611,7 @@ vm_mmap_object(vm_map_t map, vm_offset_t *addr, vm_size_t size, vm_prot_t prot,
 		docow |= MAP_WRITECOUNT;
 	if (flags & MAP_STACK) {
 		if (object != NULL)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		docow |= MAP_STACK_GROWS_DOWN;
 	}
 	if ((flags & MAP_EXCL) != 0)
@@ -1677,10 +1677,10 @@ vm_mmap_to_errno(int rv)
 		return (0);
 	case KERN_INVALID_ADDRESS:
 	case KERN_NO_SPACE:
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	case KERN_PROTECTION_FAILURE:
-		return (VOS_EACCES);
+		return (EACCES);
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 }

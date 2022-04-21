@@ -45,8 +45,8 @@ strdup_flags(const char *string, struct malloc_type *type, int flags)
 	size_t len;
 	char *copy;
 
-	len = vos_strlen(string) + 1;
-	copy = vos_malloc(len, type, flags);
+	len = strlen(string) + 1;
+	copy = malloc(len, type, flags);
 	if (copy == NULL)
 		return (NULL);
 	bcopy(string, copy, len);
@@ -54,7 +54,7 @@ strdup_flags(const char *string, struct malloc_type *type, int flags)
 }
 
 char *
-vos_strdup(const char *string, struct malloc_type *type)
+strdup(const char *string, struct malloc_type *type)
 {
 
 	return (strdup_flags(string, type, M_WAITOK));

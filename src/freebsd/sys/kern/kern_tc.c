@@ -76,7 +76,7 @@ struct timehands {
 	struct bintime		th_offset;
 	struct bintime		th_bintime;
 	struct timeval		th_microtime;
-	struct vos_timespec		th_nanotime;
+	struct timespec		th_nanotime;
 	struct bintime		th_boottime;
 	/* Fields not to be copied in tc_windup start with th_generation. */
 	u_int			th_generation;
@@ -148,8 +148,8 @@ static char tc_from_tunable[16];
 static void tc_windup(struct bintime* new_boottimebin);
 static void cpu_tick_calibrate(int);
 
-void dtrace_getnanotime(struct vos_timespec* tsp);
-void dtrace_getnanouptime(struct vos_timespec* tsp);
+void dtrace_getnanotime(struct timespec* tsp);
+void dtrace_getnanouptime(struct timespec* tsp);
 
 static int
 sysctl_kern_boottime(SYSCTL_HANDLER_ARGS)
@@ -292,7 +292,7 @@ fbclock_binuptime(struct bintime* bt)
 }
 
 void
-fbclock_nanouptime(struct vos_timespec* tsp)
+fbclock_nanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -317,7 +317,7 @@ fbclock_bintime(struct bintime* bt)
 }
 
 void
-fbclock_nanotime(struct vos_timespec* tsp)
+fbclock_nanotime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -342,7 +342,7 @@ fbclock_getbinuptime(struct bintime* bt)
 }
 
 void
-fbclock_getnanouptime(struct vos_timespec* tsp)
+fbclock_getnanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -367,7 +367,7 @@ fbclock_getbintime(struct bintime* bt)
 }
 
 void
-fbclock_getnanotime(struct vos_timespec* tsp)
+fbclock_getnanotime(struct timespec* tsp)
 {
 
 	GETTHMEMBER(tsp, th_nanotime);
@@ -389,7 +389,7 @@ binuptime(struct bintime* bt)
 }
 
 void
-nanouptime(struct vos_timespec* tsp)
+nanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -414,7 +414,7 @@ bintime(struct bintime* bt)
 }
 
 void
-nanotime(struct vos_timespec* tsp)
+nanotime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -439,7 +439,7 @@ getbinuptime(struct bintime* bt)
 }
 
 void
-getnanouptime(struct vos_timespec* tsp)
+getnanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -464,7 +464,7 @@ getbintime(struct bintime* bt)
 }
 
 void
-getnanotime(struct vos_timespec* tsp)
+getnanotime(struct timespec* tsp)
 {
 
 	GETTHMEMBER(tsp, th_nanotime);
@@ -550,7 +550,7 @@ ffclock_init(void)
  * monotonic (i.e. uptime) version of the feed-forward clock.
  */
 void
-ffclock_reset_clock(struct vos_timespec* ts)
+ffclock_reset_clock(struct timespec* ts)
 {
 	struct timecounter* tc;
 	struct ffclock_estimate cest;
@@ -923,7 +923,7 @@ binuptime(struct bintime* bt)
 }
 
 void
-nanouptime(struct vos_timespec* tsp)
+nanouptime(struct timespec* tsp)
 {
 
 	nanouptime_fromclock(tsp, sysclock_active);
@@ -944,7 +944,7 @@ bintime(struct bintime* bt)
 }
 
 void
-nanotime(struct vos_timespec* tsp)
+nanotime(struct timespec* tsp)
 {
 
 	nanotime_fromclock(tsp, sysclock_active);
@@ -965,7 +965,7 @@ getbinuptime(struct bintime* bt)
 }
 
 void
-getnanouptime(struct vos_timespec* tsp)
+getnanouptime(struct timespec* tsp)
 {
 
 	getnanouptime_fromclock(tsp, sysclock_active);
@@ -986,7 +986,7 @@ getbintime(struct bintime* bt)
 }
 
 void
-getnanotime(struct vos_timespec* tsp)
+getnanotime(struct timespec* tsp)
 {
 
 	getnanotime_fromclock(tsp, sysclock_active);
@@ -1007,7 +1007,7 @@ getmicrotime(struct timeval* tvp)
  * it so walltimestamp can be safely used in all fbt probes.
  */
 void
-dtrace_getnanotime(struct vos_timespec* tsp)
+dtrace_getnanotime(struct timespec* tsp)
 {
 
 	GETTHMEMBER(tsp, th_nanotime);
@@ -1019,7 +1019,7 @@ dtrace_getnanotime(struct vos_timespec* tsp)
  * it so an uptime that can be safely used in all fbt probes.
  */
 void
-dtrace_getnanouptime(struct vos_timespec* tsp)
+dtrace_getnanouptime(struct timespec* tsp)
 {
 	struct bintime bt;
 
@@ -1165,7 +1165,7 @@ sysclock_snap2bintime(struct sysclock_snap* cs, struct bintime* bt,
 		break;
 #endif
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 		break;
 	}
 
@@ -1289,9 +1289,9 @@ MTX_SYSINIT(tc_setclock_init, &tc_setclock_mtx, "tcsetc", MTX_SPIN);
  * when we booted.
  */
 void
-tc_setclock(struct vos_timespec* ts)
+tc_setclock(struct timespec* ts)
 {
-	struct vos_timespec tbef, taft;
+	struct timespec tbef, taft;
 	struct bintime bt, bt2;
 
 	timespec2bintime(ts, &bt);
@@ -1380,7 +1380,7 @@ tc_windup(struct bintime* new_boottimebin)
 	ogen = th->th_generation;
 	th->th_generation = 0;
 	atomic_thread_fence_rel();
-	memcpy(th, tho, vos_offsetof(struct timehands, th_generation));
+	memcpy(th, tho, offsetof(struct timehands, th_generation));
 	if (new_boottimebin != NULL)
 		th->th_boottime = *new_boottimebin;
 
@@ -1501,7 +1501,7 @@ sysctl_kern_timecounter_hardware(SYSCTL_HANDLER_ARGS)
 
 	mtx_lock(&tc_lock);
 	tc = timecounter;
-	vos_strlcpy(newname, tc->tc_name, sizeof(newname));
+	strlcpy(newname, tc->tc_name, sizeof(newname));
 	mtx_unlock(&tc_lock);
 
 	error = sysctl_handle_string(oidp, &newname[0], sizeof(newname), req);
@@ -1535,7 +1535,7 @@ sysctl_kern_timecounter_hardware(SYSCTL_HANDLER_ARGS)
 		break;
 	}
 	mtx_unlock(&tc_lock);
-	return (newtc != NULL ? 0 : VOS_EINVAL);
+	return (newtc != NULL ? 0 : EINVAL);
 }
 SYSCTL_PROC(_kern_timecounter, OID_AUTO, hardware,
 	CTLTYPE_STRING | CTLFLAG_RWTUN | CTLFLAG_NOFETCH | CTLFLAG_MPSAFE, 0, 0,
@@ -1594,7 +1594,7 @@ pps_fetch(struct pps_fetch_args* fapi, struct pps_state* pps)
 	struct timeval tv;
 
 	if (fapi->tsformat && fapi->tsformat != PPS_TSFMT_TSPEC)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * If no timeout is requested, immediately return whatever values were
@@ -1628,12 +1628,12 @@ pps_fetch(struct pps_fetch_args* fapi, struct pps_state* pps)
 			else {
 				err = tsleep(pps, PCATCH, "ppsfch", timo);
 			}
-			if (err == VOS_EWOULDBLOCK) {
+			if (err == EWOULDBLOCK) {
 				if (fapi->timeout.tv_sec == -1) {
 					continue;
 				}
 				else {
-					return (VOS_ETIMEDOUT);
+					return (ETIMEDOUT);
 				}
 			}
 			else if (err != 0) {
@@ -1669,11 +1669,11 @@ pps_ioctl(u_long cmd, caddr_t data, struct pps_state* pps)
 	case PPS_IOC_SETPARAMS:
 		app = (pps_params_t*)data;
 		if (app->mode & ~pps->ppscap)
-			return (VOS_EINVAL);
+			return (EINVAL);
 #ifdef FFCLOCK
 		/* Ensure only a single clock is selected for ffc timestamp. */
 		if ((app->mode & PPS_TSCLK_MASK) == PPS_TSCLK_MASK)
-			return (VOS_EINVAL);
+			return (EINVAL);
 #endif
 		pps->ppsparam = *app;
 		return (0);
@@ -1693,9 +1693,9 @@ pps_ioctl(u_long cmd, caddr_t data, struct pps_state* pps)
 		fapi_ffc = (struct pps_fetch_ffc_args*)data;
 		if (fapi_ffc->tsformat && fapi_ffc->tsformat !=
 			PPS_TSFMT_TSPEC)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if (fapi_ffc->timeout.tv_sec || fapi_ffc->timeout.tv_nsec)
-			return (VOS_EOPNOTSUPP);
+			return (EOPNOTSUPP);
 		pps->ppsinfo_ffc.current_mode = pps->ppsparam.mode;
 		fapi_ffc->pps_info_buf_ffc = pps->ppsinfo_ffc;
 		/* Overwrite timestamps if feedback clock selected. */
@@ -1718,19 +1718,19 @@ pps_ioctl(u_long cmd, caddr_t data, struct pps_state* pps)
 		kapi = (struct pps_kcbind_args*)data;
 		/* XXX Only root should be able to do this */
 		if (kapi->tsformat && kapi->tsformat != PPS_TSFMT_TSPEC)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if (kapi->kernel_consumer != PPS_KC_HARDPPS)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if (kapi->edge & ~pps->ppscap)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		pps->kcmode = (kapi->edge & KCMODE_EDGEMASK) |
 			(pps->kcmode & KCMODE_ABIFLAG);
 		return (0);
 #else
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 #endif
 	default:
-		return (VOS_ENOIOCTL);
+		return (ENOIOCTL);
 	}
 }
 
@@ -1781,12 +1781,12 @@ void
 pps_event(struct pps_state* pps, int event)
 {
 	struct bintime bt;
-	struct vos_timespec ts, * tsp, * osp;
+	struct timespec ts, * tsp, * osp;
 	u_int tcount, * pcount;
 	int foff;
 	pps_seq_t* pseq;
 #ifdef FFCLOCK
-	struct vos_timespec* tsp_ffc;
+	struct timespec* tsp_ffc;
 	pps_seq_t* pseq_ffc;
 	ffcounter* ffcount;
 #endif
@@ -1846,7 +1846,7 @@ pps_event(struct pps_state* pps, int event)
 		return;
 	}
 
-	/* Convert the count to a vos_timespec. */
+	/* Convert the count to a timespec. */
 	tcount = pps->capcount - pps->capth->th_offset_count;
 	tcount &= pps->capth->th_counter->tc_counter_mask;
 	bt = pps->capth->th_bintime;

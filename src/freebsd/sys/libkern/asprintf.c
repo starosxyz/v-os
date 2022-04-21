@@ -50,13 +50,13 @@ vasprintf(char **buf, struct malloc_type *mtp, const char *format, va_list va)
 
 	/* Account for null terminator. */
 	len += 1;
-	*buf = vos_malloc(len, mtp, M_NOWAIT);
+	*buf = malloc(len, mtp, M_NOWAIT);
 	if (*buf == NULL)
 		return (-1);
 
 	ret = vsnprintf(*buf, len, format, va);
 	if (ret < 0) {
-		vos_free(*buf, mtp);
+		free(*buf, mtp);
 		*buf = NULL;
 	}
 

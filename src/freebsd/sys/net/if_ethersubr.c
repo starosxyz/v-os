@@ -152,10 +152,10 @@ ether_requestencap(struct ifnet *ifp, struct if_encap_req *req)
 	const u_char *lladdr;
 
 	if (req->rtype != IFENCAP_LL)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 
 	if (req->bufsize < ETHER_HDR_LEN)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	eh = (struct ether_header *)req->buf;
 	lladdr = req->lladdr;
@@ -188,7 +188,7 @@ ether_requestencap(struct ifnet *ifp, struct if_encap_req *req)
 			lladdr = ifp->if_broadcastaddr;
 		break;
 	default:
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
 	memcpy(&eh->ether_type, &etype, sizeof(eh->ether_type));
@@ -255,12 +255,12 @@ ether_resolve_addr(struct ifnet *ifp, struct mbuf *m,
 		if_printf(ifp, "can't handle af%d\n", dst->sa_family);
 		if (m != NULL)
 			m_freem(m);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 
-	if (error == VOS_EHOSTDOWN) {
+	if (error == EHOSTDOWN) {
 		if (ro != NULL && (ro->ro_flags & RT_HAS_GW) != 0)
-			error = VOS_EHOSTUNREACH;
+			error = EHOSTUNREACH;
 	}
 
 	if (error != 0)
@@ -336,10 +336,10 @@ ether_output(struct ifnet *ifp, struct mbuf *m,
 
 	M_PROFILE(m);
 	if (ifp->if_flags & IFF_MONITOR)
-		senderr(VOS_ENETDOWN);
+		senderr(ENETDOWN);
 	if (!((ifp->if_flags & IFF_UP) &&
 	    (ifp->if_drv_flags & IFF_DRV_RUNNING)))
-		senderr(VOS_ENETDOWN);
+		senderr(ENETDOWN);
 
 	if (phdr == NULL) {
 		/* No prepend data supplied. Try to calculate ourselves. */
@@ -350,7 +350,7 @@ ether_output(struct ifnet *ifp, struct mbuf *m,
 		if (addref && lle != NULL)
 			ro->ro_lle = lle;
 		if (error != 0)
-			return (error == VOS_EWOULDBLOCK ? 0 : error);
+			return (error == EWOULDBLOCK ? 0 : error);
 	}
 
 	if ((pflags & RT_L2_ME) != 0) {
@@ -369,7 +369,7 @@ ether_output(struct ifnet *ifp, struct mbuf *m,
 	 */
 	M_PREPEND(m, hlen, M_NOWAIT);
 	if (m == NULL)
-		senderr(VOS_ENOBUFS);
+		senderr(ENOBUFS);
 	if ((pflags & RT_HAS_HEADER) == 0) {
 		eh = mtod(m, struct ether_header *);
 		memcpy(eh, phdr, hlen);
@@ -480,7 +480,7 @@ ether_output_frame(struct ifnet *ifp, struct mbuf *m)
 		switch (pfil_run_hooks(V_link_pfil_head, temp, ifp, PFIL_OUT,
 		    NULL)) {
 		case PFIL_DROPPED:
-			return (VOS_EACCES);
+			return (EACCES);
 		case PFIL_CONSUMED:
 			return (0);
 		}
@@ -498,7 +498,7 @@ ether_output_frame(struct ifnet *ifp, struct mbuf *m)
 		case ETHERTYPE_ARP:
 		case ETHERTYPE_REVARP:
 			m_freem(m);
-			return (VOS_EAFNOSUPPORT);
+			return (EAFNOSUPPORT);
 			/* NOTREACHED */
 			break;
 		};
@@ -1172,7 +1172,7 @@ ether_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 		 * Set the interface MTU.
 		 */
 		if (ifr->ifr_mtu > ETHERMTU) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		} else {
 			ifp->if_mtu = ifr->ifr_mtu;
 		}
@@ -1184,7 +1184,7 @@ ether_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 			break;
 		if (ifr->ifr_lan_pcp > 7 &&
 		    ifr->ifr_lan_pcp != IFNET_PCP_NONE) {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		} else {
 			ifp->if_pcp = ifr->ifr_lan_pcp;
 			/* broadcast event about PCP change */
@@ -1197,7 +1197,7 @@ ether_ioctl(struct ifnet *ifp, u_long command, caddr_t data)
 		break;
 
 	default:
-		error = VOS_EINVAL;			/* XXX netbsd has VOS_ENOTTY??? */
+		error = EINVAL;			/* XXX netbsd has ENOTTY??? */
 		break;
 	}
 	return (error);
@@ -1224,7 +1224,7 @@ ether_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 		sdl = (struct sockaddr_dl *)sa;
 		e_addr = LLADDR(sdl);
 		if (!ETHER_IS_MULTICAST(e_addr))
-			return VOS_EADDRNOTAVAIL;
+			return EADDRNOTAVAIL;
 		*llsa = NULL;
 		return 0;
 
@@ -1232,7 +1232,7 @@ ether_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 	case AF_INET:
 		sin = (struct sockaddr_in *)sa;
 		if (!IN_MULTICAST(ntohl(sin->sin_addr.s_addr)))
-			return VOS_EADDRNOTAVAIL;
+			return EADDRNOTAVAIL;
 		sdl = link_init_sdl(ifp, *llsa, IFT_ETHER);
 		sdl->sdl_alen = ETHER_ADDR_LEN;
 		e_addr = LLADDR(sdl);
@@ -1254,7 +1254,7 @@ ether_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 			return 0;
 		}
 		if (!IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr))
-			return VOS_EADDRNOTAVAIL;
+			return EADDRNOTAVAIL;
 		sdl = link_init_sdl(ifp, *llsa, IFT_ETHER);
 		sdl->sdl_alen = ETHER_ADDR_LEN;
 		e_addr = LLADDR(sdl);
@@ -1268,7 +1268,7 @@ ether_resolvemulti(struct ifnet *ifp, struct sockaddr **llsa,
 		 * Well, the text isn't quite right, but it's the name
 		 * that counts...
 		 */
-		return VOS_EAFNOSUPPORT;
+		return EAFNOSUPPORT;
 	}
 }
 
@@ -1468,7 +1468,7 @@ ether_gen_addr(struct ifnet *ifp, struct ether_addr *hwaddr)
 	SHA1Init(&ctx);
 	SHA1Update(&ctx, buf, sz);
 	SHA1Final(digest, &ctx);
-	vos_free(buf, M_TEMP);
+	free(buf, M_TEMP);
 
 	addr = ((digest[0] << 16) | (digest[1] << 8) | digest[2]) &
 	    OUI_FREEBSD_GENERATED_MASK;

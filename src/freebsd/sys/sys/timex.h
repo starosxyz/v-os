@@ -112,7 +112,7 @@
  * NTP user interface -- ntp_gettime(2) - used to read kernel clock values
  */
 struct ntptimeval {
-	struct vos_timespec time;		/* current time (ns) (ro) */
+	struct timespec time;		/* current time (ns) (ro) */
 	long long maxerror;			/* maximum error (us) (ro) */
 	long long esterror;			/* estimated error (us) (ro) */
 	long long tai;			/* TAI offset */

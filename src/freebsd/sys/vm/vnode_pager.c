@@ -135,7 +135,7 @@ vnode_pager_init(void *dummy)
 #ifdef VOS_KERNEL
 	return;
 #endif
-#if defined(__LP64__) || defined(_WIN64)
+#if defined(__LP64__)||defined(_WIN64)
 	nvnpbufs = nswbuf * 2;
 #else
 	nvnpbufs = nswbuf / 2;
@@ -706,7 +706,7 @@ vnode_pager_input_old(vm_object_t object, vm_page_t m)
 			int count = size - auio.uio_resid;
 
 			if (count == 0)
-				error = VOS_EINVAL;
+				error = EINVAL;
 			else if (count != PAGE_SIZE)
 				bzero((caddr_t)sf_buf_kva(sf) + count,
 				    PAGE_SIZE - count);
@@ -743,7 +743,7 @@ vnode_pager_getpages(vm_object_t object, vm_page_t *m, int count, int *rbehind,
 	/* Handle is stable with paging in progress. */
 	vp = object->handle;
 	rtval = VOP_GETPAGES(vp, m, count, rbehind, rahead);
-	KASSERT(rtval != VOS_EOPNOTSUPP,
+	KASSERT(rtval != EOPNOTSUPP,
 	    ("vnode_pager: FS getpages not implemented\n"));
 	return rtval;
 }
@@ -757,7 +757,7 @@ vnode_pager_getpages_async(vm_object_t object, vm_page_t *m, int count,
 
 	vp = object->handle;
 	rtval = VOP_GETPAGES_ASYNC(vp, m, count, rbehind, rahead, iodone, arg);
-	KASSERT(rtval != VOS_EOPNOTSUPP,
+	KASSERT(rtval != EOPNOTSUPP,
 	    ("vnode_pager: FS getpages_async not implemented\n"));
 	return (rtval);
 }
@@ -842,7 +842,7 @@ vnode_pager_generic_getpages(struct vnode *vp, vm_page_t *m, int count,
 	 * getting pages via VOP_READ.
 	 */
 	error = VOP_BMAP(vp, foff / bsize, &bo, &bp->b_blkno, &after, &before);
-	if (error == VOS_EOPNOTSUPP) {
+	if (error == EOPNOTSUPP) {
 		uma_zfree(vnode_pbuf_zone, bp);
 		VM_OBJECT_WLOCK(object);
 		for (i = 0; i < count; i++) {
@@ -1201,7 +1201,7 @@ vnode_pager_generic_getpages_done(struct buf *bp)
 }
 
 /*
- * VOS_EOPNOTSUPP is no longer legal.  For local media VFS's that do not
+ * EOPNOTSUPP is no longer legal.  For local media VFS's that do not
  * implement their own VOP_PUTPAGES, their VOP_PUTPAGES should call to
  * vnode_pager_generic_putpages() to implement the previous behaviour.
  *
@@ -1237,7 +1237,7 @@ vnode_pager_putpages(vm_object_t object, vm_page_t *m, int count,
 	vp = object->handle;
 	VM_OBJECT_WUNLOCK(object);
 	rtval = VOP_PUTPAGES(vp, m, bytes, flags, rtvals);
-	KASSERT(rtval != VOS_EOPNOTSUPP, 
+	KASSERT(rtval != EOPNOTSUPP, 
 	    ("vnode_pager: stale FS putpages\n"));
 	VM_OBJECT_WLOCK(object);
 }

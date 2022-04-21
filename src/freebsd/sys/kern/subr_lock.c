@@ -389,7 +389,7 @@ lock_prof_output(struct lock_prof *lp, struct sbuf *sb)
 {
 	const char *p;
 
-	for (p = lp->file; p != NULL && vos_strncmp(p, "../", 3) == 0; p += 3);
+	for (p = lp->file; p != NULL && strncmp(p, "../", 3) == 0; p += 3);
 	sbuf_printf(sb,
 	    "%8ju %9ju %11ju %11ju %11ju %6ju %6ju %2ju %6ju %s:%d (%s:%s)\n",
 	    lp->cnt_max / 1000, lp->cnt_wait_max / 1000, lp->cnt_tot / 1000,

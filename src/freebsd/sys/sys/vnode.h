@@ -292,10 +292,10 @@ struct vattr {
 	ino_t		va_fileid;	/* file id */
 	u_quad_t	va_size;	/* file size in bytes */
 	long long		va_blocksize;	/* blocksize preferred for i/o */
-	struct vos_timespec	va_atime;	/* time of last access */
-	struct vos_timespec	va_mtime;	/* time of last modification */
-	struct vos_timespec	va_ctime;	/* time file changed */
-	struct vos_timespec	va_birthtime;	/* time file created */
+	struct timespec	va_atime;	/* time of last access */
+	struct timespec	va_mtime;	/* time of last modification */
+	struct timespec	va_ctime;	/* time file changed */
+	struct timespec	va_birthtime;	/* time file created */
 	u_long		va_gen;		/* generation number of file */
 	u_long		va_flags;	/* flags defined for file */
 	dev_t		va_rdev;	/* device the special file represents */
@@ -834,7 +834,7 @@ void	vn_irflag_unset(struct vnode* vp, short tounset);
 
 int	vfs_cache_lookup(struct vop_lookup_args* ap);
 int	vfs_cache_root(struct mount* mp, int flags, struct vnode** vpp);
-void	vfs_timestamp(struct vos_timespec*);
+void	vfs_timestamp(struct timespec*);
 void	vfs_write_resume(struct mount* mp, int flags);
 int	vfs_write_suspend(struct mount* mp, int flags);
 int	vfs_write_suspend_umnt(struct mount* mp);

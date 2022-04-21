@@ -111,7 +111,7 @@ qsort_r(void *a, size_t n, size_t es, void *thunk, cmp_t *cmp)
 #else
 #define	thunk NULL
 void
-xos_qsort(void *a, size_t n, size_t es, cmp_t *cmp)
+qsort(void *a, size_t n, size_t es, cmp_t *cmp)
 #endif
 {
 	char *pa, *pb, *pc, *pd, *pl, *pm, *pn;
@@ -194,7 +194,7 @@ loop:	SWAPINIT(long, a, es);
 #ifdef I_AM_QSORT_R
 			qsort_r(a, d1 / es, es, thunk, cmp);
 #else
-			xos_qsort(a, d1 / es, es, cmp);
+			qsort(a, d1 / es, es, cmp);
 #endif
 		}
 		if (d2 > es) {
@@ -210,7 +210,7 @@ loop:	SWAPINIT(long, a, es);
 #ifdef I_AM_QSORT_R
 			qsort_r(pn - d2, d2 / es, es, thunk, cmp);
 #else
-			xos_qsort(pn - d2, d2 / es, es, cmp);
+			qsort(pn - d2, d2 / es, es, cmp);
 #endif
 		}
 		if (d1 > es) {

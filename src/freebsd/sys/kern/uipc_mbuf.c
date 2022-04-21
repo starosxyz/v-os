@@ -147,15 +147,15 @@ SYSCTL_INT(_kern_ipc, OID_AUTO, m_defragrandomfailures, CTLFLAG_RW,
  * Ensure the correct size of various mbuf parameters.  It could be off due
  * to compiler-induced padding and alignment artifacts.
  */
-CTASSERT(MSIZE - vos_offsetof(struct mbuf, m_dat) == MLEN);
-CTASSERT(MSIZE - vos_offsetof(struct mbuf, m_pktdat) == MHLEN);
+CTASSERT(MSIZE - offsetof(struct mbuf, m_dat) == MLEN);
+CTASSERT(MSIZE - offsetof(struct mbuf, m_pktdat) == MHLEN);
 
 /*
  * mbuf data storage should be 64-bit aligned regardless of architectural
  * pointer size; check this is the case with and without a packet header.
  */
-CTASSERT(vos_offsetof(struct mbuf, m_dat) % 8 == 0);
-CTASSERT(vos_offsetof(struct mbuf, m_pktdat) % 8 == 0);
+CTASSERT(offsetof(struct mbuf, m_dat) % 8 == 0);
+CTASSERT(offsetof(struct mbuf, m_pktdat) % 8 == 0);
 
 /*
  * While the specific values here don't matter too much (i.e., +/- a few
@@ -168,12 +168,12 @@ CTASSERT(vos_offsetof(struct mbuf, m_pktdat) % 8 == 0);
  * NB: Possibly they should be documented there via #define's and not just
  * comments.
  */
-#if defined(__LP64__) || defined(_WIN64)
-CTASSERT(vos_offsetof(struct mbuf, m_dat) == 32);
+#if defined(__LP64__)||defined(_WIN64)
+CTASSERT(offsetof(struct mbuf, m_dat) == 32);
 CTASSERT(sizeof(struct pkthdr) == 56);
 CTASSERT(sizeof(struct m_ext) == 160);
 #else
-CTASSERT(vos_offsetof(struct mbuf, m_dat) == 24);
+CTASSERT(offsetof(struct mbuf, m_dat) == 24);
 CTASSERT(sizeof(struct pkthdr) == 48);
 #if defined(__powerpc__) && defined(BOOKE)
 /* PowerPC booke has 64-bit physical pointers. */

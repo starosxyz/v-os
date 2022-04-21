@@ -54,7 +54,7 @@ typedef	short			__int16_t;
 typedef	unsigned short		__uint16_t;
 typedef	int			__int32_t;
 typedef	unsigned int		__uint32_t;
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 typedef	long			__int64_t;
 typedef	unsigned long		__uint64_t;
 #else
@@ -78,7 +78,7 @@ typedef	__uint32_t	__clock_t;		/* clock()... */
 typedef	double		__double_t;
 typedef	float		__float_t;
 #endif
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 typedef	__int64_t	__critical_t;
 typedef	__int64_t	__intfptr_t;
 typedef	__int64_t	__intptr_t;
@@ -96,7 +96,7 @@ typedef	__int8_t	__int_least8_t;
 typedef	__int16_t	__int_least16_t;
 typedef	__int32_t	__int_least32_t;
 typedef	__int64_t	__int_least64_t;
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 typedef	__int64_t	__ptrdiff_t;		/* ptr1 - ptr2 */
 typedef	__int64_t	__register_t;
 typedef	__int64_t	__segsz_t;		/* segment size (in pages) */
@@ -110,7 +110,7 @@ typedef	__uint32_t	__size_t;		/* sizeof() */
 typedef	__int32_t	__ssize_t;		/* byte count or error */
 #endif
 typedef	__int64_t	__time_t;		/* time()... */
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 typedef	__uint64_t	__uintfptr_t;
 typedef	__uint64_t	__uintptr_t;
 #else
@@ -126,7 +126,7 @@ typedef	__uint8_t	__uint_least8_t;
 typedef	__uint16_t	__uint_least16_t;
 typedef	__uint32_t	__uint_least32_t;
 typedef	__uint64_t	__uint_least64_t;
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 typedef	__uint64_t	__u_register_t;
 typedef	__uint64_t	__vm_offset_t;
 typedef	__uint64_t	__vm_paddr_t;

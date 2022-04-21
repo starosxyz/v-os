@@ -117,7 +117,7 @@ struct bpf_if {
 	struct epoch_context epoch_ctx;
 };
 
-CTASSERT(vos_offsetof(struct bpf_if, bif_ext) == 0);
+CTASSERT(offsetof(struct bpf_if, bif_ext) == 0);
 
 struct bpf_program_buffer {
 	struct epoch_context	epoch_ctx;
@@ -132,7 +132,7 @@ struct bpf_program_buffer {
 #define PRINET  26			/* interruptible */
 
 #define	SIZEOF_BPF_HDR(type)	\
-    (vos_offsetof(type, bh_hdrlen) + sizeof(((type *)0)->bh_hdrlen))
+    (offsetof(type, bh_hdrlen) + sizeof(((type *)0)->bh_hdrlen))
 
 #ifdef COMPAT_FREEBSD32
 #include <sys/mount.h>
@@ -299,7 +299,7 @@ bpfif_free(epoch_context_t ctx)
 
 	bp = __containerof(ctx, struct bpf_if, epoch_ctx);
 	if_rele(bp->bif_ifp);
-	vos_free(bp, M_BPF);
+	free(bp, M_BPF);
 }
 
 static void
@@ -338,7 +338,7 @@ static struct bpf_program_buffer*
 bpf_program_buffer_alloc(size_t size, int flags)
 {
 
-	return (vos_malloc(sizeof(struct bpf_program_buffer) + size,
+	return (malloc(sizeof(struct bpf_program_buffer) + size,
 	    M_BPF, flags));
 }
 
@@ -352,7 +352,7 @@ bpf_program_buffer_free(epoch_context_t ctx)
 	if (ptr->func != NULL)
 		bpf_destroy_jit_filter(ptr->func);
 #endif
-	vos_free(ptr, M_BPF);
+	free(ptr, M_BPF);
 }
 
 /*
@@ -512,7 +512,7 @@ bpf_uiomove(struct bpf_d *d, caddr_t buf, u_int len, struct uio *uio)
 {
 
 	if (d->bd_bufmode != BPF_BUFMODE_BUFFER)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	return (bpf_buffer_uiomove(d, buf, len, uio));
 }
 
@@ -521,7 +521,7 @@ bpf_ioctl_sblen(struct bpf_d *d, u_int *i)
 {
 
 	if (d->bd_bufmode != BPF_BUFMODE_BUFFER)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	return (bpf_buffer_ioctl_sblen(d, i));
 }
 
@@ -530,7 +530,7 @@ bpf_ioctl_getzmax(struct thread *td, struct bpf_d *d, size_t *i)
 {
 
 	if (d->bd_bufmode != BPF_BUFMODE_ZBUF)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	return (bpf_zerocopy_ioctl_getzmax(td, d, i));
 }
 
@@ -539,7 +539,7 @@ bpf_ioctl_rotzbuf(struct thread *td, struct bpf_d *d, struct bpf_zbuf *bz)
 {
 
 	if (d->bd_bufmode != BPF_BUFMODE_ZBUF)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	return (bpf_zerocopy_ioctl_rotzbuf(td, d, bz));
 }
 
@@ -548,7 +548,7 @@ bpf_ioctl_setzbuf(struct thread *td, struct bpf_d *d, struct bpf_zbuf *bz)
 {
 
 	if (d->bd_bufmode != BPF_BUFMODE_ZBUF)
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	return (bpf_zerocopy_ioctl_setzbuf(td, d, bz));
 }
 
@@ -634,16 +634,16 @@ bpf_movein(struct uio *uio, int linktype, struct ifnet *ifp, struct mbuf **mp,
 		break;
 
 	default:
-		return (VOS_EIO);
+		return (EIO);
 	}
 
 	len = uio->uio_resid;
 	if (len < hlen || len - hlen > ifp->if_mtu)
-		return (VOS_EMSGSIZE);
+		return (EMSGSIZE);
 
 	m = m_get2(len, M_WAITOK, MT_DATA, M_PKTHDR);
 	if (m == NULL)
-		return (VOS_EIO);
+		return (EIO);
 	m->m_pkthdr.len = m->m_len = len;
 	*mp = m;
 
@@ -653,7 +653,7 @@ bpf_movein(struct uio *uio, int linktype, struct ifnet *ifp, struct mbuf **mp,
 
 	slen = bpf_filter(d->bd_wfilter, mtod(m, u_char *), len, len);
 	if (slen == 0) {
-		error = VOS_EPERM;
+		error = EPERM;
 		goto bad;
 	}
 
@@ -692,7 +692,7 @@ bpf_movein(struct uio *uio, int linktype, struct ifnet *ifp, struct mbuf **mp,
 			p = mtod(m, const struct ieee80211_bpf_params *);
 			hlen = p->ibp_len;
 			if (hlen > sizeof(sockp->sa_data)) {
-				error = VOS_EINVAL;
+				error = EINVAL;
 				goto bad;
 			}
 		}
@@ -861,7 +861,7 @@ bpf_detachd_locked(struct bpf_d *d, bool detached_ifp)
 	if (detached_ifp) {
 		/*
 		 * Notify descriptor as it's detached, so that any
-		 * sleepers wake up and get VOS_ENXIO.
+		 * sleepers wake up and get ENXIO.
 		 */
 		bpf_wakeup(d);
 	}
@@ -881,9 +881,9 @@ bpf_detachd_locked(struct bpf_d *d, bool detached_ifp)
 		CURVNET_SET(ifp->if_vnet);
 		error = ifpromisc(ifp, 0);
 		CURVNET_RESTORE();
-		if (error != 0 && error != VOS_ENXIO) {
+		if (error != 0 && error != ENXIO) {
 			/*
-			 * VOS_ENXIO can happen if a pccard is unplugged
+			 * ENXIO can happen if a pccard is unplugged
 			 * Something is really wrong if we were able to put
 			 * the driver into promiscuous mode, but can't
 			 * take it out.
@@ -921,8 +921,8 @@ bpf_dtor(void *data)
 }
 
 /*
- * Open ethernet device.  Returns VOS_ENXIO for illegal minor device number,
- * VOS_EBUSY if file is open by another process.
+ * Open ethernet device.  Returns ENXIO for illegal minor device number,
+ * EBUSY if file is open by another process.
  */
 /* ARGSUSED */
 static	int
@@ -931,10 +931,10 @@ bpfopen(struct cdev *dev, int flags, int fmt, struct thread *td)
 	struct bpf_d *d;
 	int error;
 
-	d = vos_malloc(sizeof(*d), M_BPF, M_WAITOK | M_ZERO);
+	d = malloc(sizeof(*d), M_BPF, M_WAITOK | M_ZERO);
 	error = devfs_set_cdevpriv(d, bpf_dtor);
 	if (error != 0) {
-		vos_free(d, M_BPF);
+		free(d, M_BPF);
 		return (error);
 	}
 
@@ -992,7 +992,7 @@ bpfread(struct cdev *dev, struct uio *uio, int ioflag)
 	 * as kernel buffers.
 	 */
 	if (uio->uio_resid != d->bd_bufsize)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	non_block = ((ioflag & O_NONBLOCK) != 0);
 
@@ -1000,7 +1000,7 @@ bpfread(struct cdev *dev, struct uio *uio, int ioflag)
 	BPF_PID_REFRESH_CUR(d);
 	if (d->bd_bufmode != BPF_BUFMODE_BUFFER) {
 		BPFD_UNLOCK(d);
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	if (d->bd_state == BPF_WAITING)
 		callout_stop(&d->bd_callout);
@@ -1039,25 +1039,25 @@ bpfread(struct cdev *dev, struct uio *uio, int ioflag)
 		/*
 		 * No data is available, check to see if the bpf device
 		 * is still pointed at a real interface.  If not, return
-		 * VOS_ENXIO so that the userland process knows to rebind
+		 * ENXIO so that the userland process knows to rebind
 		 * it before using it again.
 		 */
 		if (d->bd_bif == NULL) {
 			BPFD_UNLOCK(d);
-			return (VOS_ENXIO);
+			return (ENXIO);
 		}
 
 		if (non_block) {
 			BPFD_UNLOCK(d);
-			return (VOS_EWOULDBLOCK);
+			return (EWOULDBLOCK);
 		}
 		error = msleep(d, &d->bd_lock, PRINET|PCATCH,
 		     "bpf", d->bd_rtout);
-		if (error == VOS_EINTR || error == VOS_ERESTART) {
+		if (error == EINTR || error == ERESTART) {
 			BPFD_UNLOCK(d);
 			return (error);
 		}
-		if (error == VOS_EWOULDBLOCK) {
+		if (error == EWOULDBLOCK) {
 			/*
 			 * On a timeout, return what's in the buffer,
 			 * which may be nothing.  If there is something
@@ -1180,13 +1180,13 @@ bpfwrite(struct cdev *dev, struct uio *uio, int ioflag)
 	BPF_PID_REFRESH_CUR(d);
 	counter_u64_add(d->bd_wcount, 1);
 	if ((bp = d->bd_bif) == NULL) {
-		error = VOS_ENXIO;
+		error = ENXIO;
 		goto out_locked;
 	}
 
 	ifp = bp->bif_ifp;
 	if ((ifp->if_flags & IFF_UP) == 0) {
-		error = VOS_ENETDOWN;
+		error = ENETDOWN;
 		goto out_locked;
 	}
 
@@ -1218,14 +1218,14 @@ bpfwrite(struct cdev *dev, struct uio *uio, int ioflag)
 	/*
 	 * Check that descriptor is still attached to the interface.
 	 * This can happen on bpfdetach(). To avoid access to detached
-	 * ifnet, free mbuf and return VOS_ENXIO.
+	 * ifnet, free mbuf and return ENXIO.
 	 */
 	if (d->bd_bif == NULL) {
 		counter_u64_add(d->bd_wdcount, 1);
 		BPFD_UNLOCK(d);
 		bpfd_rele(d);
 		m_freem(m);
-		return (VOS_ENXIO);
+		return (ENXIO);
 	}
 	counter_u64_add(d->bd_wfcount, 1);
 	if (d->bd_hdrcmplt)
@@ -1402,7 +1402,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 		case BIOCROTZBUF:
 			break;
 		default:
-			return (VOS_EPERM);
+			return (EPERM);
 		}
 	}
 #ifdef COMPAT_FREEBSD32
@@ -1428,7 +1428,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 	CURVNET_SET(TD_TO_VNET(td));
 	switch (cmd) {
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 
 	/*
@@ -1498,7 +1498,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 			/*
 			 * No interface attached yet.
 			 */
-			error = VOS_EINVAL;
+			error = EINVAL;
 			break;
 		}
 		if (d->bd_promisc == 0) {
@@ -1514,7 +1514,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 	case BIOCGDLT:
 		BPF_LOCK();
 		if (d->bd_bif == NULL)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			*(u_int *)addr = d->bd_bif->bif_dlt;
 		BPF_UNLOCK();
@@ -1534,7 +1534,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 			dltlist.bfl_list = PTRIN(list32->bfl_list);
 			BPF_LOCK();
 			if (d->bd_bif == NULL)
-				error = VOS_EINVAL;
+				error = EINVAL;
 			else {
 				error = bpf_getdltlist(d, &dltlist);
 				if (error == 0)
@@ -1548,7 +1548,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 	case BIOCGDLTLIST:
 		BPF_LOCK();
 		if (d->bd_bif == NULL)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			error = bpf_getdltlist(d, (struct bpf_dltlist *)addr);
 		BPF_UNLOCK();
@@ -1560,7 +1560,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 	case BIOCSDLT:
 		BPF_LOCK();
 		if (d->bd_bif == NULL)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else
 			error = bpf_setdlt(d, *(u_int *)addr);
 		BPF_UNLOCK();
@@ -1572,12 +1572,12 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 	case BIOCGETIF:
 		BPF_LOCK();
 		if (d->bd_bif == NULL)
-			error = VOS_EINVAL;
+			error = EINVAL;
 		else {
 			struct ifnet *const ifp = d->bd_bif->bif_ifp;
 			struct ifreq *const ifr = (struct ifreq *)addr;
 
-			vos_strlcpy(ifr->ifr_name, ifp->if_xname,
+			strlcpy(ifr->ifr_name, ifp->if_xname,
 			    sizeof(ifr->ifr_name));
 		}
 		BPF_UNLOCK();
@@ -1753,7 +1753,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 				BPFD_UNLOCK(d);
 				break;
 			default:
-				error = VOS_EINVAL;
+				error = EINVAL;
 			}
 		}
 		break;
@@ -1778,7 +1778,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 			if (BPF_T_VALID(func))
 				d->bd_tstamp = func;
 			else
-				error = VOS_EINVAL;
+				error = EINVAL;
 		}
 		break;
 
@@ -1834,7 +1834,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 			sig = *(u_int *)addr;
 
 			if (sig >= NSIG)
-				error = VOS_EINVAL;
+				error = EINVAL;
 			else {
 				BPFD_LOCK(d);
 				d->bd_sig = sig;
@@ -1873,7 +1873,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 
 		default:
 			CURVNET_RESTORE();
-			return (VOS_EINVAL);
+			return (EINVAL);
 		}
 
 		BPFD_LOCK(d);
@@ -1881,7 +1881,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 		    d->bd_fbuf != NULL || d->bd_bif != NULL) {
 			BPFD_UNLOCK(d);
 			CURVNET_RESTORE();
-			return (VOS_EBUSY);
+			return (EBUSY);
 		}
 		d->bd_bufmode = *(u_int *)addr;
 		BPFD_UNLOCK(d);
@@ -1905,7 +1905,7 @@ bpfioctl(struct cdev *dev, u_long cmd, caddr_t addr, int flags,
 
 /*
  * Set d's packet filter program to fp. If this file already has a filter,
- * free it and replace it. Returns VOS_EINVAL for bogus requests.
+ * free it and replace it. Returns EINVAL for bogus requests.
  *
  * Note we use global lock here to serialize bpf_setf() and bpf_setif()
  * calls.
@@ -1958,7 +1958,7 @@ bpf_setf(struct bpf_d *d, struct bpf_program *fp, u_long cmd)
 	 */
 	flen = fp->bf_len;
 	if (flen > bpf_maxinsns || (fp->bf_insns == NULL && flen != 0))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	size = flen * sizeof(*fp->bf_insns);
 	if (size > 0) {
 		/* We're setting up new filter. Copy and check actual data. */
@@ -1966,8 +1966,8 @@ bpf_setf(struct bpf_d *d, struct bpf_program *fp, u_long cmd)
 		filter = (struct bpf_insn *)fcode->buffer;
 		if (copyin(fp->bf_insns, filter, size) != 0 ||
 		    !bpf_validate(filter, flen)) {
-			vos_free(fcode, M_BPF);
-			return (VOS_EINVAL);
+			free(fcode, M_BPF);
+			return (EINVAL);
 		}
 #ifdef BPF_JITTER
 		if (cmd != BIOCSETWF) {
@@ -2060,7 +2060,7 @@ bpf_setif(struct bpf_d *d, struct ifreq *ifr)
 
 	theywant = ifunit(ifr->ifr_name);
 	if (theywant == NULL || theywant->if_bpf == NULL)
-		return (VOS_ENXIO);
+		return (ENXIO);
 
 	bp = theywant->if_bpf;
 	/*
@@ -2071,7 +2071,7 @@ bpf_setif(struct bpf_d *d, struct ifreq *ifr)
 	case BPF_BUFMODE_BUFFER:
 	case BPF_BUFMODE_ZBUF:
 		if (d->bd_sbuf == NULL)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		break;
 
 	default:
@@ -2437,7 +2437,7 @@ bpf_bintime2ts(struct bintime *bt, struct bpf_ts *ts, int tstype)
 {
 	struct bintime bt2, boottimebin;
 	struct timeval tsm;
-	struct vos_timespec tsn;
+	struct timespec tsn;
 
 	if ((tstype & BPF_T_MONOTONIC) == 0) {
 		bt2 = *bt;
@@ -2659,7 +2659,7 @@ bpfd_free(epoch_context_t ctx)
 	counter_u64_free(d->bd_wfcount);
 	counter_u64_free(d->bd_wdcount);
 	counter_u64_free(d->bd_zcopy);
-	vos_free(d, M_BPF);
+	free(d, M_BPF);
 }
 
 /*
@@ -2688,7 +2688,7 @@ bpfattach2(struct ifnet *ifp, u_int dlt, u_int hdrlen,
 	KASSERT(*driverp == NULL,
 	    ("bpfattach2: driverp already initialized"));
 
-	bp = vos_malloc(sizeof(*bp), M_BPF, M_WAITOK | M_ZERO);
+	bp = malloc(sizeof(*bp), M_BPF, M_WAITOK | M_ZERO);
 
 	CK_LIST_INIT(&bp->bif_dlist);
 	CK_LIST_INIT(&bp->bif_wlist);
@@ -2724,7 +2724,7 @@ bpf_get_bp_params(struct bpf_if *bp, u_int *bif_dlt, u_int *bif_hdrlen)
 {
 
 	if (bp == NULL)
-		return (VOS_ENXIO);
+		return (ENXIO);
 	if (bif_dlt == NULL && bif_hdrlen == NULL)
 		return (0);
 
@@ -2740,7 +2740,7 @@ bpf_get_bp_params(struct bpf_if *bp, u_int *bif_dlt, u_int *bif_hdrlen)
 /*
  * Detach bpf from an interface. This involves detaching each descriptor
  * associated with the interface. Notify each descriptor as it's detached
- * so that any sleepers wake up and get VOS_ENXIO.
+ * so that any sleepers wake up and get ENXIO.
  */
 void
 bpfdetach(struct ifnet *ifp)
@@ -2799,9 +2799,9 @@ bpf_getdltlist(struct bpf_d *d, struct bpf_dltlist *bfl)
 		return (0);
 	}
 	if (n1 > bfl->bfl_len)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
-	lst = vos_malloc(n1 * sizeof(u_int), M_TEMP, M_WAITOK);
+	lst = malloc(n1 * sizeof(u_int), M_TEMP, M_WAITOK);
 	n = 0;
 	CK_LIST_FOREACH(bp, &bpf_iflist, bif_next) {
 		if (bp->bif_ifp != ifp)
@@ -2809,7 +2809,7 @@ bpf_getdltlist(struct bpf_d *d, struct bpf_dltlist *bfl)
 		lst[n++] = bp->bif_dlt;
 	}
 	error = copyout(lst, bfl->bfl_list, sizeof(u_int) * n);
-	vos_free(lst, M_TEMP);
+	free(lst, M_TEMP);
 	bfl->bfl_len = n;
 	return (error);
 }
@@ -2840,7 +2840,7 @@ bpf_setdlt(struct bpf_d *d, u_int dlt)
 			break;
 	}
 	if (bp == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	opromisc = d->bd_promisc;
 	bpf_attachd(d, bp);
@@ -2921,7 +2921,7 @@ bpfstats_fill_xbpf(struct xbpf_d *d, struct bpf_d *bd)
 	d->bd_hlen = bd->bd_hlen;
 	d->bd_bufsize = bd->bd_bufsize;
 	d->bd_pid = bd->bd_pid;
-	vos_strlcpy(d->bd_ifname,
+	strlcpy(d->bd_ifname,
 	    bd->bd_bif->bif_ifp->if_xname, IFNAMSIZ);
 	d->bd_locked = bd->bd_locked;
 	d->bd_wcount = counter_u64_fetch(bd->bd_wcount);
@@ -2959,13 +2959,13 @@ bpf_stats_sysctl(SYSCTL_HANDLER_ARGS)
 	 */
 	if (req->newptr != NULL) {
 		if (req->newlen != sizeof(tempstats))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		memset(&tempstats, 0, sizeof(tempstats));
 		error = SYSCTL_IN(req, &tempstats, sizeof(tempstats));
 		if (error)
 			return (error);
 		if (bcmp(&tempstats, &zerostats, sizeof(tempstats)) != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		bpf_zero_counters();
 		return (0);
 	}
@@ -2973,12 +2973,12 @@ bpf_stats_sysctl(SYSCTL_HANDLER_ARGS)
 		return (SYSCTL_OUT(req, 0, bpf_bpfd_cnt * sizeof(*xbd)));
 	if (bpf_bpfd_cnt == 0)
 		return (SYSCTL_OUT(req, 0, 0));
-	xbdbuf = vos_malloc(req->oldlen, M_BPF, M_WAITOK);
+	xbdbuf = malloc(req->oldlen, M_BPF, M_WAITOK);
 	BPF_LOCK();
 	if (req->oldlen < (bpf_bpfd_cnt * sizeof(*xbd))) {
 		BPF_UNLOCK();
-		vos_free(xbdbuf, M_BPF);
-		return (VOS_ENOMEM);
+		free(xbdbuf, M_BPF);
+		return (ENOMEM);
 	}
 	index = 0;
 	CK_LIST_FOREACH(bp, &bpf_iflist, bif_next) {
@@ -2994,7 +2994,7 @@ bpf_stats_sysctl(SYSCTL_HANDLER_ARGS)
 	}
 	BPF_UNLOCK();
 	error = SYSCTL_OUT(req, xbdbuf, index * sizeof(*xbd));
-	vos_free(xbdbuf, M_BPF);
+	free(xbdbuf, M_BPF);
 	return (error);
 }
 

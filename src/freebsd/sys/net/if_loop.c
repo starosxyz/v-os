@@ -127,7 +127,7 @@ lo_clone_create(struct if_clone *ifc, int unit, caddr_t params)
 
 	ifp = if_alloc(IFT_LOOP);
 	if (ifp == NULL)
-		return (VOS_ENOSPC);
+		return (ENOSPC);
 
 	if_initname(ifp, loname, unit);
 	ifp->if_mtu = LOMTU;
@@ -183,10 +183,10 @@ loop_modevent(module_t mod, int type, void *data)
 
 	case MOD_UNLOAD:
 		printf("loop module unload - not possible for this module type\n");
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	default:
-		return (VOS_EOPNOTSUPP);
+		return (EOPNOTSUPP);
 	}
 	return (0);
 }
@@ -220,7 +220,7 @@ looutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 
 	if (ro != NULL && ro->ro_flags & (RT_REJECT|RT_BLACKHOLE)) {
 		m_freem(m);
-		return (ro->ro_flags & RT_BLACKHOLE ? 0 : VOS_EHOSTUNREACH);
+		return (ro->ro_flags & RT_BLACKHOLE ? 0 : EHOSTUNREACH);
 	}
 
 	if_inc_counter(ifp, IFCOUNTER_OPACKETS, 1);
@@ -265,7 +265,7 @@ looutput(struct ifnet *ifp, struct mbuf *m, const struct sockaddr *dst,
 	default:
 		printf("looutput: af=%d unexpected\n", af);
 		m_freem(m);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 #endif
 	return (if_simloop(ifp, m, af, 0));
@@ -357,7 +357,7 @@ if_simloop(struct ifnet *ifp, struct mbuf *m, int af, int hlen)
 	default:
 		printf("if_simloop: can't handle af=%d\n", af);
 		m_freem(m);
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	}
 	if_inc_counter(ifp, IFCOUNTER_IPACKETS, 1);
 	if_inc_counter(ifp, IFCOUNTER_IBYTES, m->m_pkthdr.len);
@@ -388,7 +388,7 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 	case SIOCADDMULTI:
 	case SIOCDELMULTI:
 		if (ifr == NULL) {
-			error = VOS_EAFNOSUPPORT;		/* XXX */
+			error = EAFNOSUPPORT;		/* XXX */
 			break;
 		}
 		switch (ifr->ifr_addr.sa_family) {
@@ -402,7 +402,7 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 #endif
 
 		default:
-			error = VOS_EAFNOSUPPORT;
+			error = EAFNOSUPPORT;
 			break;
 		}
 		break;
@@ -426,7 +426,7 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 #if 0
 			ifp->if_capenable ^= IFCAP_RXCSUM_IPV6;
 #else
-			error = VOS_EOPNOTSUPP;
+			error = EOPNOTSUPP;
 			break;
 #endif
 		}
@@ -434,7 +434,7 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 #if 0
 			ifp->if_capenable ^= IFCAP_TXCSUM_IPV6;
 #else
-			error = VOS_EOPNOTSUPP;
+			error = EOPNOTSUPP;
 			break;
 #endif
 		}
@@ -448,7 +448,7 @@ loioctl(struct ifnet *ifp, u_long cmd, caddr_t data)
 		break;
 
 	default:
-		error = VOS_EINVAL;
+		error = EINVAL;
 	}
 	return (error);
 }

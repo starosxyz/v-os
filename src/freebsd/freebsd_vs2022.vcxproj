@@ -463,6 +463,7 @@
     <ClCompile Include="compat\user_fpu.c" />
     <ClCompile Include="compat\user_in_cksum_machdep.c" />
     <ClCompile Include="sys\dev\vos_clock\vos_clock.c" />
+    <ClCompile Include="compat\win32_crt.c" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="api\so_api.c" />
@@ -506,6 +507,7 @@
     <OutDir>$(SolutionDir)libs\</OutDir>
     <IntDir>$(SolutionDir)$(Platform)\$(Configuration)\$(ProjectName)\</IntDir>
     <TargetName>freebsd</TargetName>
+    <IgnoreImportLibrary>false</IgnoreImportLibrary>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <LinkIncremental>false</LinkIncremental>
@@ -521,19 +523,21 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\</AdditionalIncludeDirectories>
-      <AdditionalOptions>/utf-8</AdditionalOptions>
+      <AdditionalOptions>/Gs10000000</AdditionalOptions>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <LanguageStandard_C>Default</LanguageStandard_C>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <SubSystem>NotSet</SubSystem>
+      <AdditionalDependencies>Kernel32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ForceFileOutput>
       </ForceFileOutput>
-      <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -551,7 +555,7 @@
       <SubSystem>Console</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>Kernel32.lib;Ws2_32.lib;Advapi32.lib;winmm.lib;Psapi.lib;crypt32.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>Kernel32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>

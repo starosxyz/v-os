@@ -104,7 +104,7 @@
 #define	MAP_EXCL	 0x00004000 /* for MAP_FIXED, fail if address is used */
 #define	MAP_NOCORE	 0x00020000 /* dont include these pages in a coredump */
 #define	MAP_PREFAULT_READ 0x00040000 /* prefault mapping for reading */
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 #define	MAP_32BIT	 0x00080000 /* map in the low 2GB of address space */
 #endif
 
@@ -278,10 +278,10 @@ struct shmfd {
 	 * Values maintained solely to make this a better-behaved file
 	 * descriptor for fstat() to run on.
 	 */
-	struct vos_timespec	shm_atime;
-	struct vos_timespec	shm_mtime;
-	struct vos_timespec	shm_ctime;
-	struct vos_timespec	shm_birthtime;
+	struct timespec	shm_atime;
+	struct timespec	shm_mtime;
+	struct timespec	shm_ctime;
+	struct timespec	shm_birthtime;
 	ino_t		shm_ino;
 
 	struct label	*shm_label;		/* MAC label */

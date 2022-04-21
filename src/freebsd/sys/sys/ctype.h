@@ -42,61 +42,61 @@
 #ifdef _KERNEL
 
 static __inline int
-vos_isspace(int c)
+isspace(int c)
 {
 	return (c == ' ' || (c >= '\t' && c <= '\r'));
 }
 
 static __inline int
-vos_isascii(int c)
+isascii(int c)
 {
 	return ((c & ~0x7f) == 0);
 }
 
 static __inline int
-vos_isupper(int c)
+isupper(int c)
 {
 	return (c >= 'A' && c <= 'Z');
 }
 
 static __inline int
-vos_islower(int c)
+islower(int c)
 {
 	return (c >= 'a' && c <= 'z');
 }
 
 static __inline int
-vos_isalpha(int c)
+isalpha(int c)
 {
-	return (vos_isupper(c) || vos_islower(c));
+	return (isupper(c) || islower(c));
 }
 
 static __inline int
-vos_isdigit(int c)
+isdigit(int c)
 {
 	return (c >= '0' && c <= '9');
 }
 
 static __inline int
-vos_isxdigit(int c)
+isxdigit(int c)
 {
-	return (vos_isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
+	return (isdigit(c) || (c >= 'A' && c <= 'F') || (c >= 'a' && c <= 'f'));
 }
 
 static __inline int
-vos_isprint(int c)
+isprint(int c)
 {
 	return (c >= ' ' && c <= '~');
 }
 
 static __inline int
-vos_toupper(int c)
+toupper(int c)
 {
 	return (c - 0x20 * ((c >= 'a') && (c <= 'z')));
 }
 
 static __inline int
-vos_tolower(int c)
+tolower(int c)
 {
 	return (c + 0x20 * ((c >= 'A') && (c <= 'Z')));
 }

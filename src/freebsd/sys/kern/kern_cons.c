@@ -215,7 +215,7 @@ cnadd(struct consdev *cn)
 			break;
 	}
 	if (cnd->cnd_cn != NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	cnd->cnd_cn = cn;
 	if (cn->cn_name[0] == '\0') {
 		/* XXX: it is unclear if/where this print might output */
@@ -323,7 +323,7 @@ sysctl_kern_console(SYSCTL_HANDLER_ARGS)
 	sb = sbuf_new(NULL, NULL, CNDEVPATHMAX * 2, SBUF_AUTOEXTEND |
 	    SBUF_INCLUDENUL);
 	if (sb == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 	sbuf_clear(sb);
 	STAILQ_FOREACH(cnd, &cn_devlist, cnd_next)
 		sbuf_printf(sb, "%s,", cnd->cnd_cn->cn_name);
@@ -337,7 +337,7 @@ sysctl_kern_console(SYSCTL_HANDLER_ARGS)
 	error = sysctl_handle_string(oidp, sbuf_data(sb), sbuf_len(sb), req);
 	if (error == 0 && req->newptr != NULL) {
 		p = sbuf_data(sb);
-		error = VOS_ENXIO;
+		error = ENXIO;
 		delete = 0;
 		if (*p == '-') {
 			delete = 1;
@@ -558,7 +558,7 @@ cnputsn(const char *p, size_t n)
 void
 cnputs(const char *p)
 {
-	cnputsn(p, vos_strlen(p));
+	cnputsn(p, strlen(p));
 }
 
 static int consmsgbuf_size = 8192;
@@ -576,7 +576,7 @@ constty_set(struct tty *tp)
 	KASSERT(tp != NULL, ("constty_set: NULL tp"));
 	if (consbuf == NULL) {
 		size = consmsgbuf_size;
-		consbuf = vos_malloc(size, M_TTYCONS, M_WAITOK);
+		consbuf = malloc(size, M_TTYCONS, M_WAITOK);
 		msgbuf_init(&consmsgbuf, consbuf, size);
 		callout_init(&conscallout, 0);
 	}
@@ -598,7 +598,7 @@ constty_clear(void)
 	callout_stop(&conscallout);
 	while ((c = msgbuf_getchar(&consmsgbuf)) != -1)
 		cnputc(c);
-	vos_free(consbuf, M_TTYCONS);
+	free(consbuf, M_TTYCONS);
 	consbuf = NULL;
 }
 
@@ -669,7 +669,7 @@ sysbeep(int pitch, sbintime_t period)
 	if (timer_spkr_acquire()) {
 		if (!beeping) {
 			/* Something else owns it. */
-			return (VOS_EBUSY);
+			return (EBUSY);
 		}
 	}
 	timer_spkr_setfreq(pitch);
@@ -697,7 +697,7 @@ int
 sysbeep(int pitch __unused, int period __unused)
 {
 
-	return (VOS_ENODEV);
+	return (ENODEV);
 }
 
 #endif
@@ -742,9 +742,9 @@ vty_enabled(unsigned vty)
 		} while (0);
 
 		if (vty_selected == VTY_VT)
-			vos_strcpy(vty_name, "vt");
+			strcpy(vty_name, "vt");
 		else if (vty_selected == VTY_SC)
-			vos_strcpy(vty_name, "sc");
+			strcpy(vty_name, "sc");
 	}
 	return ((vty_selected & vty) != 0);
 }

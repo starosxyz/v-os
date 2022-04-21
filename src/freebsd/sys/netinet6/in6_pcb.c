@@ -135,9 +135,9 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 	INP_HASH_WLOCK_ASSERT(pcbinfo);
 
 	if (CK_STAILQ_EMPTY(&V_in6_ifaddrhead))	/* XXX broken! */
-		return (VOS_EADDRNOTAVAIL);
+		return (EADDRNOTAVAIL);
 	if (inp->inp_lport || !IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_laddr))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if ((so->so_options & (SO_REUSEADDR|SO_REUSEPORT|SO_REUSEPORT_LB)) == 0)
 		lookupflags = INPLOOKUP_WILDCARD;
 	if (nam == NULL) {
@@ -147,12 +147,12 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 	} else {
 		sin6 = (struct sockaddr_in6 *)nam;
 		if (nam->sa_len != sizeof(*sin6))
-			return (VOS_EINVAL);
+			return (EINVAL);
 		/*
 		 * family check.
 		 */
 		if (nam->sa_family != AF_INET6)
-			return (VOS_EAFNOSUPPORT);
+			return (EAFNOSUPPORT);
 
 		if ((error = sa6_embedscope(sin6, V_ip6_use_defzone)) != 0)
 			return(error);
@@ -189,7 +189,7 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 			    NULL &&
 			    (inp->inp_flags & INP_BINDANY) == 0) {
 				NET_EPOCH_EXIT(et);
-				return (VOS_EADDRNOTAVAIL);
+				return (EADDRNOTAVAIL);
 			}
 
 			/*
@@ -202,7 +202,7 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 			    ((struct in6_ifaddr *)ifa)->ia6_flags &
 			    (IN6_IFF_ANYCAST|IN6_IFF_NOTREADY|IN6_IFF_DETACHED)) {
 				NET_EPOCH_EXIT(et);
-				return (VOS_EADDRNOTAVAIL);
+				return (EADDRNOTAVAIL);
 			}
 			NET_EPOCH_EXIT(et);
 		}
@@ -214,7 +214,7 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 			if (ntohs(lport) <= V_ipport_reservedhigh &&
 			    ntohs(lport) >= V_ipport_reservedlow &&
 			    priv_check_cred(cred, PRIV_NETINET_RESERVEDPORT))
-				return (VOS_EACCES);
+				return (EACCES);
 			if (!IN6_IS_ADDR_MULTICAST(&sin6->sin6_addr) &&
 			    priv_check_cred(inp->inp_cred, PRIV_NETINET_REUSEPORT) != 0) {
 				t = in6_pcblookup_local(pcbinfo,
@@ -231,7 +231,7 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 				     (t->inp_flags2 & INP_REUSEPORT_LB) == 0) &&
 				    (inp->inp_cred->cr_uid !=
 				     t->inp_cred->cr_uid))
-					return (VOS_EADDRINUSE);
+					return (EADDRINUSE);
 
 				/*
 				 * If the socket is a BINDMULTI socket, then
@@ -240,7 +240,7 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 				 * with BINDMULTI.
 				 */
 				if (t && (! in_pcbbind_check_bindmulti(inp, t)))
-					return (VOS_EADDRINUSE);
+					return (EADDRINUSE);
 
 #ifdef INET
 				if ((inp->inp_flags & IN6P_IPV6_V6ONLY) == 0 &&
@@ -260,10 +260,10 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 					      INADDR_ANY) &&
 					    (inp->inp_cred->cr_uid !=
 					     t->inp_cred->cr_uid))
-						return (VOS_EADDRINUSE);
+						return (EADDRINUSE);
 
 					if (t && (! in_pcbbind_check_bindmulti(inp, t)))
-						return (VOS_EADDRINUSE);
+						return (EADDRINUSE);
 				}
 #endif
 			}
@@ -280,10 +280,10 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 				if (tw == NULL ||
 				    ((reuseport & tw->tw_so_options) == 0 &&
 					 (reuseport_lb & tw->tw_so_options) == 0))
-					return (VOS_EADDRINUSE);
+					return (EADDRINUSE);
 			} else if (t && (reuseport & inp_so_options(t)) == 0 &&
 					   (reuseport_lb & inp_so_options(t)) == 0) {
-				return (VOS_EADDRINUSE);
+				return (EADDRINUSE);
 			}
 #ifdef INET
 			if ((inp->inp_flags & IN6P_IPV6_V6ONLY) == 0 &&
@@ -296,20 +296,20 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 				if (t && t->inp_flags & INP_TIMEWAIT) {
 					tw = intotw(t);
 					if (tw == NULL)
-						return (VOS_EADDRINUSE);
+						return (EADDRINUSE);
 					if ((reuseport & tw->tw_so_options) == 0
 					    && (reuseport_lb & tw->tw_so_options) == 0
 					    && (ntohl(t->inp_laddr.s_addr) !=
 					        INADDR_ANY || ((inp->inp_vflag &
 					                INP_IPV6PROTO) ==
 					            (t->inp_vflag & INP_IPV6PROTO))))
-						return (VOS_EADDRINUSE);
+						return (EADDRINUSE);
 				} else if (t &&
 				    (reuseport & inp_so_options(t)) == 0 &&
 				    (reuseport_lb & inp_so_options(t)) == 0 &&
 				    (ntohl(t->inp_laddr.s_addr) != INADDR_ANY ||
 				        (t->inp_vflag & INP_IPV6PROTO) != 0)) {
-					return (VOS_EADDRINUSE);
+					return (EADDRINUSE);
 				}
 			}
 #endif
@@ -327,7 +327,7 @@ in6_pcbbind(struct inpcb *inp, struct sockaddr *nam,
 		if (in_pcbinshash(inp) != 0) {
 			inp->in6p_laddr = in6addr_any;
 			inp->inp_lport = 0;
-			return (VOS_EAGAIN);
+			return (EAGAIN);
 		}
 	}
 	return (0);
@@ -357,11 +357,11 @@ in6_pcbladdr(struct inpcb *inp, struct sockaddr *nam,
 	INP_HASH_WLOCK_ASSERT(inp->inp_pcbinfo);	/* XXXRW: why? */
 
 	if (nam->sa_len != sizeof (*sin6))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (sin6->sin6_family != AF_INET6)
-		return (VOS_EAFNOSUPPORT);
+		return (EAFNOSUPPORT);
 	if (sin6->sin6_port == 0)
-		return (VOS_EADDRNOTAVAIL);
+		return (EADDRNOTAVAIL);
 
 	if (sin6->sin6_scope_id == 0 && !V_ip6_use_defzone)
 		scope_ambiguous = 1;
@@ -447,7 +447,7 @@ in6_pcbconnect_mbuf(struct inpcb *inp, struct sockaddr *nam,
 			      IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_laddr)
 			      ? &laddr6.sin6_addr : &inp->in6p_laddr,
 			      inp->inp_lport, 0, NULL, M_NODOM) != NULL) {
-		return (VOS_EADDRINUSE);
+		return (EADDRINUSE);
 	}
 	if (IN6_IS_ADDR_UNSPECIFIED(&inp->in6p_laddr)) {
 		if (inp->inp_lport == 0) {
@@ -514,7 +514,7 @@ in6_sockaddr(in_port_t port, struct in6_addr *addr_p)
 {
 	struct sockaddr_in6 *sin6;
 
-	sin6 = vos_malloc(sizeof *sin6, M_SONAME, M_WAITOK);
+	sin6 = malloc(sizeof *sin6, M_SONAME, M_WAITOK);
 	bzero(sin6, sizeof *sin6);
 	sin6->sin6_family = AF_INET6;
 	sin6->sin6_len = sizeof(*sin6);
@@ -537,7 +537,7 @@ in6_v4mapsin6_sockaddr(in_port_t port, struct in_addr *addr_p)
 	sin.sin_port = port;
 	sin.sin_addr = *addr_p;
 
-	sin6_p = vos_malloc(sizeof *sin6_p, M_SONAME,
+	sin6_p = malloc(sizeof *sin6_p, M_SONAME,
 		M_WAITOK);
 	in6_sin_2_v4mapsin6(&sin, sin6_p);
 

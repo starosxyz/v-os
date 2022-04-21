@@ -442,7 +442,7 @@ sysctl_ip6_temppltime(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || !req->newptr)
 		return (error);
 	if (val < V_ip6_desync_factor + V_ip6_temp_regen_advance)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	V_ip6_temp_preferred_lifetime = val;
 	return (0);
 }
@@ -457,7 +457,7 @@ sysctl_ip6_tempvltime(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || !req->newptr)
 		return (error);
 	if (val < V_ip6_temp_preferred_lifetime)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	V_ip6_temp_valid_lifetime = val;
 	return (0);
 }

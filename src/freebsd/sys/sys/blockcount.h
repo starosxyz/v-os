@@ -82,7 +82,7 @@ _blockcount_wait(blockcount_t *bc, struct lock_object *lo, const char *wmesg,
 {
 	KASSERT((prio & ~PRIMASK) == 0, ("%s: invalid prio %x", __func__, prio));
 
-	while (_blockcount_sleep(bc, lo, wmesg, prio) == VOS_EAGAIN)
+	while (_blockcount_sleep(bc, lo, wmesg, prio) == EAGAIN)
 		;
 }
 

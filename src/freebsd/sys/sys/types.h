@@ -52,11 +52,7 @@
 typedef	unsigned char	u_char;
 typedef	unsigned short	u_short;
 typedef	unsigned int	u_int;
-#if defined(__LP64__)
-typedef	unsigned long u_long;
-#else
 typedef	unsigned long long	u_long;
-#endif
 #ifndef _KERNEL
 typedef	unsigned short	ushort;		/* Sys V compatibility */
 typedef	unsigned int	uint;		/* Sys V compatibility */
@@ -204,6 +200,7 @@ typedef	__segsz_t	segsz_t;	/* segment size (in pages) */
 
 #ifndef _SIZE_T_DECLARED
 typedef	__size_t	size_t;
+#define _SIZE_T_DEFINED
 #define	_SIZE_T_DECLARED
 #endif
 
@@ -247,7 +244,7 @@ typedef	__useconds_t	useconds_t;	/* microseconds (unsigned) */
 
 #ifndef _CAP_IOCTL_T_DECLARED
 #define	_CAP_IOCTL_T_DECLARED
-typedef	unsigned long	cap_ioctl_t;
+typedef	unsigned long long cap_ioctl_t;
 #endif
 
 #ifndef _CAP_RIGHTS_T_DECLARED
@@ -298,7 +295,7 @@ typedef	__uint64_t	uoff_t;
 typedef	char		vm_memattr_t;	/* memory attribute codes */
 typedef	struct vm_page	*vm_page_t;
 
-#define vos_offsetof(type, field) __offsetof(type, field)
+#define offsetof(type, field) __offsetof(type, field)
 
 #endif /* _KERNEL */
 
@@ -372,7 +369,7 @@ __bitcount64(__uint64_t _x)
 	return (__uint64_t)(__bitcount32(_x >> 32) + __bitcount32(_x));
 }
 
-#define	__bitcountl(x)	__bitcount32((unsigned long)(x))
+#define	__bitcountl(x)	__bitcount32((unsigned long long )(x))
 #endif
 #define	__bitcount(x)	__bitcount32((unsigned int)(x))
 #endif

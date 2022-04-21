@@ -91,8 +91,8 @@
  */
 static MALLOC_DEFINE(M_UNIT, "Unitno", "Unit number allocation");
 
-#define Malloc(foo) vos_malloc(foo, M_UNIT, M_WAITOK | M_ZERO)
-#define Free(foo) vos_free(foo, M_UNIT)
+#define Malloc(foo) malloc(foo, M_UNIT, M_WAITOK | M_ZERO)
+#define Free(foo) free(foo, M_UNIT)
 
 static struct mtx unitmtx;
 
@@ -1027,7 +1027,7 @@ main(int argc, char **argv)
 		case 'r':
 			errno = 0;
 			reps = strtol(optarg, NULL, 0);
-			if (errno == VOS_ERANGE || errno == VOS_EINVAL) {
+			if (errno == ERANGE || errno == EINVAL) {
 				usage(argv);
 				exit(2);
 			}

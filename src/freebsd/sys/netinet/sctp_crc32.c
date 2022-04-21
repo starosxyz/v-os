@@ -131,7 +131,7 @@ sctp_delayed_cksum(struct mbuf *m, uint32_t offset)
 	checksum = sctp_calculate_cksum(m, offset);
 	SCTP_STAT_DECR(sctps_sendhwcrc);
 	SCTP_STAT_INCR(sctps_sendswcrc);
-	offset += vos_offsetof(struct sctphdr, checksum);
+	offset += offsetof(struct sctphdr, checksum);
 
 	if (offset + sizeof(uint32_t) > (uint32_t)(m->m_pkthdr.len)) {
 #ifdef INVARIANTS

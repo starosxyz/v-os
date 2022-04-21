@@ -2788,7 +2788,7 @@ sched_pctcpu(struct thread* td)
 
 		/* How many rtick per second ? */
 		rtick = min(SCHED_TICK_HZ(ts) / SCHED_TICK_SECS, hz);
-		pctcpu = (FSCALE * ((FSCALE * rtick) / hz)) >> VOS_FSHIFT;
+		pctcpu = (FSCALE * ((FSCALE * rtick) / hz)) >> FSHIFT;
 	}
 
 	return (pctcpu);
@@ -3101,7 +3101,7 @@ sysctl_kern_sched_topology_spec(SYSCTL_HANDLER_ARGS)
 
 	topo = sbuf_new_for_sysctl(NULL, NULL, 512, req);
 	if (topo == NULL)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	sbuf_printf(topo, "<groups>\n");
 	err = sysctl_kern_sched_topology_spec_internal(topo, cpu_top, 1);
@@ -3127,7 +3127,7 @@ sysctl_kern_quantum(SYSCTL_HANDLER_ARGS)
 	if (error != 0 || req->newptr == NULL)
 		return (error);
 	if (new_val <= 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	sched_slice = imax(1, (new_val + period / 2) / period);
 	sched_slice_min = sched_slice / SCHED_SLICE_MIN_DIVISOR;
 	hogticks = imax(1, (2 * hz * sched_slice + realstathz / 2) /

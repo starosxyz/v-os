@@ -301,7 +301,7 @@ sleeplk(struct lock* lk, u_int flags, struct lock_object* ilk,
 		sleepq_wait(&lk->lock_object, pri);
 	GIANT_RESTORE();
 	if ((flags & LK_SLEEPFAIL) && error == 0)
-		error = VOS_ENOLCK;
+		error = ENOLCK;
 
 	return (error);
 }
@@ -617,7 +617,7 @@ lockmgr_slock_hard(struct lock* lk, u_int flags, struct lock_object* ilk,
 		LOCK_LOG2(lk,
 			"%s: %p already held in exclusive mode",
 			__func__, lk);
-		error = VOS_EDEADLK;
+		error = EDEADLK;
 		goto out;
 	}
 
@@ -644,7 +644,7 @@ lockmgr_slock_hard(struct lock* lk, u_int flags, struct lock_object* ilk,
 		if (LK_TRYOP(flags)) {
 			LOCK_LOG2(lk, "%s: %p fails the try operation",
 				__func__, lk);
-			error = VOS_EBUSY;
+			error = EBUSY;
 			break;
 		}
 
@@ -809,7 +809,7 @@ lockmgr_xlock_hard(struct lock* lk, u_int flags, struct lock_object* ilk,
 				LOCK_LOG2(lk,
 					"%s: %p fails the try operation",
 					__func__, lk);
-				error = VOS_EBUSY;
+				error = EBUSY;
 				goto out;
 			}
 			if (flags & LK_INTERLOCK) {
@@ -860,7 +860,7 @@ lockmgr_xlock_hard(struct lock* lk, u_int flags, struct lock_object* ilk,
 		if (LK_TRYOP(flags)) {
 			LOCK_LOG2(lk, "%s: %p fails the try operation",
 				__func__, lk);
-			error = VOS_EBUSY;
+			error = EBUSY;
 			break;
 		}
 
@@ -995,7 +995,7 @@ lockmgr_upgrade(struct lock* lk, u_int flags, struct lock_object* ilk,
 			if (op == LK_TRYUPGRADE) {
 				LOCK_LOG2(lk, "%s: %p failed the nowait upgrade",
 					__func__, lk);
-				error = VOS_EBUSY;
+				error = EBUSY;
 				goto out;
 			}
 			if (atomic_fcmpset_rel_ptr(&lk->lk_lock, &v,
@@ -1460,7 +1460,7 @@ __lockmgr_args(struct lock* lk, u_int flags, struct lock_object* ilk,
 			if (LK_TRYOP(flags)) {
 				LOCK_LOG2(lk, "%s: %p fails the try operation",
 					__func__, lk);
-				error = VOS_EBUSY;
+				error = EBUSY;
 				break;
 			}
 

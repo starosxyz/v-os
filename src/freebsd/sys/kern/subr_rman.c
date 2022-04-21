@@ -117,7 +117,7 @@ int_alloc_resource(int malloc_flag)
 {
 	struct resource_i *r;
 
-	r = vos_malloc(sizeof *r, M_RMAN, malloc_flag | M_ZERO);
+	r = malloc(sizeof *r, M_RMAN, malloc_flag | M_ZERO);
 	if (r != NULL) {
 		r->r_r.__r_i = r;
 	}
@@ -143,9 +143,9 @@ rman_init(struct rman *rm)
 		panic("implement RMAN_GAUGE");
 
 	TAILQ_INIT(&rm->rm_list);
-	rm->rm_mtx = vos_malloc(sizeof *rm->rm_mtx, M_RMAN, M_NOWAIT | M_ZERO);
+	rm->rm_mtx = malloc(sizeof *rm->rm_mtx, M_RMAN, M_NOWAIT | M_ZERO);
 	if (rm->rm_mtx == NULL)
-		return VOS_ENOMEM;
+		return ENOMEM;
 	mtx_init(rm->rm_mtx, "rman", NULL, MTX_DEF);
 
 	mtx_lock(&rman_mtx);
@@ -163,10 +163,10 @@ rman_manage_region(struct rman *rm, rman_res_t start, rman_res_t end)
 	DPRINTF(("rman_manage_region: <%s> request: start %#jx, end %#jx\n",
 	    rm->rm_descr, start, end));
 	if (start < rm->rm_start || end > rm->rm_end)
-		return VOS_EINVAL;
+		return EINVAL;
 	r = int_alloc_resource(M_NOWAIT);
 	if (r == NULL)
-		return VOS_ENOMEM;
+		return ENOMEM;
 	r->r_start = start;
 	r->r_end = end;
 	r->r_rm = rm;
@@ -187,14 +187,14 @@ rman_manage_region(struct rman *rm, rman_res_t start, rman_res_t end)
 	} else {
 		/* Check for any overlap with the current region. */
 		if (r->r_start <= s->r_end && r->r_end >= s->r_start) {
-			rv = VOS_EBUSY;
+			rv = EBUSY;
 			goto out;
 		}
 
 		/* Check for any overlap with the next region. */
 		t = TAILQ_NEXT(s, r_link);
 		if (t && r->r_start <= t->r_end && r->r_end >= t->r_start) {
-			rv = VOS_EBUSY;
+			rv = EBUSY;
 			goto out;
 		}
 
@@ -211,16 +211,16 @@ rman_manage_region(struct rman *rm, rman_res_t start, rman_res_t end)
 			if (t != NULL) {
 				s->r_end = t->r_end;
 				TAILQ_REMOVE(&rm->rm_list, t, r_link);
-				vos_free(r, M_RMAN);
-				vos_free(t, M_RMAN);
+				free(r, M_RMAN);
+				free(t, M_RMAN);
 			} else {
 				s->r_end = r->r_end;
-				vos_free(r, M_RMAN);
+				free(r, M_RMAN);
 			}
 		} else if (t != NULL) {
 			/* Can we merge with just the next region? */
 			t->r_start = r->r_start;
-			vos_free(r, M_RMAN);
+			free(r, M_RMAN);
 		} else if (s->r_end < r->r_start) {
 			TAILQ_INSERT_AFTER(&rm->rm_list, s, r, r_link);
 		} else {
@@ -251,7 +251,7 @@ rman_fini(struct rman *rm)
 	TAILQ_FOREACH(r, &rm->rm_list, r_link) {
 		if (r->r_flags & RF_ALLOCATED) {
 			mtx_unlock(rm->rm_mtx);
-			return VOS_EBUSY;
+			return EBUSY;
 		}
 	}
 
@@ -262,14 +262,14 @@ rman_fini(struct rman *rm)
 	while (!TAILQ_EMPTY(&rm->rm_list)) {
 		r = TAILQ_FIRST(&rm->rm_list);
 		TAILQ_REMOVE(&rm->rm_list, r, r_link);
-		vos_free(r, M_RMAN);
+		free(r, M_RMAN);
 	}
 	mtx_unlock(rm->rm_mtx);
 	mtx_lock(&rman_mtx);
 	TAILQ_REMOVE(&rman_head, rm, rm_link);
 	mtx_unlock(&rman_mtx);
 	mtx_destroy(rm->rm_mtx);
-	vos_free(rm->rm_mtx, M_RMAN);
+	free(rm->rm_mtx, M_RMAN);
 
 	return 0;
 }
@@ -289,7 +289,7 @@ rman_first_free_region(struct rman *rm, rman_res_t *start, rman_res_t *end)
 		}
 	}
 	mtx_unlock(rm->rm_mtx);
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 int
@@ -307,7 +307,7 @@ rman_last_free_region(struct rman *rm, rman_res_t *start, rman_res_t *end)
 		}
 	}
 	mtx_unlock(rm->rm_mtx);
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 /* Shrink or extend one or both ends of an allocated resource. */
@@ -320,7 +320,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 	/* Not supported for shared resources. */
 	r = rr->__r_i;
 	if (r->r_flags & RF_SHAREABLE)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * This does not support wholesale moving of a resource.  At
@@ -328,7 +328,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 	 * existing resource.
 	 */
 	if (end < r->r_start || r->r_end < start)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	/*
 	 * Find the two resource regions immediately adjacent to the
@@ -358,12 +358,12 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 	if (start < r->r_start && (s == NULL || (s->r_flags & RF_ALLOCATED) ||
 	    s->r_start > start)) {
 		mtx_unlock(rm->rm_mtx);
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 	if (end > r->r_end && (t == NULL || (t->r_flags & RF_ALLOCATED) ||
 	    t->r_end < end)) {
 		mtx_unlock(rm->rm_mtx);
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 
 	/*
@@ -378,7 +378,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 		r->r_start = start;
 		if (s->r_start == start) {
 			TAILQ_REMOVE(&rm->rm_list, s, r_link);
-			vos_free(s, M_RMAN);
+			free(s, M_RMAN);
 		} else
 			s->r_end = start - 1;
 	}
@@ -388,7 +388,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 		r->r_end = end;
 		if (t->r_end == end) {
 			TAILQ_REMOVE(&rm->rm_list, t, r_link);
-			vos_free(t, M_RMAN);
+			free(t, M_RMAN);
 		} else
 			t->r_start = end + 1;
 	}
@@ -409,7 +409,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 		s = TAILQ_PREV(r, resource_head, r_link);
 		if (s != NULL && !(s->r_flags & RF_ALLOCATED)) {
 			s->r_end = start - 1;
-			vos_free(new, M_RMAN);
+			free(new, M_RMAN);
 		} else
 			TAILQ_INSERT_BEFORE(r, new, r_link);
 		mtx_unlock(rm->rm_mtx);
@@ -424,7 +424,7 @@ rman_adjust_resource(struct resource *rr, rman_res_t start, rman_res_t end)
 		t = TAILQ_NEXT(r, r_link);
 		if (t != NULL && !(t->r_flags & RF_ALLOCATED)) {
 			t->r_start = end + 1;
-			vos_free(new, M_RMAN);
+			free(new, M_RMAN);
 		} else
 			TAILQ_INSERT_AFTER(&rm->rm_list, r, new, r_link);
 		mtx_unlock(rm->rm_mtx);
@@ -567,7 +567,7 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 				 */
 				r = int_alloc_resource(M_NOWAIT);
 				if (r == NULL) {
-					vos_free(rv, M_RMAN);
+					free(rv, M_RMAN);
 					rv = NULL;
 					goto out;
 				}
@@ -627,10 +627,10 @@ rman_reserve_resource_bound(struct rman *rm, rman_res_t start, rman_res_t end,
 			rv->r_dev = dev;
 			rv->r_rm = rm;
 			if (s->r_sharehead == NULL) {
-				s->r_sharehead = vos_malloc(sizeof *s->r_sharehead,
+				s->r_sharehead = malloc(sizeof *s->r_sharehead,
 						M_RMAN, M_NOWAIT | M_ZERO);
 				if (s->r_sharehead == NULL) {
-					vos_free(rv, M_RMAN);
+					free(rv, M_RMAN);
 					rv = NULL;
 					goto out;
 				}
@@ -720,7 +720,7 @@ int_rman_release_resource(struct rman *rm, struct resource_i *r)
 		 * if the resource is no longer being shared at all.
 		 */
 		if (LIST_NEXT(s, r_sharelink) == NULL) {
-			vos_free(s->r_sharehead, M_RMAN);
+			free(s->r_sharehead, M_RMAN);
 			s->r_sharehead = NULL;
 			s->r_flags &= ~RF_FIRSTSHARE;
 		}
@@ -749,7 +749,7 @@ int_rman_release_resource(struct rman *rm, struct resource_i *r)
 		s->r_end = t->r_end;
 		TAILQ_REMOVE(&rm->rm_list, r, r_link);
 		TAILQ_REMOVE(&rm->rm_list, t, r_link);
-		vos_free(t, M_RMAN);
+		free(t, M_RMAN);
 	} else if (s != NULL) {
 		/*
 		 * Merge previous segment with ours.
@@ -778,7 +778,7 @@ int_rman_release_resource(struct rman *rm, struct resource_i *r)
 	}
 
 out:
-	vos_free(r, M_RMAN);
+	free(r, M_RMAN);
 	return 0;
 }
 
@@ -989,10 +989,10 @@ sysctl_rman(SYSCTL_HANDLER_ARGS)
 	int			error;
 
 	if (namelen != 3)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (bus_data_generation_check(name[0]))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	rman_idx = name[1];
 	res_idx = name[2];
 
@@ -1006,7 +1006,7 @@ sysctl_rman(SYSCTL_HANDLER_ARGS)
 	}
 	mtx_unlock(&rman_mtx);
 	if (rm == NULL)
-		return (VOS_ENOENT);
+		return (ENOENT);
 
 	/*
 	 * If the resource index is -1, we want details on the
@@ -1016,7 +1016,7 @@ sysctl_rman(SYSCTL_HANDLER_ARGS)
 		bzero(&urm, sizeof(urm));
 		urm.rm_handle = (uintptr_t)rm;
 		if (rm->rm_descr != NULL)
-			vos_strlcpy(urm.rm_descr, rm->rm_descr, RM_TEXTLEN);
+			strlcpy(urm.rm_descr, rm->rm_descr, RM_TEXTLEN);
 		urm.rm_start = rm->rm_start;
 		urm.rm_size = rm->rm_end - rm->rm_start + 1;
 		urm.rm_type = rm->rm_type;
@@ -1041,7 +1041,7 @@ sysctl_rman(SYSCTL_HANDLER_ARGS)
 				goto found;
 	}
 	mtx_unlock(rm->rm_mtx);
-	return (VOS_ENOENT);
+	return (ENOENT);
 
 found:
 	bzero(&ures, sizeof(ures));
@@ -1055,7 +1055,7 @@ found:
 			    device_get_name(res->r_dev),
 			    device_get_unit(res->r_dev));
 		} else {
-			vos_strlcpy(ures.r_devname, "nomatch",
+			strlcpy(ures.r_devname, "nomatch",
 			    RM_TEXTLEN);
 		}
 	} else {

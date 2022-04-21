@@ -117,7 +117,7 @@ eventfd_create_file(struct thread *td, struct file *fp, uint32_t initval,
 	AUDIT_ARG_FFLAGS(flags);
 	AUDIT_ARG_VALUE(initval);
 
-	efd = vos_malloc(sizeof(*efd), M_EVENTFD, M_WAITOK | M_ZERO);
+	efd = malloc(sizeof(*efd), M_EVENTFD, M_WAITOK | M_ZERO);
 	efd->efd_flags = flags;
 	efd->efd_count = initval;
 	mtx_init(&efd->efd_lock, "eventfd", NULL, MTX_DEF);
@@ -140,7 +140,7 @@ eventfd_close(struct file *fp, struct thread *td)
 	seldrain(&efd->efd_sel);
 	knlist_destroy(&efd->efd_sel.si_note);
 	mtx_destroy(&efd->efd_lock);
-	vos_free(efd, M_EVENTFD);
+	free(efd, M_EVENTFD);
 	return (0);
 }
 
@@ -153,7 +153,7 @@ eventfd_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	int error;
 
 	if (uio->uio_resid < sizeof(eventfd_t))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = 0;
 	efd = fp->f_data;
@@ -161,7 +161,7 @@ eventfd_read(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	while (error == 0 && efd->efd_count == 0) {
 		if ((fp->f_flag & FNONBLOCK) != 0) {
 			mtx_unlock(&efd->efd_lock);
-			return (VOS_EAGAIN);
+			return (EAGAIN);
 		}
 		error = mtx_sleep(&efd->efd_count, &efd->efd_lock, PCATCH,
 		    "efdrd", 0);
@@ -195,23 +195,23 @@ eventfd_write(struct file *fp, struct uio *uio, struct ucred *active_cred,
 	int error;
 
 	if (uio->uio_resid < sizeof(eventfd_t))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	error = uiomove(&count, sizeof(eventfd_t), uio);
 	if (error != 0)
 		return (error);
-	if (count == VOS_UINT64_MAX)
-		return (VOS_EINVAL);
+	if (count == UINT64_MAX)
+		return (EINVAL);
 
 	efd = fp->f_data;
 	mtx_lock(&efd->efd_lock);
 retry:
-	if (VOS_UINT64_MAX - efd->efd_count <= count) {
+	if (UINT64_MAX - efd->efd_count <= count) {
 		if ((fp->f_flag & FNONBLOCK) != 0) {
 			mtx_unlock(&efd->efd_lock);
 			/* Do not not return the number of bytes written */
 			uio->uio_resid += sizeof(eventfd_t);
-			return (VOS_EAGAIN);
+			return (EAGAIN);
 		}
 		error = mtx_sleep(&efd->efd_count, &efd->efd_lock,
 		    PCATCH, "efdwr", 0);
@@ -219,7 +219,7 @@ retry:
 			goto retry;
 	}
 	if (error == 0) {
-		MPASS(VOS_UINT64_MAX - efd->efd_count > count);
+		MPASS(UINT64_MAX - efd->efd_count > count);
 		efd->efd_count += count;
 		KNOTE_LOCKED(&efd->efd_sel.si_note, 0);
 		selwakeup(&efd->efd_sel);
@@ -242,7 +242,7 @@ eventfd_poll(struct file *fp, int events, struct ucred *active_cred,
 	mtx_lock(&efd->efd_lock);
 	if ((events & (POLLIN | POLLRDNORM)) != 0 && efd->efd_count > 0)
 		revents |= events & (POLLIN | POLLRDNORM);
-	if ((events & (POLLOUT | POLLWRNORM)) != 0 && VOS_UINT64_MAX - 1 >
+	if ((events & (POLLOUT | POLLWRNORM)) != 0 && UINT64_MAX - 1 >
 	    efd->efd_count)
 		revents |= events & (POLLOUT | POLLWRNORM);
 	if (revents == 0)
@@ -267,7 +267,7 @@ eventfd_kqfilter(struct file *fp, struct knote *kn)
 		break;
 	default:
 		mtx_unlock(&efd->efd_lock);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 
 	kn->kn_hook = efd;
@@ -307,8 +307,8 @@ filt_eventfdwrite(struct knote *kn, long long hint)
 	int ret;
 
 	mtx_assert(&efd->efd_lock, MA_OWNED);
-	kn->kn_data = (int64_t)(VOS_UINT64_MAX - 1 - efd->efd_count);
-	ret = VOS_UINT64_MAX - 1 > efd->efd_count;
+	kn->kn_data = (int64_t)(UINT64_MAX - 1 - efd->efd_count);
+	ret = UINT64_MAX - 1 > efd->efd_count;
 
 	return (ret);
 }
@@ -323,7 +323,7 @@ eventfd_ioctl(struct file *fp, u_long cmd, void *data,
 		return (0);
 	}
 
-	return (VOS_ENOTTY);
+	return (ENOTTY);
 }
 
 static int

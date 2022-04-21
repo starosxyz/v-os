@@ -38,7 +38,7 @@
 #elif defined(__GNUG__) && defined(__GNUC__) && __GNUC__ >= 4
 #define	NULL	__null
 #else
-#if defined(__LP64__)
+#if defined(__LP64__)|| defined(_WIN64)
 #define	NULL	(0L)
 #else
 #define	NULL	0

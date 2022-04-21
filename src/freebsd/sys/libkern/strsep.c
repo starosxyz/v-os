@@ -50,7 +50,7 @@ __FBSDID("$FreeBSD$");
  * If *stringp is NULL, strsep returns NULL.
  */
 char *
-vos_strsep(char **stringp, const char *delim)
+strsep(char **stringp, const char *delim)
 {
 	char *s;
 	const char *spanp;

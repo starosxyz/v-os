@@ -1432,10 +1432,10 @@ swap_pager_getpages_async(vm_object_t object, vm_page_t* ma, int count,
 		error = 0;
 		break;
 	case VM_PAGER_ERROR:
-		error = VOS_EIO;
+		error = EIO;
 		break;
 	case VM_PAGER_FAIL:
-		error = VOS_EINVAL;
+		error = EINVAL;
 		break;
 	default:
 		panic("unhandled swap_pager_getpages() error %d", r);
@@ -1629,7 +1629,7 @@ swp_pager_async_iodone(struct buf* bp)
 	 * Report error - unless we ran out of memory, in which case
 	 * we've already logged it in swapgeom_strategy().
 	 */
-	if (bp->b_ioflags & BIO_ERROR && bp->b_error != VOS_ENOMEM) {
+	if (bp->b_ioflags & BIO_ERROR && bp->b_error != ENOMEM) {
 		printf(
 			"swap_pager: I/O error - %s failed; blkno %ld,"
 			"size %ld, error %d\n",
@@ -2330,7 +2330,7 @@ swap_pager_find_least(vm_object_t object, vm_pindex_t pindex)
 
 /*
  * System call swapon(name) enables swapping on device name,
- * which must be in the swdevsw.  Return VOS_EBUSY
+ * which must be in the swdevsw.  Return EBUSY
  * if already swapping on this device.
  */
 #ifndef _SYS_SYSPROTO_H_
@@ -2380,7 +2380,7 @@ swaponsomething(struct vnode* vp, void* id, u_long nblks,
 	nblks &= ~(ctodb(1) - 1);
 	nblks = dbtoc(nblks);
 
-	sp = vos_malloc(sizeof * sp, M_VMPGDATA, M_WAITOK | M_ZERO);
+	sp = malloc(sizeof * sp, M_VMPGDATA, M_WAITOK | M_ZERO);
 	sp->sw_blist = blist_create(nblks, M_WAITOK);
 	sp->sw_vp = vp;
 	sp->sw_id = id;
@@ -2444,7 +2444,7 @@ kern_swapoff(struct thread* td, const char* name, enum uio_seg name_seg,
 	if (error != 0)
 		return (error);
 	if ((flags & ~(SWAPOFF_FORCE)) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	sx_xlock(&swdev_syscall_lock);
 
@@ -2462,7 +2462,7 @@ kern_swapoff(struct thread* td, const char* name, enum uio_seg name_seg,
 	}
 	mtx_unlock(&sw_dev_mtx);
 	if (sp == NULL) {
-		error = VOS_EINVAL;
+		error = EINVAL;
 		goto done;
 	}
 	error = swapoff_one(sp, td->td_ucred, flags);
@@ -2516,7 +2516,7 @@ swapoff_one(struct swdevt* sp, struct ucred* cred, u_int flags)
 	 */
 	if ((flags & SWAPOFF_FORCE) == 0 &&
 		vm_free_count() + swap_pager_avail < nblks + nswap_lowat)
-		return (VOS_ENOMEM);
+		return (ENOMEM);
 
 	/*
 	 * Prevent further allocations on this device.
@@ -2545,7 +2545,7 @@ swapoff_one(struct swdevt* sp, struct ucred* cred, u_int flags)
 		swdevhd = NULL;
 	mtx_unlock(&sw_dev_mtx);
 	blist_destroy(sp->sw_blist);
-	vos_free(sp, M_VMPGDATA);
+	free(sp, M_VMPGDATA);
 	return (0);
 }
 
@@ -2597,7 +2597,7 @@ swap_dev_info(int name, struct xswdev* xs, char* devname, size_t len)
 	int error, n;
 
 	n = 0;
-	error = VOS_ENOENT;
+	error = ENOENT;
 	mtx_lock(&sw_dev_mtx);
 	TAILQ_FOREACH(sp, &swtailq, sw_list) {
 		if (n != name) {
@@ -2614,7 +2614,7 @@ swap_dev_info(int name, struct xswdev* xs, char* devname, size_t len)
 				tmp_devname = devtoname(sp->sw_vp->v_rdev);
 			else
 				tmp_devname = "[file]";
-			vos_strncpy(devname, tmp_devname, len);
+			strncpy(devname, tmp_devname, len);
 		}
 		error = 0;
 		break;
@@ -2657,7 +2657,7 @@ sysctl_vm_swap_info(SYSCTL_HANDLER_ARGS)
 	int error;
 
 	if (arg2 != 1)			/* name length */
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	memset(&xs, 0, sizeof(xs));
 	error = swap_dev_info(*(int*)arg1, &xs, NULL, 0);
@@ -2806,12 +2806,12 @@ swaponvp(struct thread* td, struct vnode* vp, u_long nblks)
 
 	ASSERT_VOP_ELOCKED(vp, "swaponvp");
 	if (nblks == 0)
-		return (VOS_ENXIO);
+		return (ENXIO);
 	mtx_lock(&sw_dev_mtx);
 	TAILQ_FOREACH(sp, &swtailq, sw_list) {
 		if (sp->sw_id == vp) {
 			mtx_unlock(&sw_dev_mtx);
-			return (VOS_EBUSY);
+			return (EBUSY);
 		}
 	}
 	mtx_unlock(&sw_dev_mtx);
@@ -2840,7 +2840,7 @@ sysctl_swap_async_max(SYSCTL_HANDLER_ARGS)
 		return (error);
 
 	if (new > nswbuf / 2 || new < 1)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	mtx_lock(&swbuf_mtx);
 	while (nsw_wcount_async_max != new) {

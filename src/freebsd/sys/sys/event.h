@@ -102,7 +102,7 @@ struct kevent_freebsd11 {
 };
 #endif
 
-#if defined(_WANT_KEVENT32) || (defined(_KERNEL) && defined(__LP64__))
+#if defined(_WANT_KEVENT32) || (defined(_KERNEL) && (defined(__LP64__)||defined(_WIN64)))
 struct kevent32 {
 	uint32_t	ident;		/* identifier for this event */
 	short		filter;		/* filter for event */

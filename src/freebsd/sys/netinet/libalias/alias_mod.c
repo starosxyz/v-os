@@ -66,7 +66,7 @@ attach_handler(struct proto_handler *p)
 		if ((b->pri == p->pri) &&
 		    (b->dir == p->dir) &&
 		    (b->proto == p->proto))
-			return (VOS_EEXIST);
+			return (EEXIST);
 		if (b->pri > p->pri) {
 			TAILQ_INSERT_BEFORE(b, p, link);
 			return (0);
@@ -117,7 +117,7 @@ find_handler(int8_t dir, int8_t proto, struct libalias *la, struct ip *ip,
 		    p->fingerprint(la, ad) == 0)
 			return (p->protohandler(la, ip, ad));
 
-	return (VOS_ENOENT);
+	return (ENOENT);
 }
 
 struct proto_handler *
@@ -136,8 +136,8 @@ attach_dll(struct dll *p)
 	struct dll *b;
 
 	SLIST_FOREACH(b, &dll_chain, next) {
-		if (!vos_strncmp(b->name, p->name, DLL_LEN))
-			return (VOS_EEXIST); /* Dll name conflict. */
+		if (!strncmp(b->name, p->name, DLL_LEN))
+			return (EEXIST); /* Dll name conflict. */
 	}
 	SLIST_INSERT_HEAD(&dll_chain, p, next);
 	return (0);
@@ -152,7 +152,7 @@ detach_dll(char *p)
 	b = NULL;
 	error = NULL;
 	SLIST_FOREACH_SAFE(b, &dll_chain, next, b_tmp)
-		if (!vos_strncmp(b->name, p, DLL_LEN)) {
+		if (!strncmp(b->name, p, DLL_LEN)) {
 			SLIST_REMOVE(&dll_chain, b, dll, next);
 			error = b;
 			break;

@@ -154,7 +154,7 @@ pctrie_is_empty(struct pctrie *ptree)
  * a single cache line.  The extra levels from a narrow width should not be
  * a problem thanks to path compression.
  */
-#ifdef __LP64__
+#if defined(__LP64__) || defined(_WIN64)
 #define	PCTRIE_WIDTH	4
 #else
 #define	PCTRIE_WIDTH	3

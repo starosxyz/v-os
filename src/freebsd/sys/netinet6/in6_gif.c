@@ -117,14 +117,14 @@ in6_gif_checkdup(const struct gif_softc *sc, const struct in6_addr *src,
 	if (sc->gif_family == AF_INET6 &&
 	    IN6_ARE_ADDR_EQUAL(&sc->gif_ip6hdr->ip6_src, src) &&
 	    IN6_ARE_ADDR_EQUAL(&sc->gif_ip6hdr->ip6_dst, dst))
-		return (VOS_EEXIST);
+		return (EEXIST);
 
 	CK_LIST_FOREACH(tmp, &GIF_HASH(src, dst), chain) {
 		if (tmp == sc)
 			continue;
 		if (IN6_ARE_ADDR_EQUAL(&tmp->gif_ip6hdr->ip6_src, src) &&
 		    IN6_ARE_ADDR_EQUAL(&tmp->gif_ip6hdr->ip6_dst, dst))
-			return (VOS_EADDRNOTAVAIL);
+			return (EADDRNOTAVAIL);
 	}
 	return (0);
 }
@@ -207,7 +207,7 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 	int error;
 
 	/* NOTE: we are protected with gif_ioctl_sx lock */
-	error = VOS_EINVAL;
+	error = EINVAL;
 	switch (cmd) {
 	case SIOCSIFPHYADDR_IN6:
 		src = &((struct in6_aliasreq *)data)->ifra_addr;
@@ -221,7 +221,7 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 			break;
 		if (IN6_IS_ADDR_UNSPECIFIED(&src->sin6_addr) ||
 		    IN6_IS_ADDR_UNSPECIFIED(&dst->sin6_addr)) {
-			error = VOS_EADDRNOTAVAIL;
+			error = EADDRNOTAVAIL;
 			break;
 		}
 		/*
@@ -239,14 +239,14 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 		}
 		error = in6_gif_checkdup(sc, &src->sin6_addr,
 		    &dst->sin6_addr);
-		if (error == VOS_EADDRNOTAVAIL)
+		if (error == EADDRNOTAVAIL)
 			break;
-		if (error == VOS_EEXIST) {
+		if (error == EEXIST) {
 			/* Addresses are the same. Just return. */
 			error = 0;
 			break;
 		}
-		ip6 = vos_malloc(sizeof(*ip6), M_GIF, M_WAITOK | M_ZERO);
+		ip6 = malloc(sizeof(*ip6), M_GIF, M_WAITOK | M_ZERO);
 		ip6->ip6_src = src->sin6_addr;
 		ip6->ip6_dst = dst->sin6_addr;
 		ip6->ip6_vfc = IPV6_VERSION;
@@ -255,7 +255,7 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 			CK_LIST_REMOVE(sc, srchash);
 			CK_LIST_REMOVE(sc, chain);
 			GIF_WAIT();
-			vos_free(sc->gif_hdr, M_GIF);
+			free(sc->gif_hdr, M_GIF);
 			/* XXX: should we notify about link state change? */
 		}
 		sc->gif_family = AF_INET6;
@@ -266,7 +266,7 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 	case SIOCGIFPSRCADDR_IN6:
 	case SIOCGIFPDSTADDR_IN6:
 		if (sc->gif_family != AF_INET6) {
-			error = VOS_EADDRNOTAVAIL;
+			error = EADDRNOTAVAIL;
 			break;
 		}
 		src = (struct sockaddr_in6 *)&ifr->ifr_addr;
@@ -301,7 +301,7 @@ in6_gif_output(struct ifnet *ifp, struct mbuf *m, int proto, uint8_t ecn)
 #endif
 	M_PREPEND(m, len, M_NOWAIT);
 	if (m == NULL)
-		return (VOS_ENOBUFS);
+		return (ENOBUFS);
 #ifndef __NO_STRICT_ALIGNMENT
 	if (proto == IPPROTO_ETHERIP) {
 		len = mtod(m, vm_offset_t) & 3;

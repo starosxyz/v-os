@@ -88,8 +88,8 @@ static uma_zone_t	itimer_zone = NULL;
 static int	settime(struct thread *, struct timeval *);
 static void	timevalfix(struct timeval *);
 static int	user_clock_nanosleep(struct thread *td, clockid_t clock_id,
-		    int flags, const struct vos_timespec *ua_rqtp,
-		    struct vos_timespec *ua_rmtp);
+		    int flags, const struct timespec *ua_rqtp,
+		    struct timespec *ua_rmtp);
 
 static void	itimer_start(void);
 static int	itimer_init(void *, int, int);
@@ -103,12 +103,12 @@ static int	realtimer_gettime(struct itimer *, struct itimerspec *);
 static int	realtimer_settime(struct itimer *, int,
 			struct itimerspec *, struct itimerspec *);
 static int	realtimer_delete(struct itimer *);
-static void	realtimer_clocktime(clockid_t, struct vos_timespec*);
+static void	realtimer_clocktime(clockid_t, struct timespec *);
 static void	realtimer_expire(void *);
 
 static int	register_posix_clock(int, const struct kclock *);
 void		itimer_fire(struct itimer *it);
-int		itimespecfix(struct vos_timespec*ts);
+int		itimespecfix(struct timespec *ts);
 
 #define CLOCK_CALL(clock, call, arglist)		\
 	((*posix_clocks[clock].call) arglist)
@@ -120,7 +120,7 @@ settime(struct thread *td, struct timeval *tv)
 {
 	struct timeval delta, tv1, tv2;
 	static struct timeval maxtime, laststep;
-	struct vos_timespec ts;
+	struct timespec ts;
 
 	microtime(&tv1);
 	delta = *tv;
@@ -152,7 +152,7 @@ settime(struct thread *td, struct timeval *tv)
 			}
 		} else {
 			if (tv1.tv_sec == laststep.tv_sec)
-				return (VOS_EPERM);
+				return (EPERM);
 			if (delta.tv_sec > 1) {
 				tv->tv_sec = tv1.tv_sec + 1;
 				printf("Time adjustment clamped to +1 second\n");
@@ -215,21 +215,21 @@ kern_clock_getcpuclockid2(struct thread *td, id_t id, int which,
 		*clk_id = MAKE_THREAD_CPUCLOCK(tid);
 		return (0);
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 }
 
 #ifndef _SYS_SYSPROTO_H_
 struct clock_gettime_args {
 	clockid_t clock_id;
-	struct	vos_timespec *tp;
+	struct	timespec *tp;
 };
 #endif
 /* ARGSUSED */
 int
 sys_clock_gettime(struct thread *td, struct clock_gettime_args *uap)
 {
-	struct vos_timespec ats;
+	struct timespec ats;
 	int error;
 
 	error = kern_clock_gettime(td, uap->clock_id, &ats);
@@ -240,7 +240,7 @@ sys_clock_gettime(struct thread *td, struct clock_gettime_args *uap)
 }
 
 static inline void
-cputick2timespec(uint64_t runtime, struct vos_timespec *ats)
+cputick2timespec(uint64_t runtime, struct timespec *ats)
 {
 	runtime = cputick2usec(runtime);
 	ats->tv_sec = runtime / 1000000;
@@ -248,7 +248,7 @@ cputick2timespec(uint64_t runtime, struct vos_timespec *ats)
 }
 
 void
-kern_thread_cputime(struct thread *targettd, struct vos_timespec *ats)
+kern_thread_cputime(struct thread *targettd, struct timespec *ats)
 {
 	uint64_t runtime, curtime, switchtime;
 
@@ -269,7 +269,7 @@ kern_thread_cputime(struct thread *targettd, struct vos_timespec *ats)
 }
 
 void
-kern_process_cputime(struct proc *targetp, struct vos_timespec *ats)
+kern_process_cputime(struct proc *targetp, struct timespec *ats)
 {
 	uint64_t runtime;
 	struct rusage ru;
@@ -285,7 +285,7 @@ kern_process_cputime(struct proc *targetp, struct vos_timespec *ats)
 }
 
 static int
-get_cputime(struct thread *td, clockid_t clock_id, struct vos_timespec *ats)
+get_cputime(struct thread *td, clockid_t clock_id, struct timespec *ats)
 {
 	struct proc *p, *p2;
 	struct thread *td2;
@@ -298,14 +298,14 @@ get_cputime(struct thread *td, clockid_t clock_id, struct vos_timespec *ats)
 		tid = clock_id & CPUCLOCK_ID_MASK;
 		td2 = tdfind(tid, p->p_pid);
 		if (td2 == NULL)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		kern_thread_cputime(td2, ats);
 		PROC_UNLOCK(td2->td_proc);
 	} else {
 		pid = clock_id & CPUCLOCK_ID_MASK;
 		error = pget(pid, PGET_CANSEE, &p2);
 		if (error != 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		kern_process_cputime(p2, ats);
 		PROC_UNLOCK(p2);
 	}
@@ -313,7 +313,7 @@ get_cputime(struct thread *td, clockid_t clock_id, struct vos_timespec *ats)
 }
 
 int
-kern_clock_gettime(struct thread *td, clockid_t clock_id, struct vos_timespec *ats)
+kern_clock_gettime(struct thread *td, clockid_t clock_id, struct timespec *ats)
 {
 	struct timeval sys, user;
 	struct proc *p;
@@ -368,7 +368,7 @@ kern_clock_gettime(struct thread *td, clockid_t clock_id, struct vos_timespec *a
 		break;
 	default:
 		if ((int)clock_id >= 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		return (get_cputime(td, clock_id, ats));
 	}
 	return (0);
@@ -377,14 +377,14 @@ kern_clock_gettime(struct thread *td, clockid_t clock_id, struct vos_timespec *a
 #ifndef _SYS_SYSPROTO_H_
 struct clock_settime_args {
 	clockid_t clock_id;
-	const struct	vos_timespec *tp;
+	const struct	timespec *tp;
 };
 #endif
 /* ARGSUSED */
 int
 sys_clock_settime(struct thread *td, struct clock_settime_args *uap)
 {
-	struct vos_timespec ats;
+	struct timespec ats;
 	int error;
 
 	if ((error = copyin(uap->tp, &ats, sizeof(ats))) != 0)
@@ -398,7 +398,7 @@ SYSCTL_INT(_debug, OID_AUTO, allow_insane_settime, CTLFLAG_RWTUN,
     "do not perform possibly restrictive checks on settime(2) args");
 
 int
-kern_clock_settime(struct thread *td, clockid_t clock_id, struct vos_timespec *ats)
+kern_clock_settime(struct thread *td, clockid_t clock_id, struct timespec *ats)
 {
 	struct timeval atv;
 	int error;
@@ -406,14 +406,14 @@ kern_clock_settime(struct thread *td, clockid_t clock_id, struct vos_timespec *a
 	if ((error = priv_check(td, PRIV_CLOCK_SETTIME)) != 0)
 		return (error);
 	if (clock_id != CLOCK_REALTIME)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (ats->tv_nsec < 0 || ats->tv_nsec >= 1000000000 ||
 	    ats->tv_sec < 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (!allow_insane_settime &&
 	    (ats->tv_sec > 8000ULL * 365 * 24 * 60 * 60 ||
 	    ats->tv_sec < utc_offset()))
-		return (VOS_EINVAL);
+		return (EINVAL);
 	/* XXX Don't convert nsec->usec and back */
 	TIMESPEC_TO_TIMEVAL(&atv, ats);
 	error = settime(td, &atv);
@@ -423,13 +423,13 @@ kern_clock_settime(struct thread *td, clockid_t clock_id, struct vos_timespec *a
 #ifndef _SYS_SYSPROTO_H_
 struct clock_getres_args {
 	clockid_t clock_id;
-	struct	vos_timespec *tp;
+	struct	timespec *tp;
 };
 #endif
 int
 sys_clock_getres(struct thread *td, struct clock_getres_args *uap)
 {
-	struct vos_timespec ts;
+	struct timespec ts;
 	int error;
 
 	if (uap->tp == NULL)
@@ -442,7 +442,7 @@ sys_clock_getres(struct thread *td, struct clock_getres_args *uap)
 }
 
 int
-kern_clock_getres(struct thread *td, clockid_t clock_id, struct vos_timespec *ts)
+kern_clock_getres(struct thread *td, clockid_t clock_id, struct timespec *ts)
 {
 
 	ts->tv_sec = 0;
@@ -483,13 +483,13 @@ kern_clock_getres(struct thread *td, clockid_t clock_id, struct vos_timespec *ts
 	default:
 		if ((int)clock_id < 0)
 			goto cputime;
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	return (0);
 }
 
 int
-kern_nanosleep(struct thread *td, struct vos_timespec *rqt, struct vos_timespec *rmt)
+kern_nanosleep(struct thread *td, struct timespec *rqt, struct timespec *rmt)
 {
 
 	return (kern_clock_nanosleep(td, CLOCK_REALTIME, TIMER_RELTIME, rqt,
@@ -500,18 +500,18 @@ static uint8_t nanowait[MAXCPU];
 
 int
 kern_clock_nanosleep(struct thread *td, clockid_t clock_id, int flags,
-    const struct vos_timespec *rqt, struct vos_timespec *rmt)
+    const struct timespec *rqt, struct timespec *rmt)
 {
-	struct vos_timespec ts, now;
+	struct timespec ts, now;
 	sbintime_t sbt, sbtt, prec, tmp;
 	time_t over;
 	int error;
 	bool is_abs_real;
 
 	if (rqt->tv_nsec < 0 || rqt->tv_nsec >= 1000000000)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if ((flags & ~TIMER_ABSTIME) != 0)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	switch (clock_id) {
 	case CLOCK_REALTIME:
 	case CLOCK_REALTIME_PRECISE:
@@ -530,10 +530,10 @@ kern_clock_nanosleep(struct thread *td, clockid_t clock_id, int flags,
 	case CLOCK_VIRTUAL:
 	case CLOCK_PROF:
 	case CLOCK_PROCESS_CPUTIME_ID:
-		return (VOS_ENOTSUP);
+		return (ENOTSUP);
 	case CLOCK_THREAD_CPUTIME_ID:
 	default:
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	do {
 		ts = *rqt;
@@ -546,11 +546,11 @@ kern_clock_nanosleep(struct thread *td, clockid_t clock_id, int flags,
 			timespecsub(&ts, &now, &ts);
 		}
 		if (ts.tv_sec < 0 || (ts.tv_sec == 0 && ts.tv_nsec == 0)) {
-			error = VOS_EWOULDBLOCK;
+			error = EWOULDBLOCK;
 			break;
 		}
-		if (ts.tv_sec > VOS_INT32_MAX / 2) {
-			over = ts.tv_sec - VOS_INT32_MAX / 2;
+		if (ts.tv_sec > INT32_MAX / 2) {
+			over = ts.tv_sec - INT32_MAX / 2;
 			ts.tv_sec -= over;
 		} else
 			over = 0;
@@ -564,13 +564,13 @@ kern_clock_nanosleep(struct thread *td, clockid_t clock_id, int flags,
 		    sbt, prec, C_ABSOLUTE);
 	} while (error == 0 && is_abs_real && td->td_rtcgen == 0);
 	td->td_rtcgen = 0;
-	if (error != VOS_EWOULDBLOCK) {
+	if (error != EWOULDBLOCK) {
 		if (TIMESEL(&sbtt, tmp))
 			sbtt += tc_tick_sbt;
 		if (sbtt >= sbt)
 			return (0);
-		if (error == VOS_ERESTART)
-			error = VOS_EINTR;
+		if (error == ERESTART)
+			error = EINTR;
 		if ((flags & TIMER_ABSTIME) == 0 && rmt != NULL) {
 			ts = sbttots(sbt - sbtt);
 			ts.tv_sec += over;
@@ -585,8 +585,8 @@ kern_clock_nanosleep(struct thread *td, clockid_t clock_id, int flags,
 
 #ifndef _SYS_SYSPROTO_H_
 struct nanosleep_args {
-	struct	vos_timespec *rqtp;
-	struct	vos_timespec *rmtp;
+	struct	timespec *rqtp;
+	struct	timespec *rmtp;
 };
 #endif
 /* ARGSUSED */
@@ -602,8 +602,8 @@ sys_nanosleep(struct thread *td, struct nanosleep_args *uap)
 struct clock_nanosleep_args {
 	clockid_t clock_id;
 	int 	  flags;
-	struct	vos_timespec *rqtp;
-	struct	vos_timespec *rmtp;
+	struct	timespec *rqtp;
+	struct	timespec *rmtp;
 };
 #endif
 /* ARGSUSED */
@@ -619,16 +619,16 @@ sys_clock_nanosleep(struct thread *td, struct clock_nanosleep_args *uap)
 
 static int
 user_clock_nanosleep(struct thread *td, clockid_t clock_id, int flags,
-    const struct vos_timespec *ua_rqtp, struct vos_timespec *ua_rmtp)
+    const struct timespec *ua_rqtp, struct timespec *ua_rmtp)
 {
-	struct vos_timespec rmt, rqt;
+	struct timespec rmt, rqt;
 	int error, error2;
 
 	error = copyin(ua_rqtp, &rqt, sizeof(rqt));
 	if (error)
 		return (error);
 	error = kern_clock_nanosleep(td, clock_id, flags, &rqt, &rmt);
-	if (error == VOS_EINTR && ua_rmtp != NULL && (flags & TIMER_ABSTIME) == 0) {
+	if (error == EINTR && ua_rmtp != NULL && (flags & TIMER_ABSTIME) == 0) {
 		error2 = copyout(&rmt, ua_rmtp, sizeof(rmt));
 		if (error2 != 0)
 			error = error2;
@@ -705,7 +705,7 @@ kern_settimeofday(struct thread *td, struct timeval *tv, struct timezone *tzp)
 	if (tv) {
 		if (tv->tv_usec < 0 || tv->tv_usec >= 1000000 ||
 		    tv->tv_sec < 0)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		error = settime(td, tv);
 	}
 	return (error);
@@ -757,7 +757,7 @@ kern_getitimer(struct thread *td, u_int which, struct itimerval *aitv)
 	struct timeval ctv;
 
 	if (which > ITIMER_PROF)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (which == ITIMER_REAL) {
 		/*
@@ -825,19 +825,19 @@ kern_setitimer(struct thread *td, u_int which, struct itimerval *aitv,
 		return (kern_getitimer(td, which, oitv));
 
 	if (which > ITIMER_PROF)
-		return (VOS_EINVAL);
+		return (EINVAL);
 #ifdef KTRACE
 	if (KTRPOINT(td, KTR_STRUCT))
 		ktritimerval(aitv);
 #endif
 	if (itimerfix(&aitv->it_value) ||
-	    aitv->it_value.tv_sec > VOS_INT32_MAX / 2)
-		return (VOS_EINVAL);
+	    aitv->it_value.tv_sec > INT32_MAX / 2)
+		return (EINVAL);
 	if (!timevalisset(&aitv->it_value))
 		timevalclear(&aitv->it_interval);
 	else if (itimerfix(&aitv->it_interval) ||
-	    aitv->it_interval.tv_sec > VOS_INT32_MAX / 2)
-		return (VOS_EINVAL);
+	    aitv->it_interval.tv_sec > INT32_MAX / 2)
+		return (EINVAL);
 
 	if (which == ITIMER_REAL) {
 		PROC_LOCK(p);
@@ -932,7 +932,7 @@ itimerfix(struct timeval *tv)
 {
 
 	if (tv->tv_sec < 0 || tv->tv_usec < 0 || tv->tv_usec >= 1000000)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (tv->tv_sec == 0 && tv->tv_usec != 0 &&
 	    tv->tv_usec < (u_int)tick / 16)
 		tv->tv_usec = (u_int)tick / 16;
@@ -1189,20 +1189,20 @@ kern_ktimer_create(struct thread *td, clockid_t clock_id, struct sigevent *evp,
 	int error;
 
 	if (clock_id < 0 || clock_id >= MAX_CLOCKS)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (posix_clocks[clock_id].timer_create == NULL)
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (evp != NULL) {
 		if (evp->sigev_notify != SIGEV_NONE &&
 		    evp->sigev_notify != SIGEV_SIGNAL &&
 		    evp->sigev_notify != SIGEV_THREAD_ID)
-			return (VOS_EINVAL);
+			return (EINVAL);
 		if ((evp->sigev_notify == SIGEV_SIGNAL ||
 		     evp->sigev_notify == SIGEV_THREAD_ID) &&
 			!_SIG_VALID(evp->sigev_signo))
-			return (VOS_EINVAL);
+			return (EINVAL);
 	}
 
 	if (p->p_itimers == NULL)
@@ -1244,7 +1244,7 @@ kern_ktimer_create(struct thread *td, clockid_t clock_id, struct sigevent *evp,
 				break;
 		if (id == TIMER_MAX) {
 			PROC_UNLOCK(p);
-			error = VOS_EAGAIN;
+			error = EAGAIN;
 			goto out;
 		}
 	}
@@ -1329,7 +1329,7 @@ kern_ktimer_delete(struct thread *td, int timerid)
 	it = itimer_find(p, timerid);
 	if (it == NULL) {
 		PROC_UNLOCK(p);
-		return (VOS_EINVAL);
+		return (EINVAL);
 	}
 	PROC_UNLOCK(p);
 
@@ -1387,7 +1387,7 @@ kern_ktimer_settime(struct thread *td, int timer_id, int flags,
 	PROC_LOCK(p);
 	if (timer_id < 3 || (it = itimer_find(p, timer_id)) == NULL) {
 		PROC_UNLOCK(p);
-		error = VOS_EINVAL;
+		error = EINVAL;
 	} else {
 		PROC_UNLOCK(p);
 		itimer_enter(it);
@@ -1428,7 +1428,7 @@ kern_ktimer_gettime(struct thread *td, int timer_id, struct itimerspec *val)
 	PROC_LOCK(p);
 	if (timer_id < 3 || (it = itimer_find(p, timer_id)) == NULL) {
 		PROC_UNLOCK(p);
-		error = VOS_EINVAL;
+		error = EINVAL;
 	} else {
 		PROC_UNLOCK(p);
 		itimer_enter(it);
@@ -1462,7 +1462,7 @@ kern_ktimer_getoverrun(struct thread *td, int timer_id)
 	if (timer_id < 3 ||
 	    (it = itimer_find(p, timer_id)) == NULL) {
 		PROC_UNLOCK(p);
-		error = VOS_EINVAL;
+		error = EINVAL;
 	} else {
 		td->td_retval[0] = it->it_overrun_last;
 		ITIMER_UNLOCK(it);
@@ -1499,7 +1499,7 @@ realtimer_delete(struct itimer *it)
 static int
 realtimer_gettime(struct itimer *it, struct itimerspec *ovalue)
 {
-	struct vos_timespec cts;
+	struct timespec cts;
 
 	mtx_assert(&it->it_mtx, MA_OWNED);
 
@@ -1521,7 +1521,7 @@ static int
 realtimer_settime(struct itimer *it, int flags,
 	struct itimerspec *value, struct itimerspec *ovalue)
 {
-	struct vos_timespec cts, ts;
+	struct timespec cts, ts;
 	struct timeval tv;
 	struct itimerspec val;
 
@@ -1529,11 +1529,11 @@ realtimer_settime(struct itimer *it, int flags,
 
 	val = *value;
 	if (itimespecfix(&val.it_value))
-		return (VOS_EINVAL);
+		return (EINVAL);
 
 	if (timespecisset(&val.it_value)) {
 		if (itimespecfix(&val.it_interval))
-			return (VOS_EINVAL);
+			return (EINVAL);
 	} else {
 		timespecclear(&val.it_interval);
 	}
@@ -1567,7 +1567,7 @@ realtimer_settime(struct itimer *it, int flags,
 }
 
 static void
-realtimer_clocktime(clockid_t id, struct vos_timespec *ts)
+realtimer_clocktime(clockid_t id, struct timespec *ts)
 {
 	if (id == CLOCK_REALTIME)
 		getnanotime(ts);
@@ -1589,15 +1589,15 @@ itimer_accept(struct proc *p, int timerid, ksiginfo_t *ksi)
 		ITIMER_UNLOCK(it);
 		return (0);
 	}
-	return (VOS_EINVAL);
+	return (EINVAL);
 }
 
 int
-itimespecfix(struct vos_timespec *ts)
+itimespecfix(struct timespec *ts)
 {
 
 	if (ts->tv_sec < 0 || ts->tv_nsec < 0 || ts->tv_nsec >= 1000000000)
-		return (VOS_EINVAL);
+		return (EINVAL);
 	if (ts->tv_sec == 0 && ts->tv_nsec != 0 && ts->tv_nsec < tick * 1000)
 		ts->tv_nsec = tick * 1000;
 	return (0);
@@ -1607,7 +1607,7 @@ itimespecfix(struct vos_timespec *ts)
 static void
 realtimer_expire(void *arg)
 {
-	struct vos_timespec cts, ts;
+	struct timespec cts, ts;
 	struct timeval tv;
 	struct itimer *it;
 
@@ -1624,7 +1624,7 @@ realtimer_expire(void *arg)
 				if (it->it_overrun < INT_MAX)
 					it->it_overrun++;
 				else
-					it->it_ksi.ksi_errno = VOS_ERANGE;
+					it->it_ksi.ksi_errno = ERANGE;
 				timespecadd(&it->it_time.it_value,
 					    &it->it_time.it_interval,
 					    &it->it_time.it_value);
@@ -1677,7 +1677,7 @@ itimer_fire(struct itimer *it)
 			if (it->it_overrun < INT_MAX)
 				it->it_overrun++;
 			else
-				it->it_ksi.ksi_errno = VOS_ERANGE;
+				it->it_ksi.ksi_errno = ERANGE;
 		}
 		PROC_UNLOCK(p);
 	}
@@ -1689,7 +1689,7 @@ itimers_alloc(struct proc *p)
 	struct itimers *its;
 	int i;
 
-	its = vos_malloc(sizeof (struct itimers), M_SUBPROC, M_WAITOK | M_ZERO);
+	its = malloc(sizeof (struct itimers), M_SUBPROC, M_WAITOK | M_ZERO);
 	LIST_INIT(&its->its_virtual);
 	LIST_INIT(&its->its_prof);
 	TAILQ_INIT(&its->its_worklist);
@@ -1702,7 +1702,7 @@ itimers_alloc(struct proc *p)
 	}
 	else {
 		PROC_UNLOCK(p);
-		vos_free(its, M_SUBPROC);
+		free(its, M_SUBPROC);
 	}
 }
 
@@ -1724,7 +1724,7 @@ itimers_event_exit_exec(int start_idx, struct proc *p)
 	}
 	if (its->its_timers[0] == NULL && its->its_timers[1] == NULL &&
 	    its->its_timers[2] == NULL) {
-		vos_free(its, M_SUBPROC);
+		free(its, M_SUBPROC);
 		p->p_itimers = NULL;
 	}
 }

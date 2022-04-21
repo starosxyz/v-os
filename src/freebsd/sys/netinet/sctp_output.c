@@ -3572,18 +3572,18 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 		rem_len = tot_len - off;
 		if (rem_len < (int)CMSG_ALIGN(sizeof(cmh))) {
 			/* There is not enough room for one more. */
-			*error = VOS_EINVAL;
+			*error = EINVAL;
 			return (1);
 		}
 		m_copydata(control, off, sizeof(cmh), (caddr_t)&cmh);
 		if (cmh.cmsg_len < CMSG_ALIGN(sizeof(cmh))) {
 			/* We dont't have a complete CMSG header. */
-			*error = VOS_EINVAL;
+			*error = EINVAL;
 			return (1);
 		}
 		if ((cmh.cmsg_len > INT_MAX) || ((int)cmh.cmsg_len > rem_len)) {
 			/* We don't have the complete CMSG. */
-			*error = VOS_EINVAL;
+			*error = EINVAL;
 			return (1);
 		}
 		cmsg_data_len = (int)cmh.cmsg_len - CMSG_ALIGN(sizeof(cmh));
@@ -3592,7 +3592,7 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 			switch (cmh.cmsg_type) {
 			case SCTP_INIT:
 				if (cmsg_data_len < (int)sizeof(struct sctp_initmsg)) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (1);
 				}
 				m_copydata(control, cmsg_data_off, sizeof(struct sctp_initmsg), (caddr_t)&initmsg);
@@ -3651,7 +3651,7 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 #ifdef INET
 			case SCTP_DSTADDRV4:
 				if (cmsg_data_len < (int)sizeof(struct in_addr)) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (1);
 				}
 				memset(&sin, 0, sizeof(struct sockaddr_in));
@@ -3662,12 +3662,12 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 				if ((sin.sin_addr.s_addr == INADDR_ANY) ||
 				    (sin.sin_addr.s_addr == INADDR_BROADCAST) ||
 				    IN_MULTICAST(ntohl(sin.sin_addr.s_addr))) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (1);
 				}
 				if (sctp_add_remote_addr(stcb, (struct sockaddr *)&sin, NULL, stcb->asoc.port,
 				    SCTP_DONOT_SETSCOPE, SCTP_ADDR_IS_CONFIRMED)) {
-					*error = VOS_ENOBUFS;
+					*error = ENOBUFS;
 					return (1);
 				}
 				break;
@@ -3675,7 +3675,7 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 #ifdef INET6
 			case SCTP_DSTADDRV6:
 				if (cmsg_data_len < (int)sizeof(struct in6_addr)) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (1);
 				}
 				memset(&sin6, 0, sizeof(struct sockaddr_in6));
@@ -3685,7 +3685,7 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 				m_copydata(control, cmsg_data_off, sizeof(struct in6_addr), (caddr_t)&sin6.sin6_addr);
 				if (IN6_IS_ADDR_UNSPECIFIED(&sin6.sin6_addr) ||
 				    IN6_IS_ADDR_MULTICAST(&sin6.sin6_addr)) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (1);
 				}
 #ifdef INET
@@ -3694,19 +3694,19 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 					if ((sin.sin_addr.s_addr == INADDR_ANY) ||
 					    (sin.sin_addr.s_addr == INADDR_BROADCAST) ||
 					    IN_MULTICAST(ntohl(sin.sin_addr.s_addr))) {
-						*error = VOS_EINVAL;
+						*error = EINVAL;
 						return (1);
 					}
 					if (sctp_add_remote_addr(stcb, (struct sockaddr *)&sin, NULL, stcb->asoc.port,
 					    SCTP_DONOT_SETSCOPE, SCTP_ADDR_IS_CONFIRMED)) {
-						*error = VOS_ENOBUFS;
+						*error = ENOBUFS;
 						return (1);
 					}
 				} else
 #endif
 					if (sctp_add_remote_addr(stcb, (struct sockaddr *)&sin6, NULL, stcb->asoc.port,
 				    SCTP_DONOT_SETSCOPE, SCTP_ADDR_IS_CONFIRMED)) {
-					*error = VOS_ENOBUFS;
+					*error = ENOBUFS;
 					return (1);
 				}
 				break;
@@ -3743,18 +3743,18 @@ sctp_findassociation_cmsgs(struct sctp_inpcb **inp_p,
 		rem_len = tot_len - off;
 		if (rem_len < (int)CMSG_ALIGN(sizeof(cmh))) {
 			/* There is not enough room for one more. */
-			*error = VOS_EINVAL;
+			*error = EINVAL;
 			return (NULL);
 		}
 		m_copydata(control, off, sizeof(cmh), (caddr_t)&cmh);
 		if (cmh.cmsg_len < CMSG_ALIGN(sizeof(cmh))) {
 			/* We dont't have a complete CMSG header. */
-			*error = VOS_EINVAL;
+			*error = EINVAL;
 			return (NULL);
 		}
 		if ((cmh.cmsg_len > INT_MAX) || ((int)cmh.cmsg_len > rem_len)) {
 			/* We don't have the complete CMSG. */
-			*error = VOS_EINVAL;
+			*error = EINVAL;
 			return (NULL);
 		}
 		cmsg_data_len = (int)cmh.cmsg_len - CMSG_ALIGN(sizeof(cmh));
@@ -3764,7 +3764,7 @@ sctp_findassociation_cmsgs(struct sctp_inpcb **inp_p,
 #ifdef INET
 			case SCTP_DSTADDRV4:
 				if (cmsg_data_len < (int)sizeof(struct in_addr)) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (NULL);
 				}
 				memset(&sin, 0, sizeof(struct sockaddr_in));
@@ -3778,7 +3778,7 @@ sctp_findassociation_cmsgs(struct sctp_inpcb **inp_p,
 #ifdef INET6
 			case SCTP_DSTADDRV6:
 				if (cmsg_data_len < (int)sizeof(struct in6_addr)) {
-					*error = VOS_EINVAL;
+					*error = EINVAL;
 					return (NULL);
 				}
 				memset(&sin6, 0, sizeof(struct sockaddr_in6));
@@ -4001,9 +4001,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 	uint8_t tos_value;
 
 	if ((net) && (net->dest_state & SCTP_ADDR_OUT_OF_SCOPE)) {
-		SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EFAULT);
+		SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EFAULT);
 		sctp_m_freem(m);
-		return (VOS_EFAULT);
+		return (EFAULT);
 	}
 #if defined(INET) || defined(INET6)
 	if (stcb) {
@@ -4040,8 +4040,8 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			newm = sctp_get_mbuf_for_msg(len, 1, M_NOWAIT, 1, MT_DATA);
 			if (newm == NULL) {
 				sctp_m_freem(m);
-				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-				return (VOS_ENOMEM);
+				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+				return (ENOMEM);
 			}
 			SCTP_ALIGN_TO_END(newm, len);
 			SCTP_BUF_LEN(newm) = len;
@@ -4116,9 +4116,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 					/* No route to host */
 					net->src_addr_selected = 0;
 					sctp_handle_no_route(stcb, net, so_locked);
-					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 					sctp_m_freem(m);
-					return (VOS_EHOSTUNREACH);
+					return (EHOSTUNREACH);
 				}
 				ip->ip_src = net->ro._s_addr->address.sin.sin_addr;
 			} else {
@@ -4131,9 +4131,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 					    vrf_id);
 					if (_lsrc == NULL) {
 						sctp_handle_no_route(stcb, net, so_locked);
-						SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+						SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 						sctp_m_freem(m);
-						return (VOS_EHOSTUNREACH);
+						return (EHOSTUNREACH);
 					}
 					ip->ip_src = _lsrc->address.sin.sin_addr;
 					sctp_free_ifa(_lsrc);
@@ -4145,9 +4145,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			if (port) {
 				if (htons(SCTP_BASE_SYSCTL(sctp_udp_tunneling_port)) == 0) {
 					sctp_handle_no_route(stcb, net, so_locked);
-					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 					sctp_m_freem(m);
-					return (VOS_EHOSTUNREACH);
+					return (EHOSTUNREACH);
 				}
 				udp = (struct udphdr *)((caddr_t)ip + sizeof(struct ip));
 				udp->uh_sport = htons(SCTP_BASE_SYSCTL(sctp_udp_tunneling_port));
@@ -4182,9 +4182,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 				 * there from here (yet)!
 				 */
 				sctp_handle_no_route(stcb, net, so_locked);
-				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 				sctp_m_freem(m);
-				return (VOS_EHOSTUNREACH);
+				return (EHOSTUNREACH);
 			}
 			if (ro != &iproute) {
 				memcpy(&iproute, ro, sizeof(*ro));
@@ -4198,9 +4198,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 
 			if (SCTP_GET_HEADER_FOR_OUTPUT(o_pak)) {
 				/* failed to prepend data, give up */
-				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
+				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
 				sctp_m_freem(m);
-				return (VOS_ENOMEM);
+				return (ENOMEM);
 			}
 			SCTP_ATTACH_CHAIN(o_pak, m, packet_length);
 			if (port) {
@@ -4211,7 +4211,7 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 				}
 			} else {
 				m->m_pkthdr.csum_flags = CSUM_SCTP;
-				m->m_pkthdr.csum_data = vos_offsetof(struct sctphdr, checksum);
+				m->m_pkthdr.csum_data = offsetof(struct sctphdr, checksum);
 				SCTP_STAT_INCR(sctps_sendhwcrc);
 			}
 #ifdef SCTP_PACKET_LOGGING
@@ -4300,8 +4300,8 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			newm = sctp_get_mbuf_for_msg(len, 1, M_NOWAIT, 1, MT_DATA);
 			if (newm == NULL) {
 				sctp_m_freem(m);
-				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-				return (VOS_ENOMEM);
+				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+				return (ENOMEM);
 			}
 			SCTP_ALIGN_TO_END(newm, len);
 			SCTP_BUF_LEN(newm) = len;
@@ -4324,9 +4324,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 
 			/* KAME hack: embed scopeid */
 			if (sa6_embedscope(sin6, MODULE_GLOBAL(ip6_use_defzone)) != 0) {
-				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
+				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
 				sctp_m_freem(m);
-				return (VOS_EINVAL);
+				return (EINVAL);
 			}
 			if (net == NULL) {
 				memset(&ip6route, 0, sizeof(ip6route));
@@ -4386,9 +4386,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 					sin6 = (struct sockaddr_in6 *)&net->ro._l_addr;
 					/* KAME hack: embed scopeid */
 					if (sa6_embedscope(sin6, MODULE_GLOBAL(ip6_use_defzone)) != 0) {
-						SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
+						SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
 						sctp_m_freem(m);
-						return (VOS_EINVAL);
+						return (EINVAL);
 					}
 					/* Cache the source address */
 					net->ro._s_addr = sctp_source_address_selection(inp,
@@ -4404,18 +4404,18 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 					SCTPDBG(SCTP_DEBUG_OUTPUT3, "V6:No route to host\n");
 					net->src_addr_selected = 0;
 					sctp_handle_no_route(stcb, net, so_locked);
-					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 					sctp_m_freem(m);
-					return (VOS_EHOSTUNREACH);
+					return (EHOSTUNREACH);
 				}
 				lsa6->sin6_addr = net->ro._s_addr->address.sin6.sin6_addr;
 			} else {
 				sin6 = (struct sockaddr_in6 *)&ro->ro_dst;
 				/* KAME hack: embed scopeid */
 				if (sa6_embedscope(sin6, MODULE_GLOBAL(ip6_use_defzone)) != 0) {
-					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
+					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
 					sctp_m_freem(m);
-					return (VOS_EINVAL);
+					return (EINVAL);
 				}
 				if (over_addr == NULL) {
 					struct sctp_ifa *_lsrc;
@@ -4426,9 +4426,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 					    vrf_id);
 					if (_lsrc == NULL) {
 						sctp_handle_no_route(stcb, net, so_locked);
-						SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+						SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 						sctp_m_freem(m);
-						return (VOS_EHOSTUNREACH);
+						return (EHOSTUNREACH);
 					}
 					lsa6->sin6_addr = _lsrc->address.sin6.sin6_addr;
 					sctp_free_ifa(_lsrc);
@@ -4447,9 +4447,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 				 * there from here!
 				 */
 				sctp_handle_no_route(stcb, net, so_locked);
-				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+				SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 				sctp_m_freem(m);
-				return (VOS_EHOSTUNREACH);
+				return (EHOSTUNREACH);
 			}
 			/*
 			 * XXX: sa6 may not have a valid sin6_scope_id in
@@ -4473,9 +4473,9 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			if (port) {
 				if (htons(SCTP_BASE_SYSCTL(sctp_udp_tunneling_port)) == 0) {
 					sctp_handle_no_route(stcb, net, so_locked);
-					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EHOSTUNREACH);
+					SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EHOSTUNREACH);
 					sctp_m_freem(m);
-					return (VOS_EHOSTUNREACH);
+					return (EHOSTUNREACH);
 				}
 				udp = (struct udphdr *)((caddr_t)ip6h + sizeof(struct ip6_hdr));
 				udp->uh_sport = htons(SCTP_BASE_SYSCTL(sctp_udp_tunneling_port));
@@ -4523,8 +4523,8 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			if (SCTP_GET_HEADER_FOR_OUTPUT(o_pak)) {
 				/* failed to prepend data, give up */
 				sctp_m_freem(m);
-				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-				return (VOS_ENOMEM);
+				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+				return (ENOMEM);
 			}
 			SCTP_ATTACH_CHAIN(o_pak, m, packet_length);
 			if (port) {
@@ -4535,7 +4535,7 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 				}
 			} else {
 				m->m_pkthdr.csum_flags = CSUM_SCTP_IPV6;
-				m->m_pkthdr.csum_data = vos_offsetof(struct sctphdr, checksum);
+				m->m_pkthdr.csum_data = offsetof(struct sctphdr, checksum);
 				SCTP_STAT_INCR(sctps_sendhwcrc);
 			}
 			/* send it out. table id is taken from stcb */
@@ -4608,8 +4608,8 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 		SCTPDBG(SCTP_DEBUG_OUTPUT1, "Unknown protocol (TSNH) type %d\n",
 		    ((struct sockaddr *)to)->sa_family);
 		sctp_m_freem(m);
-		SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EFAULT);
-		return (VOS_EFAULT);
+		SCTP_LTRACE_ERR_RET_PKT(m, inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EFAULT);
+		return (EFAULT);
 	}
 }
 
@@ -4888,7 +4888,7 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
 	    0, 0,
 	    so_locked))) {
 		SCTPDBG(SCTP_DEBUG_OUTPUT4, "Gak send error %d\n", error);
-		if (error == VOS_ENOBUFS) {
+		if (error == ENOBUFS) {
 			stcb->asoc.ifp_had_enobuf = 1;
 			SCTP_STAT_INCR(sctps_lowlevelerr);
 		}
@@ -5795,7 +5795,7 @@ do_a_abort:
 	stc.peers_vtag = ntohl(init_chk->init.initiate_tag);
 	/* who are we */
 	memcpy(stc.identification, SCTP_VERSION_STRING,
-	    min(vos_strlen(SCTP_VERSION_STRING), sizeof(stc.identification)));
+	    min(strlen(SCTP_VERSION_STRING), sizeof(stc.identification)));
 	memset(stc.reserved, 0, SCTP_RESERVE_SPACE);
 	/* now the chunk header */
 	initack->ch.chunk_type = SCTP_INITIATION_ACK;
@@ -6118,7 +6118,7 @@ do_a_abort:
 	    mflowtype, mflowid,
 	    SCTP_SO_NOT_LOCKED))) {
 		SCTPDBG(SCTP_DEBUG_OUTPUT4, "Gak send error %d\n", error);
-		if (error == VOS_ENOBUFS) {
+		if (error == ENOBUFS) {
 			if (asoc != NULL) {
 				asoc->ifp_had_enobuf = 1;
 			}
@@ -6323,14 +6323,14 @@ sctp_msg_append(struct sctp_tcb *stcb,
 	 */
 	if (srcv->sinfo_stream >= stcb->asoc.streamoutcnt) {
 		/* Invalid stream number */
-		SCTP_LTRACE_ERR_RET_PKT(m, NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET_PKT(m, NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		error = EINVAL;
 		goto out_now;
 	}
 	if ((stcb->asoc.stream_locked) &&
 	    (stcb->asoc.stream_locked_on != srcv->sinfo_stream)) {
-		SCTP_LTRACE_ERR_RET_PKT(m, NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET_PKT(m, NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		error = EINVAL;
 		goto out_now;
 	}
 	strm = &stcb->asoc.strmout[srcv->sinfo_stream];
@@ -6340,14 +6340,14 @@ sctp_msg_append(struct sctp_tcb *stcb,
 	    (SCTP_GET_STATE(stcb) == SCTP_STATE_SHUTDOWN_RECEIVED) ||
 	    (stcb->asoc.state & SCTP_STATE_SHUTDOWN_PENDING)) {
 		/* got data while shutting down */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ECONNRESET);
-		error = VOS_ECONNRESET;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ECONNRESET);
+		error = ECONNRESET;
 		goto out_now;
 	}
 	sctp_alloc_a_strmoq(stcb, sp);
 	if (sp == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		error = VOS_ENOMEM;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		error = ENOMEM;
 		goto out_now;
 	}
 	sp->sinfo_flags = srcv->sinfo_flags;
@@ -6827,18 +6827,18 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 
 	if (inp->sctp_flags & SCTP_PCB_FLAGS_SND_ITERATOR_UP) {
 		/* There is another. */
-		return (VOS_EBUSY);
+		return (EBUSY);
 	}
 	if (uio->uio_resid > (ssize_t)SCTP_BASE_SYSCTL(sctp_sendall_limit)) {
 		/* You must not be larger than the limit! */
-		return (VOS_EMSGSIZE);
+		return (EMSGSIZE);
 	}
 	SCTP_MALLOC(ca, struct sctp_copy_all *, sizeof(struct sctp_copy_all),
 	    SCTP_M_COPYAL);
 	if (ca == NULL) {
 		sctp_m_freem(m);
-		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		return (VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		return (ENOMEM);
 	}
 	memset(ca, 0, sizeof(struct sctp_copy_all));
 
@@ -6857,8 +6857,8 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 		ca->m = sctp_copy_out_all(uio, ca->sndlen);
 		if (ca->m == NULL) {
 			SCTP_FREE(ca, SCTP_M_COPYAL);
-			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-			return (VOS_ENOMEM);
+			SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+			return (ENOMEM);
 		}
 	} else {
 		/* Gather the length of the send */
@@ -6878,8 +6878,8 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 	if (ret) {
 		inp->sctp_flags &= ~SCTP_PCB_FLAGS_SND_ITERATOR_UP;
 		SCTP_FREE(ca, SCTP_M_COPYAL);
-		SCTP_LTRACE_ERR_RET_PKT(m, inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EFAULT);
-		return (VOS_EFAULT);
+		SCTP_LTRACE_ERR_RET_PKT(m, inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, EFAULT);
+		return (EFAULT);
 	}
 	return (0);
 }
@@ -8112,8 +8112,8 @@ again_one_more_time:
 				    chk->send_size, chk->copy_by_ref);
 				if (outchain == NULL) {
 					*reason_code = 8;
-					SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-					return (VOS_ENOMEM);
+					SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+					return (ENOMEM);
 				}
 				SCTP_STAT_INCR_COUNTER64(sctps_outcontrolchunks);
 				/* update our MTU size */
@@ -8182,12 +8182,12 @@ again_one_more_time:
 						if (from_where == 0) {
 							SCTP_STAT_INCR(sctps_lowlevelerrusr);
 						}
-						if (error == VOS_ENOBUFS) {
+						if (error == ENOBUFS) {
 							asoc->ifp_had_enobuf = 1;
 							SCTP_STAT_INCR(sctps_lowlevelerr);
 						}
 						/* error, could not output */
-						if (error == VOS_EHOSTUNREACH) {
+						if (error == EHOSTUNREACH) {
 							/*
 							 * Destination went
 							 * unreachable
@@ -8337,8 +8337,8 @@ again_one_more_time:
 				    chk->send_size, chk->copy_by_ref);
 				if (outchain == NULL) {
 					*reason_code = 8;
-					SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-					return (VOS_ENOMEM);
+					SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+					return (ENOMEM);
 				}
 				SCTP_STAT_INCR_COUNTER64(sctps_outcontrolchunks);
 				/* update our MTU size */
@@ -8460,11 +8460,11 @@ again_one_more_time:
 						if (from_where == 0) {
 							SCTP_STAT_INCR(sctps_lowlevelerrusr);
 						}
-						if (error == VOS_ENOBUFS) {
+						if (error == ENOBUFS) {
 							asoc->ifp_had_enobuf = 1;
 							SCTP_STAT_INCR(sctps_lowlevelerr);
 						}
-						if (error == VOS_EHOSTUNREACH) {
+						if (error == EHOSTUNREACH) {
 							/*
 							 * Destination went
 							 * unreachable
@@ -8675,8 +8675,8 @@ again_one_more_time:
 							sctp_timer_start(SCTP_TIMER_TYPE_SEND, inp, stcb, net);
 						}
 						*reason_code = 3;
-						SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-						return (VOS_ENOMEM);
+						SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+						return (ENOMEM);
 					}
 					/* upate our MTU size */
 					/* Do clear IP_DF ? */
@@ -8798,11 +8798,11 @@ no_data_fill:
 				if (from_where == 0) {
 					SCTP_STAT_INCR(sctps_lowlevelerrusr);
 				}
-				if (error == VOS_ENOBUFS) {
+				if (error == ENOBUFS) {
 					asoc->ifp_had_enobuf = 1;
 					SCTP_STAT_INCR(sctps_lowlevelerr);
 				}
-				if (error == VOS_EHOSTUNREACH) {
+				if (error == EHOSTUNREACH) {
 					/*
 					 * Destination went unreachable
 					 * during this send
@@ -9491,7 +9491,7 @@ sctp_chunk_retransmission(struct sctp_inpcb *inp,
 		    0, 0,
 		    so_locked))) {
 			SCTPDBG(SCTP_DEBUG_OUTPUT3, "Gak send error %d\n", error);
-			if (error == VOS_ENOBUFS) {
+			if (error == ENOBUFS) {
 				asoc->ifp_had_enobuf = 1;
 				SCTP_STAT_INCR(sctps_lowlevelerr);
 			}
@@ -9662,8 +9662,8 @@ one_chunk_around:
 			}
 			m = sctp_copy_mbufchain(chk->data, m, &endofchain, 0, chk->send_size, chk->copy_by_ref);
 			if (m == NULL) {
-				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-				return (VOS_ENOMEM);
+				SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+				return (ENOMEM);
 			}
 			/* Do clear IP_DF ? */
 			if (chk->flags & CHUNK_FLAGS_FRAGMENT_OK) {
@@ -9722,8 +9722,8 @@ one_chunk_around:
 					}
 					m = sctp_copy_mbufchain(fwd->data, m, &endofchain, 0, fwd->send_size, fwd->copy_by_ref);
 					if (m == NULL) {
-						SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-						return (VOS_ENOMEM);
+						SCTP_LTRACE_ERR_RET(inp, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+						return (ENOMEM);
 					}
 					/* Do clear IP_DF ? */
 					if (fwd->flags & CHUNK_FLAGS_FRAGMENT_OK) {
@@ -9769,7 +9769,7 @@ one_chunk_around:
 			    so_locked))) {
 				/* error, we could not output */
 				SCTPDBG(SCTP_DEBUG_OUTPUT3, "Gak send error %d\n", error);
-				if (error == VOS_ENOBUFS) {
+				if (error == ENOBUFS) {
 					asoc->ifp_had_enobuf = 1;
 					SCTP_STAT_INCR(sctps_lowlevelerr);
 				}
@@ -10215,13 +10215,13 @@ sctp_output(
     int flags)
 {
 	if (inp == NULL) {
-		SCTP_LTRACE_ERR_RET_PKT(m, inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET_PKT(m, inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		return (EINVAL);
 	}
 
 	if (inp->sctp_socket == NULL) {
-		SCTP_LTRACE_ERR_RET_PKT(m, inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET_PKT(m, inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		return (EINVAL);
 	}
 	return (sctp_sosend(inp->sctp_socket,
 	    addr,
@@ -10929,7 +10929,7 @@ sctp_send_abort_tcb(struct sctp_tcb *stcb, struct mbuf *operr, int so_locked)
 	    0, 0,
 	    so_locked))) {
 		SCTPDBG(SCTP_DEBUG_OUTPUT3, "Gak send error %d\n", error);
-		if (error == VOS_ENOBUFS) {
+		if (error == ENOBUFS) {
 			stcb->asoc.ifp_had_enobuf = 1;
 			SCTP_STAT_INCR(sctps_lowlevelerr);
 		}
@@ -10977,7 +10977,7 @@ sctp_send_shutdown_complete(struct sctp_tcb *stcb,
 	    0, 0,
 	    SCTP_SO_NOT_LOCKED))) {
 		SCTPDBG(SCTP_DEBUG_OUTPUT3, "Gak send error %d\n", error);
-		if (error == VOS_ENOBUFS) {
+		if (error == ENOBUFS) {
 			stcb->asoc.ifp_had_enobuf = 1;
 			SCTP_STAT_INCR(sctps_lowlevelerr);
 		}
@@ -11189,7 +11189,7 @@ sctp_send_resp_msg(struct sockaddr *src, struct sockaddr *dst,
 			}
 		} else {
 			mout->m_pkthdr.csum_flags = CSUM_SCTP;
-			mout->m_pkthdr.csum_data = vos_offsetof(struct sctphdr, checksum);
+			mout->m_pkthdr.csum_data = offsetof(struct sctphdr, checksum);
 			SCTP_STAT_INCR(sctps_sendhwcrc);
 		}
 #ifdef SCTP_PACKET_LOGGING
@@ -11212,7 +11212,7 @@ sctp_send_resp_msg(struct sockaddr *src, struct sockaddr *dst,
 			}
 		} else {
 			mout->m_pkthdr.csum_flags = CSUM_SCTP_IPV6;
-			mout->m_pkthdr.csum_data = vos_offsetof(struct sctphdr, checksum);
+			mout->m_pkthdr.csum_data = offsetof(struct sctphdr, checksum);
 			SCTP_STAT_INCR(sctps_sendhwcrc);
 		}
 #ifdef SCTP_PACKET_LOGGING
@@ -11228,7 +11228,7 @@ sctp_send_resp_msg(struct sockaddr *src, struct sockaddr *dst,
 		SCTPDBG(SCTP_DEBUG_OUTPUT1, "Unknown protocol (TSNH) type %d\n",
 		    dst->sa_family);
 		sctp_m_freem(mout);
-		SCTP_LTRACE_ERR_RET_PKT(mout, NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EFAULT);
+		SCTP_LTRACE_ERR_RET_PKT(mout, NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, EFAULT);
 		return;
 	}
 	SCTPDBG(SCTP_DEBUG_OUTPUT3, "return from send is %d\n", ret);
@@ -11829,7 +11829,7 @@ sctp_send_deferred_reset_response(struct sctp_tcb *stcb,
 	}
 	sctp_alloc_a_chunk(stcb, chk);
 	if (chk == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
 		return;
 	}
 	chk->copy_by_ref = 0;
@@ -11843,7 +11843,7 @@ sctp_send_deferred_reset_response(struct sctp_tcb *stcb,
 	chk->data = sctp_get_mbuf_for_msg(MCLBYTES, 0, M_NOWAIT, 1, MT_DATA);
 	if (chk->data == NULL) {
 		sctp_free_a_chunk(stcb, chk, SCTP_SO_LOCKED);
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
 		return;
 	}
 	SCTP_BUF_RESV_UF(chk->data, SCTP_MIN_OVERHEAD);
@@ -11977,12 +11977,12 @@ sctp_send_stream_reset_out_if_possible(struct sctp_tcb *stcb, int so_locked)
 	asoc = &stcb->asoc;
 	asoc->trigger_reset = 0;
 	if (asoc->stream_reset_outstanding) {
-		return (VOS_EALREADY);
+		return (EALREADY);
 	}
 	sctp_alloc_a_chunk(stcb, chk);
 	if (chk == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		return (VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		return (ENOMEM);
 	}
 	chk->copy_by_ref = 0;
 	chk->rec.chunk_id.id = SCTP_STREAM_RESET;
@@ -11995,8 +11995,8 @@ sctp_send_stream_reset_out_if_possible(struct sctp_tcb *stcb, int so_locked)
 	chk->data = sctp_get_mbuf_for_msg(MCLBYTES, 0, M_NOWAIT, 1, MT_DATA);
 	if (chk->data == NULL) {
 		sctp_free_a_chunk(stcb, chk, so_locked);
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		return (VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		return (ENOMEM);
 	}
 	SCTP_BUF_RESV_UF(chk->data, SCTP_MIN_OVERHEAD);
 
@@ -12022,7 +12022,7 @@ sctp_send_stream_reset_out_if_possible(struct sctp_tcb *stcb, int so_locked)
 		m_freem(chk->data);
 		chk->data = NULL;
 		sctp_free_a_chunk(stcb, chk, so_locked);
-		return (VOS_ENOENT);
+		return (ENOENT);
 	}
 	asoc->str_reset = chk;
 	/* insert the chunk for sending */
@@ -12058,19 +12058,19 @@ sctp_send_str_reset_req(struct sctp_tcb *stcb,
 		/*-
 		 * Already one pending, must get ACK back to clear the flag.
 		 */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EBUSY);
-		return (VOS_EBUSY);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EBUSY);
+		return (EBUSY);
 	}
 	if ((send_in_req == 0) && (send_tsn_req == 0) &&
 	    (add_stream == 0)) {
 		/* nothing to do */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		return (EINVAL);
 	}
 	if (send_tsn_req && send_in_req) {
 		/* error, can't do that */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		return (EINVAL);
 	} else if (send_in_req) {
 		can_send_out_req = 1;
 	}
@@ -12079,13 +12079,13 @@ sctp_send_str_reset_req(struct sctp_tcb *stcb,
 	    sizeof(struct sctp_chunkhdr) -
 	    sizeof(struct sctp_stream_reset_out_request)) /
 	    sizeof(uint16_t)) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		return (VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		return (ENOMEM);
 	}
 	sctp_alloc_a_chunk(stcb, chk);
 	if (chk == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		return (VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		return (ENOMEM);
 	}
 	chk->copy_by_ref = 0;
 	chk->rec.chunk_id.id = SCTP_STREAM_RESET;
@@ -12098,8 +12098,8 @@ sctp_send_str_reset_req(struct sctp_tcb *stcb,
 	chk->data = sctp_get_mbuf_for_msg(MCLBYTES, 0, M_NOWAIT, 1, MT_DATA);
 	if (chk->data == NULL) {
 		sctp_free_a_chunk(stcb, chk, SCTP_SO_LOCKED);
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		return (VOS_ENOMEM);
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		return (ENOMEM);
 	}
 	SCTP_BUF_RESV_UF(chk->data, SCTP_MIN_OVERHEAD);
 
@@ -12290,8 +12290,8 @@ sctp_copy_resume(struct uio *uio,
 	m = m_uiotombuf(uio, M_WAITOK, max_send_len, 0,
 	    (M_PKTHDR | (user_marks_eor ? M_EOR : 0)));
 	if (m == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOBUFS);
-		*error = VOS_ENOBUFS;
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, ENOBUFS);
+		*error = ENOBUFS;
 	} else {
 		*sndout = m_length(m, NULL);
 		*new_tail = m_last(m);
@@ -12307,8 +12307,8 @@ sctp_copy_one(struct sctp_stream_queue_pending *sp,
 	sp->data = m_uiotombuf(uio, M_WAITOK, sp->length,
 	    resv_upfront, 0);
 	if (sp->data == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOBUFS);
-		return (VOS_ENOBUFS);
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, ENOBUFS);
+		return (ENOBUFS);
 	}
 
 	sp->tail_mbuf = m_last(sp->data);
@@ -12343,14 +12343,14 @@ sctp_copy_it_in(struct sctp_tcb *stcb,
 	    (SCTP_GET_STATE(stcb) == SCTP_STATE_SHUTDOWN_RECEIVED) ||
 	    (asoc->state & SCTP_STATE_SHUTDOWN_PENDING)) {
 		/* got data while shutting down */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ECONNRESET);
-		*error = VOS_ECONNRESET;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ECONNRESET);
+		*error = ECONNRESET;
 		goto out_now;
 	}
 	sctp_alloc_a_strmoq(stcb, sp);
 	if (sp == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-		*error = VOS_ENOMEM;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+		*error = ENOMEM;
 		goto out_now;
 	}
 	sp->act_flags = 0;
@@ -12500,23 +12500,23 @@ sctp_lower_sosend(struct socket *so,
 
 	t_inp = inp = (struct sctp_inpcb *)so->so_pcb;
 	if (inp == NULL) {
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		error = EINVAL;
 		if (i_pak) {
 			SCTP_RELEASE_PKT(i_pak);
 		}
 		return (error);
 	}
 	if ((uio == NULL) && (i_pak == NULL)) {
-		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		return (VOS_EINVAL);
+		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		return (EINVAL);
 	}
 	user_marks_eor = sctp_is_feature_on(inp, SCTP_PCB_FLAGS_EXPLICIT_EOR);
 	atomic_add_int(&inp->total_sends, 1);
 	if (uio) {
 		if (uio->uio_resid < 0) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			return (VOS_EINVAL);
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			return (EINVAL);
 		}
 		sndlen = uio->uio_resid;
 	} else {
@@ -12529,8 +12529,8 @@ sctp_lower_sosend(struct socket *so,
 	if ((inp->sctp_flags & SCTP_PCB_FLAGS_TCPTYPE) &&
 	    SCTP_IS_LISTENING(inp)) {
 		/* The listener can NOT send */
-		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ENOTCONN);
-		error = VOS_ENOTCONN;
+		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, ENOTCONN);
+		error = ENOTCONN;
 		goto out_unlocked;
 	}
 	/**
@@ -12544,8 +12544,8 @@ sctp_lower_sosend(struct socket *so,
 #ifdef INET
 		case AF_INET:
 			if (raddr->sin.sin_len != sizeof(struct sockaddr_in)) {
-				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-				error = VOS_EINVAL;
+				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+				error = EINVAL;
 				goto out_unlocked;
 			}
 			port = raddr->sin.sin_port;
@@ -12554,16 +12554,16 @@ sctp_lower_sosend(struct socket *so,
 #ifdef INET6
 		case AF_INET6:
 			if (raddr->sin6.sin6_len != sizeof(struct sockaddr_in6)) {
-				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-				error = VOS_EINVAL;
+				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+				error = EINVAL;
 				goto out_unlocked;
 			}
 			port = raddr->sin6.sin6_port;
 			break;
 #endif
 		default:
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EAFNOSUPPORT);
-			error = VOS_EAFNOSUPPORT;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EAFNOSUPPORT);
+			error = EAFNOSUPPORT;
 			goto out_unlocked;
 		}
 	} else
@@ -12574,8 +12574,8 @@ sctp_lower_sosend(struct socket *so,
 		sinfo_assoc_id = srcv->sinfo_assoc_id;
 		if (INVALID_SINFO_FLAG(sinfo_flags) ||
 		    PR_SCTP_INVALID_POLICY(sinfo_flags)) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out_unlocked;
 		}
 		if (srcv->sinfo_flags)
@@ -12597,8 +12597,8 @@ sctp_lower_sosend(struct socket *so,
 		goto out_unlocked;
 	}
 	if ((sinfo_flags & SCTP_ADDR_OVER) && (addr == NULL)) {
-		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		error = EINVAL;
 		goto out_unlocked;
 	}
 	/* now we must find the assoc */
@@ -12641,14 +12641,14 @@ sctp_lower_sosend(struct socket *so,
 		if ((inp->sctp_flags & SCTP_PCB_FLAGS_SOCKET_GONE) ||
 		    (inp->sctp_flags & SCTP_PCB_FLAGS_SOCKET_ALLGONE)) {
 			/* Should I really unlock ? */
-			SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out_unlocked;
 		}
 		if (((inp->sctp_flags & SCTP_PCB_FLAGS_BOUND_V6) == 0) &&
 		    (addr->sa_family == AF_INET6)) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out_unlocked;
 		}
 		SCTP_INP_WLOCK(inp);
@@ -12672,15 +12672,15 @@ sctp_lower_sosend(struct socket *so,
 			goto out_unlocked;
 		}
 		if (t_inp != inp) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_ENOTCONN);
-			error = VOS_ENOTCONN;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, ENOTCONN);
+			error = ENOTCONN;
 			goto out_unlocked;
 		}
 	}
 	if (stcb == NULL) {
 		if (addr == NULL) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_ENOENT);
-			error = VOS_ENOENT;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, ENOENT);
+			error = ENOENT;
 			goto out_unlocked;
 		} else {
 			/* We must go ahead and start the INIT process */
@@ -12692,8 +12692,8 @@ sctp_lower_sosend(struct socket *so,
 				 * User asks to abort a non-existant assoc,
 				 * or EOF a non-existant assoc with no data
 				 */
-				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_ENOENT);
-				error = VOS_ENOENT;
+				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, ENOENT);
+				error = ENOENT;
 				goto out_unlocked;
 			}
 			/* get an asoc/stcb struct */
@@ -12773,8 +12773,8 @@ sctp_lower_sosend(struct socket *so,
 			net = NULL;
 		if ((net == NULL) ||
 		    ((port != 0) && (port != stcb->rport))) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out_unlocked;
 		}
 	} else {
@@ -12791,8 +12791,8 @@ sctp_lower_sosend(struct socket *so,
 
 	if (sctp_is_feature_on(inp, SCTP_PCB_FLAGS_NO_FRAGMENT)) {
 		if (sndlen > (ssize_t)asoc->smallest_mtu) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EMSGSIZE);
-			error = VOS_EMSGSIZE;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EMSGSIZE);
+			error = EMSGSIZE;
 			goto out_unlocked;
 		}
 	}
@@ -12817,11 +12817,11 @@ sctp_lower_sosend(struct socket *so,
 		}
 		if ((SCTP_SB_LIMIT_SND(so) < (amount + inqueue_bytes + stcb->asoc.sb_send_resv)) ||
 		    (stcb->asoc.chunks_on_out_queue >= SCTP_BASE_SYSCTL(sctp_max_chunks_on_queue))) {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EWOULDBLOCK);
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EWOULDBLOCK);
 			if (sndlen > (ssize_t)SCTP_SB_LIMIT_SND(so))
-				error = VOS_EMSGSIZE;
+				error = EMSGSIZE;
 			else
-				error = VOS_EWOULDBLOCK;
+				error = EWOULDBLOCK;
 			goto out_unlocked;
 		}
 		stcb->asoc.sb_send_resv += (uint32_t)sndlen;
@@ -12832,8 +12832,8 @@ sctp_lower_sosend(struct socket *so,
 	}
 	local_soresv = sndlen;
 	if (stcb->asoc.state & SCTP_STATE_ABOUT_TO_BE_FREED) {
-		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ECONNRESET);
-		error = VOS_ECONNRESET;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ECONNRESET);
+		error = ECONNRESET;
 		goto out_unlocked;
 	}
 	if (create_lock_applied) {
@@ -12843,8 +12843,8 @@ sctp_lower_sosend(struct socket *so,
 	/* Is the stream no. valid? */
 	if (srcv->sinfo_stream >= asoc->streamoutcnt) {
 		/* Invalid stream number */
-		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		error = EINVAL;
 		goto out_unlocked;
 	}
 	if ((asoc->strmout[srcv->sinfo_stream].state != SCTP_STREAM_OPEN) &&
@@ -12853,9 +12853,9 @@ sctp_lower_sosend(struct socket *so,
 		 * Can't queue any data while stream reset is underway.
 		 */
 		if (asoc->strmout[srcv->sinfo_stream].state > SCTP_STREAM_OPEN) {
-			error = VOS_EAGAIN;
+			error = EAGAIN;
 		} else {
-			error = VOS_EINVAL;
+			error = EINVAL;
 		}
 		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, error);
 		goto out_unlocked;
@@ -12876,8 +12876,8 @@ sctp_lower_sosend(struct socket *so,
 		if (sinfo_flags & SCTP_ABORT) {
 			;
 		} else {
-			SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ECONNRESET);
-			error = VOS_ECONNRESET;
+			SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ECONNRESET);
+			error = ECONNRESET;
 			goto out_unlocked;
 		}
 	}
@@ -12895,8 +12895,8 @@ sctp_lower_sosend(struct socket *so,
 		    (SCTP_GET_STATE(stcb) == SCTP_STATE_COOKIE_ECHOED)) {
 			/* It has to be up before we abort */
 			/* how big is the user initiated abort? */
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out;
 		}
 		if (hold_tcblock) {
@@ -12918,15 +12918,15 @@ sctp_lower_sosend(struct socket *so,
 			tot_demand = (tot_out + sizeof(struct sctp_paramhdr));
 			if (tot_demand > SCTP_DEFAULT_ADD_MORE) {
 				/* To big */
-				SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EMSGSIZE);
-				error = VOS_EMSGSIZE;
+				SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, EMSGSIZE);
+				error = EMSGSIZE;
 				goto out;
 			}
 			mm = sctp_get_mbuf_for_msg((unsigned int)tot_demand, 0, M_WAITOK, 1, MT_DATA);
 		}
 		if (mm == NULL) {
-			SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_ENOMEM);
-			error = VOS_ENOMEM;
+			SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
+			error = ENOMEM;
 			goto out;
 		}
 		max_out = asoc->smallest_mtu - sizeof(struct sctp_paramhdr);
@@ -12995,8 +12995,8 @@ sctp_lower_sosend(struct socket *so,
 	}
 	if (asoc->strmout == NULL) {
 		/* huh? software error */
-		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EFAULT);
-		error = VOS_EFAULT;
+		SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EFAULT);
+		error = EFAULT;
 		goto out_unlocked;
 	}
 
@@ -13004,8 +13004,8 @@ sctp_lower_sosend(struct socket *so,
 	if ((user_marks_eor == 0) &&
 	    (sndlen > (ssize_t)SCTP_SB_LIMIT_SND(stcb->sctp_socket))) {
 		/* It will NEVER fit */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EMSGSIZE);
-		error = VOS_EMSGSIZE;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, EMSGSIZE);
+		error = EMSGSIZE;
 		goto out_unlocked;
 	}
 	if ((uio == NULL) && user_marks_eor) {
@@ -13013,8 +13013,8 @@ sctp_lower_sosend(struct socket *so,
 		 * We do not support eeor mode for
 		 * sending with mbuf chains (like sendfile).
 		 */
-		SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-		error = VOS_EINVAL;
+		SCTP_LTRACE_ERR_RET(NULL, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+		error = EINVAL;
 		goto out_unlocked;
 	}
 
@@ -13096,8 +13096,8 @@ skip_preblock:
 			got_all_of_the_send = 1;
 			goto dataless_eof;
 		} else {
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out;
 		}
 	}
@@ -13110,8 +13110,8 @@ skip_preblock:
 		if ((asoc->stream_locked) &&
 		    (asoc->stream_locked_on != srcv->sinfo_stream)) {
 			SCTP_TCB_SEND_UNLOCK(stcb);
-			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-			error = VOS_EINVAL;
+			SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+			error = EINVAL;
 			goto out;
 		}
 		strm = &stcb->asoc.strmout[srcv->sinfo_stream];
@@ -13160,8 +13160,8 @@ skip_preblock:
 			}
 			if (sp->processing) {
 				SCTP_TCB_SEND_UNLOCK(stcb);
-				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, VOS_EINVAL);
-				error = VOS_EINVAL;
+				SCTP_LTRACE_ERR_RET(inp, stcb, net, SCTP_FROM_SCTP_OUTPUT, EINVAL);
+				error = EINVAL;
 				goto out;
 			} else {
 				sp->processing = 1;
@@ -13211,8 +13211,8 @@ skip_preblock:
 					 */
 					sctp_m_freem(mm);
 					if (stcb->asoc.state & SCTP_STATE_WAS_ABORTED) {
-						SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, VOS_ECONNRESET);
-						error = VOS_ECONNRESET;
+						SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTP_OUTPUT, ECONNRESET);
+						error = ECONNRESET;
 					}
 					SCTP_TCB_SEND_UNLOCK(stcb);
 					goto out;

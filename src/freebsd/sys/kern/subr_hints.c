@@ -72,8 +72,8 @@ static_hints_to_env(void *data __unused)
 			continue;
 		eqidx = eq - cp;
 
-		i = vos_strlen(cp);
-		line = vos_malloc(i + 1, M_TEMP, M_WAITOK);
+		i = strlen(cp);
+		line = malloc(i + 1, M_TEMP, M_WAITOK);
 		strcpy(line, cp);
 		line[eqidx] = line[i] = '\0';
 		/*
@@ -84,7 +84,7 @@ static_hints_to_env(void *data __unused)
 		 */
 		if (testenv(line) == 0)
 			kern_setenv(line, line + eqidx + 1);
-		vos_free(line, M_TEMP);
+		free(line, M_TEMP);
 		cp += i + 1;
 	}
 	hintenv_merged = true;
@@ -105,7 +105,7 @@ _res_checkenv(char *envp)
 
 	cp = envp;
 	while (cp) {
-		if (vos_strncmp(cp, "hint.", 5) == 0)
+		if (strncmp(cp, "hint.", 5) == 0)
 			return (true);
 		while (*cp != '\0')
 			cp++;
@@ -154,7 +154,7 @@ res_find(char **hintp_cookie, int *line, int *startln,
 			mtx_lock(&kenv_lock);
 			cp = kenvp[0];
 			for (i = 0; cp != NULL; cp = kenvp[++i]) {
-				if (!vos_strncmp(cp, "hint.", 5)) {
+				if (!strncmp(cp, "hint.", 5)) {
 					hintp = kenvp[0];
 					break;
 				}
@@ -172,7 +172,7 @@ res_find(char **hintp_cookie, int *line, int *startln,
 			 */
 fallback:
 			if (dyn_used || fbacklvl >= FBACK_STATIC)
-				return (VOS_ENOENT);
+				return (ENOENT);
 
 			switch (fbacklvl) {
 			case FBACK_MDENV:
@@ -203,12 +203,12 @@ fallback:
 
 				break;
 			default:
-				return (VOS_ENOENT);
+				return (ENOENT);
 			}
 		}
 
 		if (hintp == NULL)
-			return (VOS_ENOENT);
+			return (ENOENT);
 		*hintp_cookie = hintp;
 	} else {
 		hintp = *hintp_cookie;
@@ -230,13 +230,13 @@ fallback:
 	}
 
 	if (name)
-		namelen = vos_strlen(name);
+		namelen = strlen(name);
 	cp = hintp;
 	while (cp) {
 		(*line)++;
-		if (vos_strncmp(cp, "hint.", 5) != 0)
+		if (strncmp(cp, "hint.", 5) != 0)
 			goto nexthint;
-		if (name && vos_strncmp(cp + 5, name, namelen) != 0)
+		if (name && strncmp(cp + 5, name, namelen) != 0)
 			goto nexthint;
 		n = sscanf(cp + 5, "%32[^.].%d.%32[^=]=%127s", r_name, &r_unit,
 		    r_resname, r_value);
@@ -326,7 +326,7 @@ resource_find(int *line, int *startln,
 	if (i == 0)
 		return 0;
 	if (unit == NULL)
-		return VOS_ENOENT;
+		return ENOENT;
 	/* If we are still here, search for wildcard matches */
 	un = -1;
 	i = res_find(&hintp, line, startln, name, &un, resname, value,
@@ -334,7 +334,7 @@ resource_find(int *line, int *startln,
 	    ret_value);
 	if (i == 0)
 		return 0;
-	return VOS_ENOENT;
+	return ENOENT;
 }
 
 int
@@ -352,10 +352,10 @@ resource_int_value(const char *name, int unit, const char *resname, int *result)
 	if (error)
 		return error;
 	if (*str == '\0') 
-		return VOS_EFTYPE;
+		return EFTYPE;
 	val = strtoul(str, &op, 0);
 	if (*op != '\0') 
-		return VOS_EFTYPE;
+		return EFTYPE;
 	*result = val;
 	return 0;
 }
@@ -376,10 +376,10 @@ resource_long_value(const char *name, int unit, const char *resname,
 	if (error)
 		return error;
 	if (*str == '\0') 
-		return VOS_EFTYPE;
+		return EFTYPE;
 	val = strtoul(str, &op, 0);
 	if (*op != '\0') 
-		return VOS_EFTYPE;
+		return EFTYPE;
 	*result = val;
 	return 0;
 }
@@ -412,7 +412,7 @@ resource_string_copy(const char *s, int len)
 	const char *ret;
 
 	if (len == 0)
-		len = vos_strlen(s);
+		len = strlen(s);
 	if (len > 255)
 		return NULL;
 	if ((offset + len + 1) > 255)
@@ -511,10 +511,10 @@ resource_unset_value(const char *name, int unit, const char *resname)
 	if (error)
 		return (error);
 
-	retname -= vos_strlen("hint.");
+	retname -= strlen("hint.");
 	len = retvalue - retname - 1;
 	if (len > sizeof(varname) - 1)
-		return (VOS_ENAMETOOLONG);
+		return (ENAMETOOLONG);
 	memcpy(varname, retname, len);
 	varname[len] = '\0';
 	return (kern_unsetenv(varname));

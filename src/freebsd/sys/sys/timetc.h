@@ -88,7 +88,7 @@ extern int tc_min_ticktock_freq; /*
 
 u_int64_t tc_getfrequency(void);
 void	tc_init(struct timecounter* tc);
-void	tc_setclock(struct vos_timespec* ts);
+void	tc_setclock(struct timespec* ts);
 void	tc_ticktock(int cnt);
 void	cpu_tick_calibration(void);
 
