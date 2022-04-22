@@ -699,7 +699,7 @@ in_gifaddr_ioctl(u_long cmd, caddr_t data, struct ifnet *ifp, struct thread *td)
 	    ia->ia_broadaddr.sin_family == AF_INET)
 		ifra->ifra_broadaddr = ia->ia_broadaddr;
 	else
-		k_memset(&ifra->ifra_broadaddr, 0,
+		memset(&ifra->ifra_broadaddr, 0,
 		    sizeof(ifra->ifra_broadaddr));
 
 	NET_EPOCH_EXIT(et);

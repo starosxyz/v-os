@@ -3132,7 +3132,7 @@ igmp_v3_enqueue_filter_change(struct mbufq *mq, struct in_multi *inm)
 			 * group record, in case m_append() allocated
 			 * a new mbuf or cluster.
 			 */
-			k_memset(&ig, 0, sizeof(ig));
+			memset(&ig, 0, sizeof(ig));
 			ig.ig_group = inm->inm_addr;
 			if (!m_append(m, sizeof(ig), (void *)&ig)) {
 				if (m != m0)

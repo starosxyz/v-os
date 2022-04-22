@@ -3010,7 +3010,7 @@ vn_generic_copy_file_range(struct vnode* invp, off_t* inoffp,
 					/* Must write 0s to punch hole. */
 					xfer2 = MIN(va.va_size - *outoffp,
 						xfer);
-					k_memset(dat, 0, MIN(xfer2, blksize));
+					memset(dat, 0, MIN(xfer2, blksize));
 					error = vn_write_outvp(outvp, dat,
 						*outoffp, xfer2, blksize, false,
 						holeout > 0, outcred);

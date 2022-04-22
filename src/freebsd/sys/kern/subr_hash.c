@@ -46,6 +46,7 @@ __FBSDID("$FreeBSD$");
 static __inline int
 hash_mflags(int flags)
 {
+
 	return ((flags & HASH_NOWAIT) ? M_NOWAIT : M_WAITOK);
 }
 

@@ -378,7 +378,7 @@ rt_get_inet6_prefix_pmask(const struct rtentry *rt, struct in6_addr *paddr,
 		*paddr = dst->sin6_addr;
 	dst = (const struct sockaddr_in6 *)rt_mask_const(rt);
 	if (dst == NULL)
-		k_memset(pmask, 0xFF, sizeof(struct in6_addr));
+		memset(pmask, 0xFF, sizeof(struct in6_addr));
 	else
 		*pmask = dst->sin6_addr;
 }

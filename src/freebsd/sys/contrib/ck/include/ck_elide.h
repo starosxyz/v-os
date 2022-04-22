@@ -77,7 +77,7 @@ CK_CC_INLINE static void
 ck_elide_stat_init(ck_elide_stat_t *st)
 {
 
-	k_memset(st, 0, sizeof(*st));
+	memset(st, 0, sizeof(*st));
 	return;
 }
 

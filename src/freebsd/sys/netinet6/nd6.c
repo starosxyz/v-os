@@ -1561,7 +1561,7 @@ nd6_free_redirect(const struct llentry *ln)
 	struct epoch_tracker et;
 
 	lltable_fill_sa_entry(ln, (struct sockaddr *)&sin6);
-	k_memset(&info, 0, sizeof(info));
+	memset(&info, 0, sizeof(info));
 	info.rti_info[RTAX_DST] = (struct sockaddr *)&sin6;
 	info.rti_filter = nd6_isdynrte;
 

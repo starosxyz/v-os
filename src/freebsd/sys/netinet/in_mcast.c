@@ -335,7 +335,7 @@ inm_release_task(void *arg __unused, int pending __unused)
 static __inline void
 imf_init(struct in_mfilter *imf, const int st0, const int st1)
 {
-	k_memset(imf, 0, sizeof(struct in_mfilter));
+	memset(imf, 0, sizeof(struct in_mfilter));
 	RB_INIT(&imf->imf_sources);
 	imf->imf_st[0] = st0;
 	imf->imf_st[1] = st1;
@@ -534,7 +534,7 @@ in_getmulti(struct ifnet *ifp, const struct in_addr *group,
 	if (inm != NULL)
 		return (0);
 
-	k_memset(&gsin, 0, sizeof(gsin));
+	memset(&gsin, 0, sizeof(gsin));
 	gsin.sin_family = AF_INET;
 	gsin.sin_len = sizeof(struct sockaddr_in);
 	gsin.sin_addr = *group;
@@ -1421,7 +1421,7 @@ inp_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 	error = 0;
 	doblock = 0;
 
-	k_memset(&gsr, 0, sizeof(struct group_source_req));
+	memset(&gsr, 0, sizeof(struct group_source_req));
 	gsa = (sockunion_t *)&gsr.gsr_group;
 	ssa = (sockunion_t *)&gsr.gsr_source;
 
@@ -1814,7 +1814,7 @@ inp_getmoptions(struct inpcb *inp, struct sockopt *sopt)
 		break;
 
 	case IP_MULTICAST_IF:
-		k_memset(&mreqn, 0, sizeof(struct ip_mreqn));
+		memset(&mreqn, 0, sizeof(struct ip_mreqn));
 		if (imo != NULL) {
 			ifp = imo->imo_multicast_ifp;
 			if (!in_nullhost(imo->imo_multicast_addr)) {
@@ -1977,7 +1977,7 @@ inp_join_group(struct inpcb *inp, struct sockopt *sopt)
 	lims = NULL;
 	error = 0;
 
-	k_memset(&gsr, 0, sizeof(struct group_source_req));
+	memset(&gsr, 0, sizeof(struct group_source_req));
 	gsa = (sockunion_t *)&gsr.gsr_group;
 	gsa->ss.ss_family = AF_UNSPEC;
 	ssa = (sockunion_t *)&gsr.gsr_source;
@@ -2305,7 +2305,7 @@ inp_leave_group(struct inpcb *inp, struct sockopt *sopt)
 	error = 0;
 	is_final = true;
 
-	k_memset(&gsr, 0, sizeof(struct group_source_req));
+	memset(&gsr, 0, sizeof(struct group_source_req));
 	gsa = (sockunion_t *)&gsr.gsr_group;
 	gsa->ss.ss_family = AF_UNSPEC;
 	ssa = (sockunion_t *)&gsr.gsr_source;

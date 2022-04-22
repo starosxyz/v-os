@@ -194,7 +194,7 @@ sctp_process_asconf_add_ip(struct sockaddr *src, struct sctp_asconf_paramhdr *ap
 		}
 		v4addr = (struct sctp_ipv4addr_param *)ph;
 		sin = &store.sin;
-		k_memset(sin, 0, sizeof(*sin));
+		memset(sin, 0, sizeof(*sin));
 		sin->sin_family = AF_INET;
 		sin->sin_len = sizeof(struct sockaddr_in);
 		sin->sin_port = stcb->rport;
@@ -217,7 +217,7 @@ sctp_process_asconf_add_ip(struct sockaddr *src, struct sctp_asconf_paramhdr *ap
 		}
 		v6addr = (struct sctp_ipv6addr_param *)ph;
 		sin6 = &store.sin6;
-		k_memset(sin6, 0, sizeof(*sin6));
+		memset(sin6, 0, sizeof(*sin6));
 		sin6->sin6_family = AF_INET6;
 		sin6->sin6_len = sizeof(struct sockaddr_in6);
 		sin6->sin6_port = stcb->rport;
@@ -354,7 +354,7 @@ sctp_process_asconf_delete_ip(struct sockaddr *src,
 		}
 		v4addr = (struct sctp_ipv4addr_param *)ph;
 		sin = &store.sin;
-		k_memset(sin, 0, sizeof(*sin));
+		memset(sin, 0, sizeof(*sin));
 		sin->sin_family = AF_INET;
 		sin->sin_len = sizeof(struct sockaddr_in);
 		sin->sin_port = stcb->rport;
@@ -374,7 +374,7 @@ sctp_process_asconf_delete_ip(struct sockaddr *src,
 		}
 		v6addr = (struct sctp_ipv6addr_param *)ph;
 		sin6 = &store.sin6;
-		k_memset(sin6, 0, sizeof(*sin6));
+		memset(sin6, 0, sizeof(*sin6));
 		sin6->sin6_family = AF_INET6;
 		sin6->sin6_len = sizeof(struct sockaddr_in6);
 		sin6->sin6_port = stcb->rport;
@@ -491,7 +491,7 @@ sctp_process_asconf_set_primary(struct sockaddr *src,
 		}
 		v4addr = (struct sctp_ipv4addr_param *)ph;
 		sin = &store.sin;
-		k_memset(sin, 0, sizeof(*sin));
+		memset(sin, 0, sizeof(*sin));
 		sin->sin_family = AF_INET;
 		sin->sin_len = sizeof(struct sockaddr_in);
 		sin->sin_addr.s_addr = v4addr->addr;
@@ -509,7 +509,7 @@ sctp_process_asconf_set_primary(struct sockaddr *src,
 		}
 		v6addr = (struct sctp_ipv6addr_param *)ph;
 		sin6 = &store.sin6;
-		k_memset(sin6, 0, sizeof(*sin6));
+		memset(sin6, 0, sizeof(*sin6));
 		sin6->sin6_family = AF_INET6;
 		sin6->sin6_len = sizeof(struct sockaddr_in6);
 		memcpy((caddr_t)&sin6->sin6_addr, v6addr->addr,
@@ -2595,7 +2595,7 @@ sctp_compose_asconf(struct sctp_tcb *stcb, int *retlen, int addr_locked)
 	SCTP_BUF_LEN(m_asconf_chk) = sizeof(struct sctp_asconf_chunk);
 	SCTP_BUF_LEN(m_asconf) = 0;
 	acp = mtod(m_asconf_chk, struct sctp_asconf_chunk *);
-	k_memset(acp, 0, sizeof(struct sctp_asconf_chunk));
+	memset(acp, 0, sizeof(struct sctp_asconf_chunk));
 	/* save pointers to lookup address and asconf params */
 	lookup_ptr = (caddr_t)(acp + 1);	/* after the header */
 	ptr = mtod(m_asconf, caddr_t);	/* beginning of cluster */
@@ -2795,7 +2795,7 @@ sctp_process_initack_addresses(struct sctp_tcb *stcb, struct mbuf *m,
 				    a6p == NULL) {
 					return;
 				}
-				k_memset(&store, 0, sizeof(union sctp_sockstore));
+				memset(&store, 0, sizeof(union sctp_sockstore));
 				store.sin6.sin6_family = AF_INET6;
 				store.sin6.sin6_len = sizeof(struct sockaddr_in6);
 				store.sin6.sin6_port = stcb->rport;
@@ -2816,7 +2816,7 @@ sctp_process_initack_addresses(struct sctp_tcb *stcb, struct mbuf *m,
 				    a4p == NULL) {
 					return;
 				}
-				k_memset(&store, 0, sizeof(union sctp_sockstore));
+				memset(&store, 0, sizeof(union sctp_sockstore));
 				store.sin.sin_family = AF_INET;
 				store.sin.sin_len = sizeof(struct sockaddr_in);
 				store.sin.sin_port = stcb->rport;
@@ -3298,7 +3298,7 @@ out:
 		}
 		return;
 	}
-	k_memset(aa_vtag, 0, sizeof(struct sctp_asconf_addr));
+	memset(aa_vtag, 0, sizeof(struct sctp_asconf_addr));
 	aa_vtag->special_del = 0;
 	/* Fill in ASCONF address parameter fields. */
 	/* Top level elements are "networked" during send. */
@@ -3310,8 +3310,8 @@ out:
 	vtag->local_vtag = htonl(stcb->asoc.my_vtag);
 	vtag->remote_vtag = htonl(stcb->asoc.peer_vtag);
 
-	k_memset(aa_add, 0, sizeof(struct sctp_asconf_addr));
-	k_memset(aa_del, 0, sizeof(struct sctp_asconf_addr));
+	memset(aa_add, 0, sizeof(struct sctp_asconf_addr));
+	memset(aa_del, 0, sizeof(struct sctp_asconf_addr));
 	switch (net->ro._l_addr.sa.sa_family) {
 #ifdef INET
 	case AF_INET:

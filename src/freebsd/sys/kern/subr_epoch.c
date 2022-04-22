@@ -418,7 +418,7 @@ epoch_free(epoch_t epoch)
 	uma_zfree_pcpu(pcpu_zone_record, epoch->e_pcpu_record);
 	mtx_destroy(&epoch->e_drain_mtx);
 	sx_destroy(&epoch->e_drain_sx);
-	k_memset(epoch, 0, sizeof(*epoch));
+	memset(epoch, 0, sizeof(*epoch));
 
 	EPOCH_UNLOCK();
 }

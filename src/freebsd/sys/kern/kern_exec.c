@@ -1230,7 +1230,7 @@ exec_copyin_data_fds(struct thread *td, struct image_args *args,
 	int *kfds;
 	int error;
 
-	k_memset(args, '\0', sizeof(*args));
+	memset(args, '\0', sizeof(*args));
 	ofdp = td->td_proc->p_fd;
 	if (datalen >= ARG_MAX || fdslen >= ofdp->fd_nfiles)
 		return (E2BIG);

@@ -163,7 +163,7 @@ sctp_allocate_vrf(int vrf_id)
 		return (NULL);
 	}
 	/* setup the VRF */
-	k_memset(vrf, 0, sizeof(struct sctp_vrf));
+	memset(vrf, 0, sizeof(struct sctp_vrf));
 	vrf->vrf_id = vrf_id;
 	LIST_INIT(&vrf->ifnlist);
 	vrf->total_ifa_count = 0;
@@ -528,7 +528,7 @@ sctp_add_addr_to_vrf(uint32_t vrf_id, void *ifn, uint32_t ifn_index,
 		 */
 		sctp_ifnp = new_sctp_ifnp;
 		new_sctp_ifnp = NULL;
-		k_memset(sctp_ifnp, 0, sizeof(struct sctp_ifn));
+		memset(sctp_ifnp, 0, sizeof(struct sctp_ifn));
 		sctp_ifnp->ifn_index = ifn_index;
 		sctp_ifnp->ifn_p = ifn;
 		sctp_ifnp->ifn_type = ifn_type;
@@ -600,7 +600,7 @@ sctp_add_addr_to_vrf(uint32_t vrf_id, void *ifn, uint32_t ifn_index,
 		}
 	}
 	sctp_ifap = new_sctp_ifap;
-	k_memset(sctp_ifap, 0, sizeof(struct sctp_ifa));
+	memset(sctp_ifap, 0, sizeof(struct sctp_ifa));
 	sctp_ifap->ifn_p = sctp_ifnp;
 	atomic_add_int(&sctp_ifnp->refcount, 1);
 	sctp_ifap->vrf_id = vrf_id;
@@ -695,7 +695,7 @@ sctp_add_addr_to_vrf(uint32_t vrf_id, void *ifn, uint32_t ifn_index,
 			return (NULL);
 		}
 		SCTP_INCR_LADDR_COUNT();
-		k_memset(wi, 0, sizeof(*wi));
+		memset(wi, 0, sizeof(*wi));
 		(void)SCTP_GETTIME_TIMEVAL(&wi->start_time);
 		wi->ifa = sctp_ifap;
 		wi->action = SCTP_ADD_IP_ADDRESS;
@@ -803,7 +803,7 @@ out_now:
 			return;
 		}
 		SCTP_INCR_LADDR_COUNT();
-		k_memset(wi, 0, sizeof(*wi));
+		memset(wi, 0, sizeof(*wi));
 		(void)SCTP_GETTIME_TIMEVAL(&wi->start_time);
 		wi->ifa = sctp_ifap;
 		wi->action = SCTP_DEL_IP_ADDRESS;
@@ -2040,13 +2040,13 @@ sctp_findassociation_special_addr(struct mbuf *m, int offset,
 #endif
 
 #ifdef INET
-	k_memset(&sin4, 0, sizeof(sin4));
+	memset(&sin4, 0, sizeof(sin4));
 	sin4.sin_len = sizeof(sin4);
 	sin4.sin_family = AF_INET;
 	sin4.sin_port = sh->src_port;
 #endif
 #ifdef INET6
-	k_memset(&sin6, 0, sizeof(sin6));
+	memset(&sin6, 0, sizeof(sin6));
 	sin6.sin6_len = sizeof(sin6);
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_port = sh->src_port;
@@ -2291,7 +2291,7 @@ sctp_findassociation_ep_asconf(struct mbuf *m, int offset,
 	struct sockaddr_in6 *sin6;
 #endif
 
-	k_memset(&remote_store, 0, sizeof(remote_store));
+	memset(&remote_store, 0, sizeof(remote_store));
 	phdr = sctp_get_next_param(m, offset + sizeof(struct sctp_asconf_chunk),
 	    &param_buf, sizeof(struct sctp_paramhdr));
 	if (phdr == NULL) {
@@ -2408,7 +2408,7 @@ sctp_inpcb_alloc(struct socket *so, uint32_t vrf_id)
 		return (ENOBUFS);
 	}
 	/* zap it */
-	k_memset(inp, 0, sizeof(*inp));
+	memset(inp, 0, sizeof(*inp));
 
 	/* bump generations */
 	/* setup socket pointers */
@@ -2696,7 +2696,7 @@ sctp_move_pcb_and_assoc(struct sctp_inpcb *old_inp, struct sctp_inpcb *new_inp,
 				continue;
 			}
 			SCTP_INCR_LADDR_COUNT();
-			k_memset(laddr, 0, sizeof(*laddr));
+			memset(laddr, 0, sizeof(*laddr));
 			(void)SCTP_GETTIME_TIMEVAL(&laddr->start_time);
 			laddr->ifa = oladdr->ifa;
 			atomic_add_int(&laddr->ifa->refcount, 1);
@@ -2776,7 +2776,7 @@ sctp_insert_laddr(struct sctpladdr *list, struct sctp_ifa *ifa, uint32_t act)
 		return (EINVAL);
 	}
 	SCTP_INCR_LADDR_COUNT();
-	k_memset(laddr, 0, sizeof(*laddr));
+	memset(laddr, 0, sizeof(*laddr));
 	(void)SCTP_GETTIME_TIMEVAL(&laddr->start_time);
 	laddr->ifa = ifa;
 	laddr->action = act;
@@ -3132,7 +3132,7 @@ continue_anyway:
 		struct sctp_ifa *ifa;
 		union sctp_sockstore store;
 
-		k_memset(&store, 0, sizeof(store));
+		memset(&store, 0, sizeof(store));
 		switch (addr->sa_family) {
 #ifdef INET
 		case AF_INET:
@@ -3754,7 +3754,7 @@ sctp_add_remote_addr(struct sctp_tcb *stcb, struct sockaddr *newaddr,
 				return (-1);
 			}
 			/* zero out the zero area */
-			k_memset(&sin->sin_zero, 0, sizeof(sin->sin_zero));
+			memset(&sin->sin_zero, 0, sizeof(sin->sin_zero));
 
 			/* assure len is set */
 			sin->sin_len = sizeof(struct sockaddr_in);
@@ -3836,7 +3836,7 @@ sctp_add_remote_addr(struct sctp_tcb *stcb, struct sockaddr *newaddr,
 		return (-1);
 	}
 	SCTP_INCR_RADDR_COUNT();
-	k_memset(net, 0, sizeof(struct sctp_nets));
+	memset(net, 0, sizeof(struct sctp_nets));
 	(void)SCTP_GETTIME_TIMEVAL(&net->start_time);
 	memcpy(&net->ro._l_addr, newaddr, newaddr->sa_len);
 	switch (newaddr->sa_family) {
@@ -4303,7 +4303,7 @@ sctp_aloc_assoc(struct sctp_inpcb *inp, struct sockaddr *firstaddr,
 	}
 	SCTP_INCR_ASOC_COUNT();
 
-	k_memset(stcb, 0, sizeof(*stcb));
+	memset(stcb, 0, sizeof(*stcb));
 	asoc = &stcb->asoc;
 
 	SCTP_TCB_LOCK_INIT(stcb);
@@ -4424,8 +4424,8 @@ sctp_remove_net(struct sctp_tcb *stcb, struct sctp_nets *net)
 			}
 			asoc->deleted_primary = net;
 			atomic_add_int(&net->ref_count, 1);
-			k_memset(&net->lastsa, 0, sizeof(net->lastsa));
-			k_memset(&net->lastsv, 0, sizeof(net->lastsv));
+			memset(&net->lastsa, 0, sizeof(net->lastsa));
+			memset(&net->lastsv, 0, sizeof(net->lastsv));
 			sctp_mobility_feature_on(stcb->sctp_ep,
 			    SCTP_MOBILITY_PRIM_DELETED);
 			sctp_timer_start(SCTP_TIMER_TYPE_PRIM_DELETED,
@@ -4610,7 +4610,7 @@ sctp_add_vtag_to_timewait(uint32_t tag, uint32_t time, uint16_t lport, uint16_t 
 		if (twait_block == NULL) {
 			return;
 		}
-		k_memset(twait_block, 0, sizeof(struct sctp_tagblock));
+		memset(twait_block, 0, sizeof(struct sctp_tagblock));
 		LIST_INSERT_HEAD(chain, twait_block, sctp_nxt_tagblock);
 		twait_block->vtag_block[0].tv_sec_at_expire = now.tv_sec + time;
 		twait_block->vtag_block[0].v_tag = tag;
@@ -5654,7 +5654,7 @@ sctp_startup_mcore_threads(void)
 		/* TSNH I hope */
 		return;
 	}
-	k_memset(sctp_mcore_workers, 0, ((mp_maxid + 1) *
+	memset(sctp_mcore_workers, 0, ((mp_maxid + 1) *
 	    sizeof(struct sctp_mcore_ctrl)));
 	/* Init the structures */
 	for (i = 0; i <= mp_maxid; i++) {
@@ -5702,7 +5702,7 @@ sctp_pcb_init(void)
 	SCTP_BASE_VAR(sctp_pcb_initialized) = 1;
 
 #if defined(SCTP_LOCAL_TRACE_BUF)
-	k_memset(&SCTP_BASE_SYSCTL(sctp_log), 0, sizeof(struct sctp_log));
+	memset(&SCTP_BASE_SYSCTL(sctp_log), 0, sizeof(struct sctp_log));
 #endif
 #if defined(SMP) && defined(SCTP_USE_PERCPU_STAT)
 	SCTP_MALLOC(SCTP_BASE_STATS, struct sctpstat *,
@@ -5711,11 +5711,11 @@ sctp_pcb_init(void)
 #endif
 	(void)SCTP_GETTIME_TIMEVAL(&tv);
 #if defined(SMP) && defined(SCTP_USE_PERCPU_STAT)
-	k_memset(SCTP_BASE_STATS, 0, sizeof(struct sctpstat) * (mp_maxid + 1));
+	memset(SCTP_BASE_STATS, 0, sizeof(struct sctpstat) * (mp_maxid + 1));
 	SCTP_BASE_STATS[PCPU_GET(cpuid)].sctps_discontinuitytime.tv_sec = (uint32_t)tv.tv_sec;
 	SCTP_BASE_STATS[PCPU_GET(cpuid)].sctps_discontinuitytime.tv_usec = (uint32_t)tv.tv_usec;
 #else
-	k_memset(&SCTP_BASE_STATS, 0, sizeof(struct sctpstat));
+	memset(&SCTP_BASE_STATS, 0, sizeof(struct sctpstat));
 	SCTP_BASE_STAT(sctps_discontinuitytime).tv_sec = (uint32_t)tv.tv_sec;
 	SCTP_BASE_STAT(sctps_discontinuitytime).tv_usec = (uint32_t)tv.tv_usec;
 #endif
@@ -6030,13 +6030,13 @@ sctp_load_addresses_from_init(struct sctp_tcb *stcb, struct mbuf *m,
 
 	/* First get the destination address setup too. */
 #ifdef INET
-	k_memset(&sin, 0, sizeof(sin));
+	memset(&sin, 0, sizeof(sin));
 	sin.sin_family = AF_INET;
 	sin.sin_len = sizeof(sin);
 	sin.sin_port = stcb->rport;
 #endif
 #ifdef INET6
-	k_memset(&sin6, 0, sizeof(sin6));
+	memset(&sin6, 0, sizeof(sin6));
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_len = sizeof(struct sockaddr_in6);
 	sin6.sin6_port = stcb->rport;
@@ -7046,7 +7046,7 @@ sctp_initiate_iterator(inp_func inpf,
 		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_PCB, ENOMEM);
 		return (-1);
 	}
-	k_memset(it, 0, sizeof(*it));
+	memset(it, 0, sizeof(*it));
 	it->function_assoc = af;
 	it->function_inp = inpf;
 	if (inpf)

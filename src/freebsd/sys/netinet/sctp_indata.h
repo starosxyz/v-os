@@ -51,7 +51,7 @@ sctp_build_readq_entry(struct sctp_tcb *stcb,
 #define sctp_build_readq_entry_mac(_ctl, in_it, context, net, tsn, ppid, sid, flags, dm, tfsn, mid) do { \
 	if (_ctl) { \
 		atomic_add_int(&((net)->ref_count), 1); \
-		k_memset(_ctl, 0, sizeof(struct sctp_queued_to_read)); \
+		memset(_ctl, 0, sizeof(struct sctp_queued_to_read)); \
 		(_ctl)->sinfo_stream = sid; \
 		TAILQ_INIT(&_ctl->reasm); \
 		(_ctl)->top_fsn = tfsn; \

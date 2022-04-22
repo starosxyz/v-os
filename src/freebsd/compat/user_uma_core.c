@@ -117,7 +117,7 @@ startup_alloc(uma_zone_t zone, vm_size_t bytes, int domain, uint8_t *pflag,
 	char *pmem = global_hooks.allocate(bytes);
 	if (pmem)
 	{
-		k_memset(pmem, 0, bytes);
+		memset(pmem, 0, bytes);
 	}
 	return pmem;
 }

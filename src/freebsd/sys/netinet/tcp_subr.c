@@ -508,7 +508,7 @@ sysctl_net_inet_default_tcp_functions(SYSCTL_HANDLER_ARGS)
 	struct tcp_function_set fs;
 	struct tcp_function_block *blk;
 
-	k_memset(&fs, 0, sizeof(fs));
+	memset(&fs, 0, sizeof(fs));
 	rw_rlock(&tcp_function_lock);
 	blk = find_tcp_fb_locked(tcp_func_set_ptr, NULL);
 	if (blk) {

@@ -238,14 +238,10 @@ void	bzero(void* _Nonnull buf, size_t len);
 void	explicit_bzero(void* _Nonnull, size_t);
 int	bcmp(const void* b1, const void* b2, size_t len);
 
-#define k_memset(x,y,z) vos_memset(x,y,z)
-void* vos_memset(void* _Nonnull buf, int c, size_t len);
-#define memcpy(x,y,z) vos_memcpy(x,y,z)
-void* vos_memcpy(void* _Nonnull to, const void* _Nonnull from, size_t len);
-#define memmove(x,y,z) vos_memmove(x,y,z)
-void* vos_memmove(void* _Nonnull dest, const void* _Nonnull src, size_t n);
-#define memcmp(x,y,z) vos_memcmp(x,y,z)
-int	vos_memcmp(const void* b1, const void* b2, size_t len);
+void* memset(void* _Nonnull buf, int c, size_t len);
+void* memcpy(void* _Nonnull to, const void* _Nonnull from, size_t len);
+void* memmove(void* _Nonnull dest, const void* _Nonnull src, size_t n);
+int	memcmp(const void* b1, const void* b2, size_t len);
 
 #if defined(KASAN)
 #define	SAN_PREFIX	kasan_
@@ -256,26 +252,26 @@ int	vos_memcmp(const void* b1, const void* b2, size_t len);
 #ifdef SAN_PREFIX
 #define	SAN_INTERCEPTOR(func)	__CONCAT(SAN_PREFIX, func)
 
-void* SAN_INTERCEPTOR(k_memset)(void*, int, size_t);
+void* SAN_INTERCEPTOR(memset)(void*, int, size_t);
 void* SAN_INTERCEPTOR(memcpy)(void*, const void*, size_t);
 void* SAN_INTERCEPTOR(memmove)(void*, const void*, size_t);
 int	SAN_INTERCEPTOR(memcmp)(const void*, const void*, size_t);
 #ifndef SAN_RUNTIME
 #define bcopy(from, to, len)	SAN_INTERCEPTOR(memmove)((to), (from), (len))
-#define bzero(buf, len)		SAN_INTERCEPTOR(k_memset)((buf), 0, (len))
+#define bzero(buf, len)		SAN_INTERCEPTOR(memset)((buf), 0, (len))
 #define bcmp(b1, b2, len)	SAN_INTERCEPTOR(memcmp)((b1), (b2), (len))
-#define k_memset(buf, c, len)	SAN_INTERCEPTOR(k_memset)((buf), (c), (len))
+#define memset(buf, c, len)	SAN_INTERCEPTOR(memset)((buf), (c), (len))
 #define memcpy(to, from, len)	SAN_INTERCEPTOR(memcpy)((to), (from), (len))
 #define memmove(dest, src, n)	SAN_INTERCEPTOR(memmove)((dest), (src), (n))
 #define memcmp(b1, b2, len)	SAN_INTERCEPTOR(memcmp)((b1), (b2), (len))
 #endif /* !SAN_RUNTIME */
 #else
 #ifdef _WIN32
-#define bcopy(from, to, len) vos_memmove((to), (from), (len))
-#define bzero(buf, len) vos_memset((buf), 0, (len))
-#define bcmp(b1, b2, len) vos_memcmp((b1), (b2), (len))
+#define bcopy(from, to, len) memmove((to), (from), (len))
+#define bzero(buf, len) memset((buf), 0, (len))
+#define bcmp(b1, b2, len) memcmp((b1), (b2), (len))
 #if 0
-#define k_memset(buf, c, len) __builtin_memset((buf), (c), (len))
+#define memset(buf, c, len) __builtin_memset((buf), (c), (len))
 #define memcpy(to, from, len) __builtin_memcpy((to), (from), (len))
 #define memmove(dest, src, n) __builtin_memmove((dest), (src), (n))
 #define memcmp(b1, b2, len) __builtin_memcmp((b1), (b2), (len))
@@ -284,7 +280,7 @@ int	SAN_INTERCEPTOR(memcmp)(const void*, const void*, size_t);
 #define bcopy(from, to, len) __builtin_memmove((to), (from), (len))
 #define bzero(buf, len) __builtin_memset((buf), 0, (len))
 #define bcmp(b1, b2, len) __builtin_memcmp((b1), (b2), (len))
-#define k_memset(buf, c, len) __builtin_memset((buf), (c), (len))
+#define memset(buf, c, len) __builtin_memset((buf), (c), (len))
 #define memcpy(to, from, len) __builtin_memcpy((to), (from), (len))
 #define memmove(dest, src, n) __builtin_memmove((dest), (src), (n))
 #define memcmp(b1, b2, len) __builtin_memcmp((b1), (b2), (len))

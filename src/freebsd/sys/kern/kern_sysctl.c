@@ -232,7 +232,7 @@ sysctl_load_tunable_by_oid_locked(struct sysctl_oid* oidp)
 			path[rem + len] = '.';
 	}
 
-	k_memset(&req, 0, sizeof(req));
+	memset(&req, 0, sizeof(req));
 
 	req.td = curthread;
 	req.oldfunc = sysctl_old_kernel;
@@ -391,7 +391,7 @@ sysctl_warn_reuse(const char* func, struct sysctl_oid* leaf)
 
 	sbuf_printf(&sb, "%s: can't re-use a leaf (", __func__);
 
-	k_memset(nodes, 0, sizeof(nodes));
+	memset(nodes, 0, sizeof(nodes));
 	rc = sysctl_search_oid(nodes, leaf);
 	if (rc > 0) {
 		for (i = 0; i < rc; i++)

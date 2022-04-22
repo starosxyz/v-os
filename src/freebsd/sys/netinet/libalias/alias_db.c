@@ -2657,7 +2657,7 @@ InitPunchFW(struct libalias *la)
 
 	la->fireWallField = malloc(la->fireWallNumNums);
 	if (la->fireWallField) {
-		k_memset(la->fireWallField, 0, la->fireWallNumNums);
+		memset(la->fireWallField, 0, la->fireWallNumNums);
 		if (la->fireWallFD < 0) {
 			la->fireWallFD = socket(AF_INET, SOCK_RAW, IPPROTO_RAW);
 		}
@@ -2697,7 +2697,7 @@ PunchFWHole(struct alias_link *lnk)
 	    lnk->link_type != LINK_TCP)
 		return;
 
-	k_memset(&rule, 0, sizeof rule);
+	memset(&rule, 0, sizeof rule);
 
 /** Build rule **/
 
@@ -2771,7 +2771,7 @@ ClearFWHole(struct alias_link *lnk)
 		if (fwhole < 0)
 			return;
 
-		k_memset(&rule, 0, sizeof rule);	/* useless for ipfw2 */
+		memset(&rule, 0, sizeof rule);	/* useless for ipfw2 */
 		while (!setsockopt(la->fireWallFD, IPPROTO_IP, IP_FW_DEL,
 		    &fwhole, sizeof fwhole));
 		fw_clrfield(la, la->fireWallField, fwhole);
@@ -2789,14 +2789,14 @@ ClearAllFWHoles(struct libalias *la)
 	if (la->fireWallFD < 0)
 		return;
 
-	k_memset(&rule, 0, sizeof rule);
+	memset(&rule, 0, sizeof rule);
 	for (i = la->fireWallBaseNum; i < la->fireWallBaseNum + la->fireWallNumNums; i++) {
 		int r = i;
 
 		while (!setsockopt(la->fireWallFD, IPPROTO_IP, IP_FW_DEL, &r, sizeof r));
 	}
 	/* XXX: third arg correct here ? /phk */
-	k_memset(la->fireWallField, 0, la->fireWallNumNums);
+	memset(la->fireWallField, 0, la->fireWallNumNums);
 }
 
 #endif /* !NO_FW_PUNCH */

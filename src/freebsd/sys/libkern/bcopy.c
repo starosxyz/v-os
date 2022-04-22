@@ -50,6 +50,10 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #endif
 
+#undef memcpy
+#undef memmove
+#undef bcopy
+
 /*
  * sizeof(word) MUST BE A POWER OF TWO
  * SO THAT wmask BELOW IS ALL ONES

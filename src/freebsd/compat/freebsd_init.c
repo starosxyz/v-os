@@ -61,6 +61,8 @@
 #include "user_sysinit_api.h"
 #include "user_sysinit.h"
 
+extern void tmaintest(void);
+
 char version[] = "13.0.0.1";
 char compiler_version[] = "13.0.0.1";
 int osreldate;
@@ -149,6 +151,9 @@ void platform_start()
         phys_avail[i] = 0;
         dump_avail[i] = 0;
     }
+
+    tmaintest();
+
     int totalsize = 0;
     char* pstart = NULL;
     printf("realmem=%d, memsize=%d, PHYS_AVAIL_COUNT=%d\n", real, memsize, PHYS_AVAIL_COUNT);
@@ -216,12 +221,10 @@ ff_freebsd_init()
 {
     int boot_pages;
     unsigned int num_hash_buckets;
-    char tmpbuf[32];
+    char tmpbuf[32] = {0};
     void *bootmem;
     int error;
 
-    k_memset(tmpbuf,0,sizeof(tmpbuf));
-    
     platform_start();
 
     printf("vos_freebsd_init start\n");
@@ -304,7 +307,7 @@ int vos_freebsd_init(void)
             UMA_ALIGN_PTR, 0);
         ret = uma_zalloc(test_zone, M_WAITOK | M_ZERO);
         printf("ret=%p, count=%d\n", ret, count);
-        k_memset(ret, 0, 1024);
+        memset(ret, 0, 1024);
         printf("uma_zcreate end\n");
         uma_zfree(test_zone, ret);
         uma_zdestroy(test_zone);
@@ -314,7 +317,7 @@ int vos_freebsd_init(void)
     uma_zone_t test_zone2 = uma_zcreate("test_zone2", 64, NULL, NULL, NULL, NULL,
         UMA_ALIGN_PTR, 0);
     ret = uma_zalloc(test_zone2, M_WAITOK | M_ZERO);
-    k_memset(ret, 0, 64);
+    memset(ret, 0, 64);
     uma_zfree(test_zone2, ret);
     ret = NULL;
 

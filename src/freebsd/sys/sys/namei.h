@@ -233,7 +233,7 @@ int	cache_fplookup(struct nameidata* ndp, enum cache_fpl_status* status,
 	 * Note the constant pattern may *hide* bugs.
 	 */
 #ifdef INVARIANTS
-#define NDINIT_PREFILL(arg)	k_memset(arg, 0xff, offsetof(struct nameidata,	\
+#define NDINIT_PREFILL(arg)	memset(arg, 0xff, offsetof(struct nameidata,	\
     ni_dvp_seqc))
 #define NDINIT_DBG(arg)		{ (arg)->ni_debugflags = NAMEI_DBG_INITED; }
 #define NDREINIT_DBG(arg)	{						\

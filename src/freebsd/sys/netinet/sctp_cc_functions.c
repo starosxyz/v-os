@@ -2111,7 +2111,7 @@ htcp_min_cwnd(struct sctp_tcb *stcb, struct sctp_nets *net)
 static void
 htcp_init(struct sctp_nets *net)
 {
-	k_memset(&net->cc_mod.htcp_ca, 0, sizeof(struct htcp));
+	memset(&net->cc_mod.htcp_ca, 0, sizeof(struct htcp));
 	net->cc_mod.htcp_ca.alpha = ALPHA_BASE;
 	net->cc_mod.htcp_ca.beta = BETA_MIN;
 	net->cc_mod.htcp_ca.bytes_acked = net->mtu;

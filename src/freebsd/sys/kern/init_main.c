@@ -749,7 +749,7 @@ start_init(void* dummy)
 		if (bootverbose)
 			printf("start_init: trying %s\n", path);
 
-		k_memset(&args, 0, sizeof(args));
+		memset(&args, 0, sizeof(args));
 		error = exec_alloc_args(&args);
 		if (error != 0)
 			panic("%s: Can't allocate space for init arguments %d",

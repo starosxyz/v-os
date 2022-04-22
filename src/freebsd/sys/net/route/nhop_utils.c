@@ -54,7 +54,7 @@ bitmask_init(struct bitmask_head *bh, void *idx, uint32_t num_items)
 	if (idx != NULL)
 		_bitmask_init_idx(idx, num_items);
 
-	k_memset(bh, 0, sizeof(struct bitmask_head));
+	memset(bh, 0, sizeof(struct bitmask_head));
 	bh->blocks = _ITEMS_TO_BLOCKS(num_items);
 	bh->idx = (u_long *)idx;
 }
@@ -105,7 +105,7 @@ _bitmask_init_idx(void *_idx, uint32_t items)
 	u_long *idx = (u_long *)_idx;
 
 	/* Mark all as free */
-	k_memset(idx, 0xFF, size);
+	memset(idx, 0xFF, size);
 	*idx &= ~(u_long)1; /* Always skip index 0 */
 }
 

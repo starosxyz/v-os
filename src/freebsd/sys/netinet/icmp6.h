@@ -557,9 +557,9 @@ do {								\
 	bzero(filterp, sizeof(struct icmp6_filter))
 #else /* _KERNEL */
 #define	ICMP6_FILTER_SETPASSALL(filterp) \
-	k_memset(filterp, 0xff, sizeof(struct icmp6_filter))
+	memset(filterp, 0xff, sizeof(struct icmp6_filter))
 #define	ICMP6_FILTER_SETBLOCKALL(filterp) \
-	k_memset(filterp, 0x00, sizeof(struct icmp6_filter))
+	memset(filterp, 0x00, sizeof(struct icmp6_filter))
 #endif /* _KERNEL */
 
 #define	ICMP6_FILTER_SETPASS(type, filterp) \

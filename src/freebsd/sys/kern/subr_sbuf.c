@@ -220,7 +220,7 @@ sbuf_new(struct sbuf *s, char *buf, int length, int flags)
 		 * DYNSTRUCT SBMALLOC sbufs are allocated with M_ZERO, but
 		 * user-provided sbuf objects must be initialized.
 		 */
-		k_memset(s, 0, sizeof(*s));
+		memset(s, 0, sizeof(*s));
 	}
 
 	s->s_flags |= flags;
@@ -878,7 +878,7 @@ sbuf_delete(struct sbuf *s)
 	if (SBUF_ISDYNAMIC(s))
 		SBFREE(s->s_buf);
 	isdyn = SBUF_ISDYNSTRUCT(s);
-	k_memset(s, 0, sizeof(*s));
+	memset(s, 0, sizeof(*s));
 	if (isdyn)
 		SBFREE(s);
 }

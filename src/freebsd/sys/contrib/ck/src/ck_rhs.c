@@ -376,9 +376,9 @@ ck_rhs_map_create(struct ck_rhs *hs, unsigned long long entries)
 		map->entries.no_entries.entries = (void *)(((uintptr_t)&map[1] +
 		    CK_MD_CACHELINE - 1) & ~(CK_MD_CACHELINE - 1));
 		map->entries.no_entries.descs = (void *)(((uintptr_t)map->entries.no_entries.entries + (sizeof(void *) * n_entries) + CK_MD_CACHELINE - 1) &~ (CK_MD_CACHELINE - 1));
-		k_memset(map->entries.no_entries.entries, 0,
+		memset(map->entries.no_entries.entries, 0,
 		    sizeof(void *) * n_entries);
-		k_memset(map->entries.no_entries.descs, 0,
+		memset(map->entries.no_entries.descs, 0,
 		    sizeof(struct ck_rhs_no_entry_desc) * n_entries);
 		map->offset_mask = (CK_MD_CACHELINE / sizeof(void *)) - 1;
 		map->probe_func = ck_rhs_map_probe_rm;
@@ -386,11 +386,11 @@ ck_rhs_map_create(struct ck_rhs *hs, unsigned long long entries)
 	} else {
 		map->entries.descs = (void *)(((uintptr_t)&map[1] +
 		    CK_MD_CACHELINE - 1) & ~(CK_MD_CACHELINE - 1));
-		k_memset(map->entries.descs, 0, sizeof(struct ck_rhs_entry_desc) * n_entries);
+		memset(map->entries.descs, 0, sizeof(struct ck_rhs_entry_desc) * n_entries);
 		map->offset_mask = (CK_MD_CACHELINE / sizeof(struct ck_rhs_entry_desc)) - 1;
 		map->probe_func = ck_rhs_map_probe;
 	}
-	k_memset(map->generation, 0, sizeof map->generation);
+	memset(map->generation, 0, sizeof map->generation);
 
 	/* Commit entries purge with respect to map publication. */
 	ck_pr_fence_store();

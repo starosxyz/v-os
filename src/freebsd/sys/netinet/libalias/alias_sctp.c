@@ -1331,12 +1331,10 @@ AddGlobalIPAddresses(struct sctp_nat_msg *sm, struct sctp_nat_assoc *assoc, int 
 	struct sctp_ipv4addr_param *ipv4_param;
 	struct sctp_paramhdr *param = NULL;
 	struct sctp_GlobalAddress *G_Addr;
-	struct in_addr g_addr;
+	struct in_addr g_addr = {0};
 	int bytes_left = 0;
 	int param_size;
 	int param_count, addr_param_count = 0;
-
-	k_memset(&g_addr,0,sizeof(g_addr));
 
 	switch (direction) {
 	case SN_TO_GLOBAL: /* does not contain global addresses */

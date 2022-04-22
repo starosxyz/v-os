@@ -136,7 +136,7 @@ inet_pton6(const char *src, u_char *dst)
 	int ch, seen_xdigits;
 	u_int val;
 
-	k_memset((tp = tmp), '\0', NS_IN6ADDRSZ);
+	memset((tp = tmp), '\0', NS_IN6ADDRSZ);
 	endp = tp + NS_IN6ADDRSZ;
 	colonp = NULL;
 	/* Leading :: requires some special handling. */

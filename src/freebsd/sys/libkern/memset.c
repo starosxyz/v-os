@@ -41,4 +41,3 @@ void *
 		*bb++ = c;
 	return (b);
 }
-

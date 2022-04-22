@@ -2127,7 +2127,7 @@ skip_count:
 					if ((chunk_len != NULL) &&
 					    (padding_len != NULL) &&
 					    (*padding_len > 0)) {
-						k_memset(mtod(m_at, caddr_t)+*chunk_len, 0, *padding_len);
+						memset(mtod(m_at, caddr_t)+*chunk_len, 0, *padding_len);
 						SCTP_BUF_LEN(m_at) += *padding_len;
 						*chunk_len += *padding_len;
 						*padding_len = 0;
@@ -2200,7 +2200,7 @@ skip_count:
 				if ((chunk_len != NULL) &&
 				    (padding_len != NULL) &&
 				    (*padding_len > 0)) {
-					k_memset(mtod(m_at, caddr_t)+*chunk_len, 0, *padding_len);
+					memset(mtod(m_at, caddr_t)+*chunk_len, 0, *padding_len);
 					SCTP_BUF_LEN(m_at) += *padding_len;
 					*chunk_len += *padding_len;
 					*padding_len = 0;
@@ -3510,7 +3510,7 @@ sctp_find_cmsg(int c_type, void *data, struct mbuf *control, size_t cpsize)
 					if (cpsize < sizeof(struct sctp_sndrcvinfo)) {
 						return (found);
 					}
-					k_memset(sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
+					memset(sndrcvinfo, 0, sizeof(struct sctp_sndrcvinfo));
 				}
 				switch (cmh.cmsg_type) {
 				case SCTP_SNDINFO:
@@ -3654,7 +3654,7 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 					*error = EINVAL;
 					return (1);
 				}
-				k_memset(&sin, 0, sizeof(struct sockaddr_in));
+				memset(&sin, 0, sizeof(struct sockaddr_in));
 				sin.sin_family = AF_INET;
 				sin.sin_len = sizeof(struct sockaddr_in);
 				sin.sin_port = stcb->rport;
@@ -3678,7 +3678,7 @@ sctp_process_cmsgs_for_init(struct sctp_tcb *stcb, struct mbuf *control, int *er
 					*error = EINVAL;
 					return (1);
 				}
-				k_memset(&sin6, 0, sizeof(struct sockaddr_in6));
+				memset(&sin6, 0, sizeof(struct sockaddr_in6));
 				sin6.sin6_family = AF_INET6;
 				sin6.sin6_len = sizeof(struct sockaddr_in6);
 				sin6.sin6_port = stcb->rport;
@@ -3767,7 +3767,7 @@ sctp_findassociation_cmsgs(struct sctp_inpcb **inp_p,
 					*error = EINVAL;
 					return (NULL);
 				}
-				k_memset(&sin, 0, sizeof(struct sockaddr_in));
+				memset(&sin, 0, sizeof(struct sockaddr_in));
 				sin.sin_family = AF_INET;
 				sin.sin_len = sizeof(struct sockaddr_in);
 				sin.sin_port = port;
@@ -3781,7 +3781,7 @@ sctp_findassociation_cmsgs(struct sctp_inpcb **inp_p,
 					*error = EINVAL;
 					return (NULL);
 				}
-				k_memset(&sin6, 0, sizeof(struct sockaddr_in6));
+				memset(&sin6, 0, sizeof(struct sockaddr_in6));
 				sin6.sin6_family = AF_INET6;
 				sin6.sin6_len = sizeof(struct sockaddr_in6);
 				sin6.sin6_port = port;
@@ -3892,7 +3892,7 @@ sctp_add_cookie(struct mbuf *init, int init_offset,
 	cookie_sz += SCTP_SIGNATURE_SIZE;
 	ph->param_length = htons(cookie_sz);
 	*signature = (uint8_t *)mtod(sig, caddr_t);
-	k_memset(*signature, 0, SCTP_SIGNATURE_SIZE);
+	memset(*signature, 0, SCTP_SIGNATURE_SIZE);
 	return (mret);
 }
 
@@ -4089,7 +4089,7 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			ip->ip_sum = 0;
 			if (net == NULL) {
 				ro = &iproute;
-				k_memset(&iproute, 0, sizeof(iproute));
+				memset(&iproute, 0, sizeof(iproute));
 				memcpy(&ro->ro_dst, to, to->sa_len);
 			} else {
 				ro = (sctp_route_t *)&net->ro;
@@ -4329,7 +4329,7 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 				return (EINVAL);
 			}
 			if (net == NULL) {
-				k_memset(&ip6route, 0, sizeof(ip6route));
+				memset(&ip6route, 0, sizeof(ip6route));
 				ro = (sctp_route_t *)&ip6route;
 				memcpy(&ro->ro_dst, sin6, sin6->sin6_len);
 			} else {
@@ -4371,7 +4371,7 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			 * we can try their selection but it may not be
 			 * bound.
 			 */
-			k_memset(&lsa6_tmp, 0, sizeof(lsa6_tmp));
+			memset(&lsa6_tmp, 0, sizeof(lsa6_tmp));
 			lsa6_tmp.sin6_family = AF_INET6;
 			lsa6_tmp.sin6_len = sizeof(lsa6_tmp);
 			lsa6 = &lsa6_tmp;
@@ -4455,7 +4455,7 @@ sctp_lowlevel_chunk_output(struct sctp_inpcb *inp,
 			 * XXX: sa6 may not have a valid sin6_scope_id in
 			 * the non-SCOPEDROUTING case.
 			 */
-			k_memset(&lsa6_storage, 0, sizeof(lsa6_storage));
+			memset(&lsa6_storage, 0, sizeof(lsa6_storage));
 			lsa6_storage.sin6_family = AF_INET6;
 			lsa6_storage.sin6_len = sizeof(lsa6_storage);
 			lsa6_storage.sin6_addr = lsa6->sin6_addr;
@@ -4764,7 +4764,7 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
 			struct sctp_auth_random *randp;
 
 			if (padding_len > 0) {
-				k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+				memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 				chunk_len += padding_len;
 				padding_len = 0;
 			}
@@ -4780,7 +4780,7 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
 			struct sctp_auth_hmac_algo *hmacs;
 
 			if (padding_len > 0) {
-				k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+				memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 				chunk_len += padding_len;
 				padding_len = 0;
 			}
@@ -4798,7 +4798,7 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
 			struct sctp_auth_chunk_list *chunks;
 
 			if (padding_len > 0) {
-				k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+				memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 				chunk_len += padding_len;
 				padding_len = 0;
 			}
@@ -4818,7 +4818,7 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
 		struct sctp_cookie_perserve_param *cookie_preserve;
 
 		if (padding_len > 0) {
-			k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+			memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 			chunk_len += padding_len;
 			padding_len = 0;
 		}
@@ -4835,7 +4835,7 @@ sctp_send_initiate(struct sctp_inpcb *inp, struct sctp_tcb *stcb, int so_locked)
 		uint8_t i;
 
 		if (padding_len > 0) {
-			k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+			memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 			chunk_len += padding_len;
 			padding_len = 0;
 		}
@@ -5260,12 +5260,12 @@ sctp_are_there_new_addresses(struct sctp_association *asoc,
 
 	*op_err = NULL;
 #ifdef INET
-	k_memset(&sin4, 0, sizeof(sin4));
+	memset(&sin4, 0, sizeof(sin4));
 	sin4.sin_family = AF_INET;
 	sin4.sin_len = sizeof(sin4);
 #endif
 #ifdef INET6
-	k_memset(&sin6, 0, sizeof(sin6));
+	memset(&sin6, 0, sizeof(sin6));
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_len = sizeof(sin6);
 #endif
@@ -5565,7 +5565,7 @@ do_a_abort:
 	 * zero out the cookie to avoid putting uninitialized memory on the
 	 * wire.
 	 */
-	k_memset(&stc, 0, sizeof(struct sctp_state_cookie));
+	memset(&stc, 0, sizeof(struct sctp_state_cookie));
 
 	/* the time I built cookie */
 	(void)SCTP_GETTIME_TIMEVAL(&now);
@@ -5796,7 +5796,7 @@ do_a_abort:
 	/* who are we */
 	memcpy(stc.identification, SCTP_VERSION_STRING,
 	    min(strlen(SCTP_VERSION_STRING), sizeof(stc.identification)));
-	k_memset(stc.reserved, 0, SCTP_RESERVE_SPACE);
+	memset(stc.reserved, 0, SCTP_RESERVE_SPACE);
 	/* now the chunk header */
 	initack->ch.chunk_type = SCTP_INITIATION_ACK;
 	initack->ch.chunk_flags = 0;
@@ -5969,7 +5969,7 @@ do_a_abort:
 		struct sctp_auth_chunk_list *chunks;
 
 		if (padding_len > 0) {
-			k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+			memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 			chunk_len += padding_len;
 			padding_len = 0;
 		}
@@ -5984,7 +5984,7 @@ do_a_abort:
 		chunk_len += parameter_len;
 
 		if (padding_len > 0) {
-			k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+			memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 			chunk_len += padding_len;
 			padding_len = 0;
 		}
@@ -5999,7 +5999,7 @@ do_a_abort:
 		chunk_len += parameter_len;
 
 		if (padding_len > 0) {
-			k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+			memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 			chunk_len += padding_len;
 			padding_len = 0;
 		}
@@ -6033,7 +6033,7 @@ do_a_abort:
 	    &padding_len, &chunk_len);
 	/* padding_len can only be positive, if no addresses have been added */
 	if (padding_len > 0) {
-		k_memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
+		memset(mtod(m, caddr_t)+chunk_len, 0, padding_len);
 		chunk_len += padding_len;
 		SCTP_BUF_LEN(m) += padding_len;
 		padding_len = 0;
@@ -6840,7 +6840,7 @@ sctp_sendall(struct sctp_inpcb *inp, struct uio *uio, struct mbuf *m,
 		SCTP_LTRACE_ERR_RET(inp, NULL, NULL, SCTP_FROM_SCTP_OUTPUT, ENOMEM);
 		return (ENOMEM);
 	}
-	k_memset(ca, 0, sizeof(struct sctp_copy_all));
+	memset(ca, 0, sizeof(struct sctp_copy_all));
 
 	ca->inp = inp;
 	if (srcv) {
@@ -7340,7 +7340,7 @@ re_look:
 		rcv_flags |= SCTP_DATA_SACK_IMMEDIATELY;
 	}
 	/* clear out the chunk before setting up */
-	k_memset(chk, 0, sizeof(*chk));
+	memset(chk, 0, sizeof(*chk));
 	chk->rec.data.rcv_flags = rcv_flags;
 
 	if (to_move >= length) {
@@ -11305,7 +11305,7 @@ sctp_send_hb(struct sctp_tcb *stcb, struct sctp_nets *net, int so_locked)
 	atomic_add_int(&chk->whoTo->ref_count, 1);
 	/* Now we have a mbuf that we can fill in with the details */
 	hb = mtod(chk->data, struct sctp_heartbeat_chunk *);
-	k_memset(hb, 0, sizeof(struct sctp_heartbeat_chunk));
+	memset(hb, 0, sizeof(struct sctp_heartbeat_chunk));
 	/* fill out chunk header */
 	hb->ch.chunk_type = SCTP_HEARTBEAT_REQUEST;
 	hb->ch.chunk_flags = 0;
@@ -13731,7 +13731,7 @@ sctp_add_auth_chunk(struct mbuf *m, struct mbuf **m_end,
 		SCTP_BUF_RESV_UF(m_auth, SCTP_MIN_OVERHEAD);
 	/* fill in the AUTH chunk details */
 	auth = mtod(m_auth, struct sctp_auth_chunk *);
-	k_memset(auth, 0, sizeof(*auth));
+	memset(auth, 0, sizeof(*auth));
 	auth->ch.chunk_type = SCTP_AUTHENTICATION;
 	auth->ch.chunk_flags = 0;
 	chunk_len = sizeof(*auth) +
@@ -13788,7 +13788,7 @@ sctp_v6src_match_nexthop(struct sockaddr_in6 *src6, sctp_route_t *ro)
 
 	/* search installed gateway from prefix entry */
 	LIST_FOREACH(pfxrtr, &pfx->ndpr_advrtrs, pfr_entry) {
-		k_memset(&gw6, 0, sizeof(struct sockaddr_in6));
+		memset(&gw6, 0, sizeof(struct sockaddr_in6));
 		gw6.sin6_family = AF_INET6;
 		gw6.sin6_len = sizeof(struct sockaddr_in6);
 		memcpy(&gw6.sin6_addr, &pfxrtr->router->rtaddr,

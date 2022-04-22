@@ -184,6 +184,13 @@ void InitAtomicHooks(so_atomic_hooks* hooks)
     global_atomic_hooks.sync_bool_compare_and_swap_ptr = hooks->sync_bool_compare_and_swap_ptr;
     global_atomic_hooks.sync_val_compare_and_swap_ptr = hooks->sync_val_compare_and_swap_ptr;
 
+
+    global_atomic_hooks.atomic_testandset_int = hooks->atomic_testandset_int;
+    global_atomic_hooks.atomic_testandset_long = hooks->atomic_testandset_long;
+    global_atomic_hooks.atomic_testandclear_int = hooks->atomic_testandclear_int;
+    global_atomic_hooks.atomic_testandclear_long = hooks->atomic_testandclear_long;
+
+    global_atomic_hooks.atomic_barrier = hooks->atomic_barrier;
 }
 
 void test()
@@ -220,7 +227,7 @@ char* context_malloc(size_t size)
     char * pmem = global_hooks.allocate(size);
     if (pmem)
     {
-        k_memset(pmem, 0, size);
+        memset(pmem, 0, size);
     }
     return pmem;
 }

@@ -539,7 +539,7 @@ knote_fork(struct knlist *list, int pid)
 	if (SLIST_EMPTY(&list->kl_list))
 		return;
 
-	k_memset(&kev, 0, sizeof(kev));
+	memset(&kev, 0, sizeof(kev));
 	SLIST_FOREACH(kn, &list->kl_list, kn_selnext) {
 		kq = kn->kn_kq;
 		KQ_LOCK(kq);

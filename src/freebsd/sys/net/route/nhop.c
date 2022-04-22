@@ -216,7 +216,7 @@ hash_priv(const struct nhop_priv *priv)
 
 	nh = priv->nh;
 	ifindex = nh->nh_ifp->if_index & 0xFFFF;
-	k_memset(&key, 0, sizeof(key));
+	memset(&key, 0, sizeof(key));
 
 	key.ifindex = ifindex;
 	key.family = nh->gw_sa.sa_family;

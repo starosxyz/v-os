@@ -153,7 +153,7 @@ gz_reset(void *stream)
 
 	/* Write the gzip header to the output buffer. */
 	hdr = s->gz_buffer;
-	k_memset(hdr, 0, hdrlen);
+	memset(hdr, 0, hdrlen);
 	hdr[0] = 0x1f;
 	hdr[1] = 0x8b;
 	hdr[2] = Z_DEFLATED;

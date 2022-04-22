@@ -481,7 +481,7 @@ udp_input(struct mbuf **mp, int *offp, int proto)
 	if (!V_udp_blackhole)
 		save_ip = *ip;
 	else
-		k_memset(&save_ip, 0, sizeof(save_ip));
+		memset(&save_ip, 0, sizeof(save_ip));
 
 	/*
 	 * Checksum extended UDP header and data.

@@ -1022,7 +1022,7 @@ ff_recvmsg(int s, struct msghdr *msg, int flags)
     struct linux_sockaddr linuxaddr;
     
     msg->msg_flags = flags;
-    k_memset(&bsdaddr,0,sizeof(bsdaddr));
+    memset(&bsdaddr,0,sizeof(bsdaddr));
     msg->msg_name = &bsdaddr;
     if ((rc = kern_recvit(curthread, s, msg, UIO_SYSSPACE, NULL))) {
         msg->msg_flags = 0;
@@ -1547,7 +1547,7 @@ ff_sctp_sendmsg(int s, void *msg, size_t len, struct linux_sockaddr *to,
 
 	outmsg.msg_controllen = cmsg->cmsg_len;
 	sinfo = (struct sctp_sndrcvinfo *)CMSG_DATA(cmsg);
-    k_memset(sinfo, 0, sizeof(struct sctp_sndrcvinfo));
+	memset(sinfo, 0, sizeof(struct sctp_sndrcvinfo));
 	sinfo->sinfo_ppid = ppid;
 	sinfo->sinfo_flags = flags;
 	sinfo->sinfo_stream = stream_no;
@@ -1568,7 +1568,7 @@ int ff_sctp_recvmsg(int s, void *msg, size_t len, struct linux_sockaddr *from,
 	char incmsg[CMSG_SPACE(sizeof(struct sctp_sndrcvinfo))];
 	struct cmsghdr *cmsg = NULL;
 
-    k_memset(&inmsg, 0, sizeof (inmsg));
+	memset(&inmsg, 0, sizeof (inmsg));
 
 	iov.iov_base = msg;
 	iov.iov_len = len;

@@ -2093,7 +2093,7 @@ keg_layout_one(uma_keg_t keg, u_int rsize, u_int slabsize, u_int fmt,
 static void
 keg_layout(uma_keg_t keg)
 {
-	struct keg_layout_result kl, kl_tmp;
+	struct keg_layout_result kl = {0}, kl_tmp;
 	u_int fmts[2];
 	u_int alignsize;
 	u_int nfmt;
@@ -2101,8 +2101,6 @@ keg_layout(uma_keg_t keg)
 	u_int rsize;
 	u_int slabsize;
 	u_int i, j;
-
-	k_memset(&kl,0,sizeof(kl));
 
 	KASSERT((keg->uk_flags & UMA_ZONE_PCPU) == 0 ||
 		(keg->uk_size <= UMA_PCPU_ALLOC_SIZE &&
@@ -2935,7 +2933,7 @@ uma_startup1(vm_offset_t virtual_avail)
 	primarykeg = (uma_keg_t)m;
 
 	/* "manually" create the initial zone */
-	k_memset(&args, 0, sizeof(args));
+	memset(&args, 0, sizeof(args));
 	args.name = "UMA Kegs";
 	args.size = ksize;
 	args.ctor = keg_ctor;
@@ -3085,7 +3083,7 @@ uma_zcreate(const char* name, size_t size, uma_ctor ctor, uma_dtor dtor,
 		align, name));
 
 	/* This stuff is essential for the zone ctor */
-	k_memset(&args, 0, sizeof(args));
+	memset(&args, 0, sizeof(args));
 	args.name = name;
 	args.size = size;
 	args.ctor = ctor;
@@ -3128,7 +3126,7 @@ uma_zsecond_create(const char* name, uma_ctor ctor, uma_dtor dtor,
 	uma_zone_t res;
 
 	keg = primary->uz_keg;
-	k_memset(&args, 0, sizeof(args));
+	memset(&args, 0, sizeof(args));
 	args.name = name;
 	args.size = keg->uk_size;
 	args.ctor = ctor;
@@ -3154,7 +3152,7 @@ uma_zcache_create(const char* name, int size, uma_ctor ctor, uma_dtor dtor,
 {
 	struct uma_zctor_args args;
 
-	k_memset(&args, 0, sizeof(args));
+	memset(&args, 0, sizeof(args));
 	args.name = name;
 	args.size = size;
 	args.ctor = ctor;
@@ -3263,7 +3261,7 @@ item_ctor(uma_zone_t zone, int uz_flags, int size, void* udata, int flags,
 		uma_dbg_alloc(zone, NULL, item);
 #endif
 	if (__predict_false(flags & M_ZERO))
-		return (k_memset(item, 0, size));
+		return (memset(item, 0, size));
 
 	return (item);
 }

@@ -142,7 +142,7 @@ ck_hp_register(struct ck_hp *state,
 	entry->n_pending = 0;
 	entry->n_peak = 0;
 	entry->n_reclamations = 0;
-	k_memset(pointers, 0, state->degree * sizeof(void *));
+	memset(pointers, 0, state->degree * sizeof(void *));
 	ck_stack_init(&entry->pending);
 	ck_pr_fence_store();
 	ck_stack_push_upmc(&state->subscribers, &entry->global_entry);

@@ -572,7 +572,7 @@ sctp_handle_heartbeat_ack(struct sctp_heartbeat_chunk *cp,
 		return;
 	}
 
-	k_memset(&store, 0, sizeof(store));
+	memset(&store, 0, sizeof(store));
 	switch (cp->heartbeat.hb_info.addr_family) {
 #ifdef INET
 	case AF_INET:
@@ -1844,11 +1844,11 @@ sctp_process_cookie_existing(struct mbuf *m, int iphlen, int offset,
 		asoc->advanced_peer_ack_point = asoc->last_acked_seq;
 		asoc->send_sack = 1;
 		if (asoc->mapping_array) {
-			k_memset(asoc->mapping_array, 0,
+			memset(asoc->mapping_array, 0,
 			    asoc->mapping_array_size);
 		}
 		if (asoc->nr_mapping_array) {
-			k_memset(asoc->nr_mapping_array, 0,
+			memset(asoc->nr_mapping_array, 0,
 			    asoc->mapping_array_size);
 		}
 		SCTP_TCB_UNLOCK(stcb);
@@ -2178,7 +2178,7 @@ sctp_process_cookie_new(struct mbuf *m, int iphlen, int offset,
 #ifdef INET
 	case SCTP_IPV4_ADDRESS:
 		/* source addr is IPv4 */
-		k_memset(&store.sin, 0, sizeof(struct sockaddr_in));
+		memset(&store.sin, 0, sizeof(struct sockaddr_in));
 		store.sin.sin_family = AF_INET;
 		store.sin.sin_len = sizeof(struct sockaddr_in);
 		store.sin.sin_addr.s_addr = cookie->laddress[0];
@@ -2187,7 +2187,7 @@ sctp_process_cookie_new(struct mbuf *m, int iphlen, int offset,
 #ifdef INET6
 	case SCTP_IPV6_ADDRESS:
 		/* source addr is IPv6 */
-		k_memset(&store.sin6, 0, sizeof(struct sockaddr_in6));
+		memset(&store.sin6, 0, sizeof(struct sockaddr_in6));
 		store.sin6.sin6_family = AF_INET6;
 		store.sin6.sin6_len = sizeof(struct sockaddr_in6);
 		store.sin6.sin6_scope_id = cookie->scope_id;
@@ -2510,7 +2510,7 @@ sctp_handle_cookie_echo(struct mbuf *m, int iphlen, int offset,
 	switch (cookie->addr_type) {
 #ifdef INET6
 	case SCTP_IPV6_ADDRESS:
-		k_memset(&sin6, 0, sizeof(sin6));
+		memset(&sin6, 0, sizeof(sin6));
 		sin6.sin6_family = AF_INET6;
 		sin6.sin6_len = sizeof(sin6);
 		sin6.sin6_port = sh->src_port;
@@ -2522,7 +2522,7 @@ sctp_handle_cookie_echo(struct mbuf *m, int iphlen, int offset,
 #endif
 #ifdef INET
 	case SCTP_IPV4_ADDRESS:
-		k_memset(&sin, 0, sizeof(sin));
+		memset(&sin, 0, sizeof(sin));
 		sin.sin_family = AF_INET;
 		sin.sin_len = sizeof(sin);
 		sin.sin_port = sh->src_port;
@@ -3606,10 +3606,10 @@ sctp_handle_stream_reset_response(struct sctp_tcb *stcb,
 
 					stcb->asoc.tsn_last_delivered = stcb->asoc.cumulative_tsn = stcb->asoc.highest_tsn_inside_map;
 					stcb->asoc.mapping_array_base_tsn = ntohl(resp->senders_next_tsn);
-					k_memset(stcb->asoc.mapping_array, 0, stcb->asoc.mapping_array_size);
+					memset(stcb->asoc.mapping_array, 0, stcb->asoc.mapping_array_size);
 
 					stcb->asoc.highest_tsn_inside_nr_map = stcb->asoc.highest_tsn_inside_map;
-					k_memset(stcb->asoc.nr_mapping_array, 0, stcb->asoc.mapping_array_size);
+					memset(stcb->asoc.nr_mapping_array, 0, stcb->asoc.mapping_array_size);
 
 					stcb->asoc.sending_seq = ntohl(resp->receivers_next_tsn);
 					stcb->asoc.last_acked_seq = stcb->asoc.cumulative_tsn;
@@ -3739,9 +3739,9 @@ sctp_handle_str_reset_request_tsn(struct sctp_tcb *stcb,
 			}
 			asoc->tsn_last_delivered = asoc->cumulative_tsn = asoc->highest_tsn_inside_map;
 			asoc->mapping_array_base_tsn = asoc->highest_tsn_inside_map + 1;
-			k_memset(asoc->mapping_array, 0, asoc->mapping_array_size);
+			memset(asoc->mapping_array, 0, asoc->mapping_array_size);
 			asoc->highest_tsn_inside_nr_map = asoc->highest_tsn_inside_map;
-			k_memset(asoc->nr_mapping_array, 0, asoc->mapping_array_size);
+			memset(asoc->nr_mapping_array, 0, asoc->mapping_array_size);
 			atomic_add_int(&asoc->sending_seq, 1);
 			/* save off historical data for retrans */
 			asoc->last_sending_seq[1] = asoc->last_sending_seq[0];
@@ -5751,12 +5751,12 @@ sctp_input_with_port(struct mbuf *i_pak, int off, uint16_t port)
 	sh = (struct sctphdr *)((caddr_t)ip + iphlen);
 	ch = (struct sctp_chunkhdr *)((caddr_t)sh + sizeof(struct sctphdr));
 	offset -= sizeof(struct sctp_chunkhdr);
-	k_memset(&src, 0, sizeof(struct sockaddr_in));
+	memset(&src, 0, sizeof(struct sockaddr_in));
 	src.sin_family = AF_INET;
 	src.sin_len = sizeof(struct sockaddr_in);
 	src.sin_port = sh->src_port;
 	src.sin_addr = ip->ip_src;
-	k_memset(&dst, 0, sizeof(struct sockaddr_in));
+	memset(&dst, 0, sizeof(struct sockaddr_in));
 	dst.sin_family = AF_INET;
 	dst.sin_len = sizeof(struct sockaddr_in);
 	dst.sin_port = sh->dest_port;

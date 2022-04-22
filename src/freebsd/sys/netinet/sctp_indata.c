@@ -145,7 +145,7 @@ sctp_build_readq_entry(struct sctp_tcb *stcb,
 	if (read_queue_e == NULL) {
 		goto failed_build;
 	}
-	k_memset(read_queue_e, 0, sizeof(struct sctp_queued_to_read));
+	memset(read_queue_e, 0, sizeof(struct sctp_queued_to_read));
 	read_queue_e->sinfo_stream = sid;
 	read_queue_e->sinfo_flags = (flags << 8);
 	read_queue_e->sinfo_ppid = ppid;
@@ -225,7 +225,7 @@ sctp_build_ctl_nchunk(struct sctp_inpcb *inp, struct sctp_sndrcvinfo *sinfo)
 	 * Make sure that there is no un-initialized padding between the
 	 * cmsg header and cmsg data and after the cmsg data.
 	 */
-	k_memset(cmh, 0, len);
+	memset(cmh, 0, len);
 	if (sctp_is_feature_on(inp, SCTP_PCB_FLAGS_RECVRCVINFO)) {
 		cmh->cmsg_level = IPPROTO_SCTP;
 		cmh->cmsg_len = CMSG_LEN(sizeof(struct sctp_rcvinfo));
@@ -729,7 +729,7 @@ sctp_add_to_tail_pointer(struct sctp_queued_to_read *control, struct mbuf *m, ui
 static void
 sctp_build_readq_entry_from_ctl(struct sctp_queued_to_read *nc, struct sctp_queued_to_read *control)
 {
-	k_memset(nc, 0, sizeof(struct sctp_queued_to_read));
+	memset(nc, 0, sizeof(struct sctp_queued_to_read));
 	nc->sinfo_stream = control->sinfo_stream;
 	nc->mid = control->mid;
 	TAILQ_INIT(&nc->reasm);
@@ -801,7 +801,7 @@ restart:
 			if (nc == NULL) {
 				break;
 			}
-			k_memset(nc, 0, sizeof(struct sctp_queued_to_read));
+			memset(nc, 0, sizeof(struct sctp_queued_to_read));
 			TAILQ_REMOVE(&control->reasm, chk, sctp_next);
 			sctp_add_chk_to_control(control, strm, stcb, asoc, chk, inp_read_lock_held);
 			fsn++;
@@ -2468,8 +2468,8 @@ sctp_slide_mapping_arrays(struct sctp_tcb *stcb)
 		if (clr > asoc->mapping_array_size) {
 			clr = asoc->mapping_array_size;
 		}
-		k_memset(asoc->mapping_array, 0, clr);
-		k_memset(asoc->nr_mapping_array, 0, clr);
+		memset(asoc->mapping_array, 0, clr);
+		memset(asoc->nr_mapping_array, 0, clr);
 #ifdef INVARIANTS
 		for (i = 0; i < asoc->mapping_array_size; i++) {
 			if ((asoc->mapping_array[i]) || (asoc->nr_mapping_array[i])) {
@@ -5538,11 +5538,11 @@ sctp_handle_forward_tsn(struct sctp_tcb *stcb,
 		}
 		SCTP_STAT_INCR(sctps_fwdtsn_map_over);
 
-		k_memset(stcb->asoc.mapping_array, 0, stcb->asoc.mapping_array_size);
+		memset(stcb->asoc.mapping_array, 0, stcb->asoc.mapping_array_size);
 		asoc->mapping_array_base_tsn = new_cum_tsn + 1;
 		asoc->highest_tsn_inside_map = new_cum_tsn;
 
-		k_memset(stcb->asoc.nr_mapping_array, 0, stcb->asoc.mapping_array_size);
+		memset(stcb->asoc.nr_mapping_array, 0, stcb->asoc.mapping_array_size);
 		asoc->highest_tsn_inside_nr_map = new_cum_tsn;
 
 		if (SCTP_BASE_SYSCTL(sctp_logging_level) & SCTP_MAP_LOGGING_ENABLE) {

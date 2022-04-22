@@ -176,7 +176,7 @@ tcp_lro_init_args(struct lro_ctrl *lc, struct ifnet *ifp,
 	lc->lro_hash = phashinit_flags(elements, M_LRO, &lc->lro_hashsz,
 	    HASH_NOWAIT);
 	if (lc->lro_hash == NULL) {
-		k_memset(lc, 0, sizeof(*lc));
+		memset(lc, 0, sizeof(*lc));
 		return (ENOMEM);
 	}
 
@@ -189,7 +189,7 @@ tcp_lro_init_args(struct lro_ctrl *lc, struct ifnet *ifp,
 	/* check for out of memory */
 	if (lc->lro_mbuf_data == NULL) {
 		free(lc->lro_hash, M_LRO);
-		k_memset(lc, 0, sizeof(*lc));
+		memset(lc, 0, sizeof(*lc));
 		return (ENOMEM);
 	}
 	/* compute offset for LRO entries */
@@ -445,7 +445,7 @@ tcp_lro_log(struct tcpcb *tp, struct lro_ctrl *lc,
 		uint32_t cts;
 
 		cts = tcp_get_usecs(&tv);
-		k_memset(&log, 0, sizeof(union tcp_log_stackspecific));
+		memset(&log, 0, sizeof(union tcp_log_stackspecific));
 		log.u_bbr.flex8 = frm;
 		log.u_bbr.flex1 = tcp_data_len;
 		if (m)

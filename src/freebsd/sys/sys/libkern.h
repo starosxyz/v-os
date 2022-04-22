@@ -154,8 +154,7 @@ int flsll_long(long long);
 
 int	 fnmatch(const char*, const char*, int);
 int	 locc(int, char*, u_int);
-#define memchr(x,y,z) vos_memchr(x,y,z)
-void* vos_memchr(const void* s, int c, size_t n);
+void* memchr(const void* s, int c, size_t n);
 void* memcchr(const void* s, int c, size_t n);
 void* memmem(const void* l, size_t l_len, const void* s, size_t s_len);
 void	 qsort(void* base, size_t nmemb, size_t size,
@@ -166,14 +165,11 @@ u_long	 random(void);
 int	 scanc(u_int, const u_char*, const u_char*, int);
 int	 strcasecmp(const char*, const char*);
 char* strcasestr(const char*, const char*);
-#define strcat(x,y) vos_strcat(x,y)
-char* vos_strcat(char* __restrict, const char* __restrict);
+char* strcat(char* __restrict, const char* __restrict);
 char* strchr(const char*, int);
 char* strchrnul(const char*, int);
-#define strcmp(x,y) vos_strcmp(x,y)
-int	 vos_strcmp(const char*, const char*);
-#define strcpy(x,y) vos_strcpy(x,y)
-char* vos_strcpy(char* __restrict, const char* __restrict);
+int	 strcmp(const char*, const char*);
+char* strcpy(char* __restrict, const char* __restrict);
 size_t	 strcspn(const char* __restrict, const char* __restrict) __pure;
 char* strdup_flags(const char* __restrict, struct malloc_type*, int);
 char* strdup(const char* __restrict, struct malloc_type*);
@@ -184,8 +180,7 @@ size_t	 strlcpy(char*, const char*, size_t);
 #define strlen(x) vos_strlen(x)
 size_t	 vos_strlen(const char*);
 int	 strncasecmp(const char*, const char*, size_t);
-#define strncmp(x,y,z) vos_strncmp(x,y,z)
-int	 vos_strncmp(const char*, const char*, size_t);
+int	 strncmp(const char*, const char*, size_t);
 char* strncpy(char* __restrict, const char* __restrict, size_t);
 size_t	 strnlen(const char*, size_t);
 char* strrchr(const char*, int);

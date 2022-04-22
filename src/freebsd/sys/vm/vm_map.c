@@ -296,7 +296,7 @@ vmspace_zinit(void* mem, int size, int flags)
 	vm = (struct vmspace*)mem;
 	map = &vm->vm_map;
 
-	k_memset(map, 0, sizeof(*map));
+	memset(map, 0, sizeof(*map));
 	mtx_init(&map->system_mtx, "vm map (system)", NULL,
 		MTX_DEF | MTX_DUPOK);
 	sx_init(&map->lock, "vm map (user)");
@@ -4304,7 +4304,7 @@ struct vmspace*
 			 * the old one.
 			 */
 			new_entry = vm_map_entry_create(new_map);
-			k_memset(new_entry, 0, sizeof(*new_entry));
+			memset(new_entry, 0, sizeof(*new_entry));
 
 			new_entry->start = old_entry->start;
 			new_entry->end = old_entry->end;

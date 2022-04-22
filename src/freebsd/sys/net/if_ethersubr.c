@@ -469,7 +469,7 @@ ether_output_frame(struct ifnet *ifp, struct mbuf *m)
 {
 	uint8_t pcp;
 	pfil_packet_t temp;
-	k_memset(&temp, 0, sizeof(temp));
+	memset(&temp, 0, sizeof(temp));
 	pcp = ifp->if_pcp;
 	if (pcp != IFNET_PCP_NONE && ifp->if_type != IFT_L2VLAN &&
 	    !ether_set_pcp(&m, ifp, pcp))

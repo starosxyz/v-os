@@ -1449,7 +1449,7 @@ sysctl_handle_domainset(SYSCTL_HANDLER_ARGS)
 	/*
 	 * Read in and validate the string.
 	 */
-	k_memset(&key, 0, sizeof(key));
+	memset(&key, 0, sizeof(key));
 	p = &buf[bitset_strscan((struct bitset*)&key.ds_mask,
 		DOMAINSET_SETSIZE, buf)];
 	if (p == buf)
@@ -2277,7 +2277,7 @@ kern_cpuset_setdomain(struct thread* td, cpulevel_t level, cpuwhich_t which,
 	error = cpuset_check_capabilities(td, level, which, id);
 	if (error != 0)
 		return (error);
-	k_memset(&domain, 0, sizeof(domain));
+	memset(&domain, 0, sizeof(domain));
 	mask = malloc(domainsetsize, M_TEMP, M_WAITOK | M_ZERO);
 	error = copyin(maskp, mask, domainsetsize);
 	if (error)

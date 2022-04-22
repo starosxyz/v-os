@@ -210,7 +210,7 @@ tcp_log_reassm(struct tcpcb *tp, struct tseg_qent *q, struct tseg_qent *p,
 	if (tp->t_logstate != TCP_LOG_STATE_OFF) {
 		union tcp_log_stackspecific log;
 
-		k_memset(&log, 0, sizeof(log));
+		memset(&log, 0, sizeof(log));
 		cts = tcp_get_usecs(&tv);
 		log.u_bbr.flex1 = seq;
 		log.u_bbr.cur_del_rate = (uint64_t)q;

@@ -382,11 +382,11 @@ carp_hmac_prepare(struct carp_softc *sc)
 	} while (found);
 #endif /* INET */
 #ifdef INET6
-	k_memset(&cur6, 0, sizeof(cur6));
+	memset(&cur6, 0, sizeof(cur6));
 	do {
 		found = 0;
 		last6 = cur6;
-		k_memset(&cur6, 0xff, sizeof(cur6));
+		memset(&cur6, 0xff, sizeof(cur6));
 		CARP_FOREACH_IFA(sc, ifa) {
 			in6 = ifatoia6(ifa)->ia_addr.sin6_addr;
 			if (IN6_IS_SCOPE_EMBED(&in6))

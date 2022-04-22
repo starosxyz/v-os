@@ -23,6 +23,6 @@ __explicit_bzero_hook(void *buf, size_t len)
 void
 explicit_bzero(void *buf, size_t len)
 {
-	k_memset(buf, 0, len);
+	memset(buf, 0, len);
 	__explicit_bzero_hook(buf, len);
 }
