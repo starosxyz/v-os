@@ -66,24 +66,24 @@
 #endif
 
 #define _STATIC_BSWAP16(v) \
-	((((uint16_t)(v) & VOS_UINT16_C(0x00ff)) << 8) | \
-	 (((uint16_t)(v) & VOS_UINT16_C(0xff00)) >> 8))
+	((((uint16_t)(v) & UINT16_C(0x00ff)) << 8) | \
+	 (((uint16_t)(v) & UINT16_C(0xff00)) >> 8))
 
 #define _STATIC_BSWAP32(v) \
-	((((uint32_t)(v) & VOS_UINT32_C(0x000000ff)) << 24) | \
-	 (((uint32_t)(v) & VOS_UINT32_C(0x0000ff00)) <<  8) | \
-	 (((uint32_t)(v) & VOS_UINT32_C(0x00ff0000)) >>  8) | \
-	 (((uint32_t)(v) & VOS_UINT32_C(0xff000000)) >> 24))
+	((((uint32_t)(v) & UINT32_C(0x000000ff)) << 24) | \
+	 (((uint32_t)(v) & UINT32_C(0x0000ff00)) <<  8) | \
+	 (((uint32_t)(v) & UINT32_C(0x00ff0000)) >>  8) | \
+	 (((uint32_t)(v) & UINT32_C(0xff000000)) >> 24))
 
 #define _STATIC_BSWAP64(v) \
-	((((uint64_t)(v) & VOS_UINT64_C(0x00000000000000ff)) << 56) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0x000000000000ff00)) << 40) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0x0000000000ff0000)) << 24) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0x00000000ff000000)) <<  8) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0x000000ff00000000)) >>  8) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0x0000ff0000000000)) >> 24) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0x00ff000000000000)) >> 40) | \
-	 (((uint64_t)(v) & VOS_UINT64_C(0xff00000000000000)) >> 56))
+	((((uint64_t)(v) & UINT64_C(0x00000000000000ff)) << 56) | \
+	 (((uint64_t)(v) & UINT64_C(0x000000000000ff00)) << 40) | \
+	 (((uint64_t)(v) & UINT64_C(0x0000000000ff0000)) << 24) | \
+	 (((uint64_t)(v) & UINT64_C(0x00000000ff000000)) <<  8) | \
+	 (((uint64_t)(v) & UINT64_C(0x000000ff00000000)) >>  8) | \
+	 (((uint64_t)(v) & UINT64_C(0x0000ff0000000000)) >> 24) | \
+	 (((uint64_t)(v) & UINT64_C(0x00ff000000000000)) >> 40) | \
+	 (((uint64_t)(v) & UINT64_C(0xff00000000000000)) >> 56))
 
 #define	__bswap16(x)	_STATIC_BSWAP16(x)
 #define	__bswap32(x)	_STATIC_BSWAP32(x)

@@ -1377,5 +1377,8 @@
     <ClCompile Include="sys\libkern\strcpy.c">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="compat\win32_crt.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

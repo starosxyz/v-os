@@ -42,6 +42,6 @@ int32_t __stdcall _DllMainCRTStartup(HMODULE self, uint32_t reason, void* reserv
 {
     // ...CRT init here...
     // Call into the client's entry point.
-    const auto res = DllMain(self, reason, reserved);
+    int32_t res = DllMain(self, reason, reserved);
     return res;
 }
