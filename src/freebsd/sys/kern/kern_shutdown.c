@@ -1363,7 +1363,7 @@ dump_write_headers(struct dumperinfo *di, struct kerneldumpheader *kdh)
 		buf = kdh;
 	else {
 		buf = di->blockbuf;
-		memset(buf, 0, di->blocksize);
+		k_memset(buf, 0, di->blocksize);
 		memcpy(buf, kdh, hdrsz);
 	}
 

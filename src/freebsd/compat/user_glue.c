@@ -297,7 +297,7 @@ elf_cpu_parse_dynamic(caddr_t loadbase __unused, Elf_Dyn *dynamic __unused)
 void *
 memset_early(void *buf, int c, size_t len)
 {
-    return (memset(buf, c, len));
+    return (k_memset(buf, c, len));
 }
 
 int

@@ -35,7 +35,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/libkern.h>
 
 int
-strncmp(const char *s1, const char *s2, size_t n)
+vos_strncmp(const char *s1, const char *s2, size_t n)
 {
 
 	if (n == 0)

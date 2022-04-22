@@ -285,7 +285,7 @@ sys_ntp_gettime(struct thread *td, struct ntp_gettime_args *uap)
 {	
 	struct ntptimeval ntv;
 
-	memset(&ntv, 0, sizeof(ntv));
+	k_memset(&ntv, 0, sizeof(ntv));
 
 	NTP_LOCK();
 	ntp_gettime1(&ntv);
@@ -300,7 +300,7 @@ ntp_sysctl(SYSCTL_HANDLER_ARGS)
 {
 	struct ntptimeval ntv;	/* temporary structure */
 
-	memset(&ntv, 0, sizeof(ntv));
+	k_memset(&ntv, 0, sizeof(ntv));
 
 	NTP_LOCK();
 	ntp_gettime1(&ntv);

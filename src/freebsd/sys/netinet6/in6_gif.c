@@ -270,7 +270,7 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 			break;
 		}
 		src = (struct sockaddr_in6 *)&ifr->ifr_addr;
-		memset(src, 0, sizeof(*src));
+		k_memset(src, 0, sizeof(*src));
 		src->sin6_family = AF_INET6;
 		src->sin6_len = sizeof(*src);
 		src->sin6_addr = (cmd == SIOCGIFPSRCADDR_IN6) ?
@@ -279,7 +279,7 @@ in6_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 		if (error == 0)
 			error = sa6_recoverscope(src);
 		if (error != 0)
-			memset(src, 0, sizeof(*src));
+			k_memset(src, 0, sizeof(*src));
 		break;
 	}
 	return (error);

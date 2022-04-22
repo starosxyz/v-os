@@ -244,7 +244,7 @@ SHA512_Pad(SHA512_CTX * ctx)
 		SHA512_Transform(ctx->state, ctx->buf);
 
 		/* The start of the final block is all zeroes. */
-		memset(&ctx->buf[0], 0, 112);
+		k_memset(&ctx->buf[0], 0, 112);
 	}
 
 	/* Add the terminating bit-count. */

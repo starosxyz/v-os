@@ -4880,7 +4880,7 @@ pmap_page_array_startup(long long pages)
 	{
 		return;
 	}
-	memset(start, 0, pages * sizeof(struct vm_page));
+	k_memset(start, 0, pages * sizeof(struct vm_page));
 	end = start + pages * sizeof(struct vm_page);
 #if 0
 	for (va = start; va < end; va += sizeof(struct vm_page)) {
@@ -11237,7 +11237,7 @@ sysctl_kmaps_reinit(struct pmap_kernel_map_range* range, vm_offset_t va,
 	pt_entry_t attrs)
 {
 
-	memset(range, 0, sizeof(*range));
+	k_memset(range, 0, sizeof(*range));
 	range->sva = va;
 	range->attrs = attrs;
 }

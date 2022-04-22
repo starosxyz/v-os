@@ -592,7 +592,7 @@ __sccl(char *tab, const u_char *fmt)
 
 	/* XXX: Will not work if sizeof(tab*) > sizeof(char) */
 	for (n = 0; n < 256; n++)
-		     tab[n] = v;	/* memset(tab, v, 256) */
+		     tab[n] = v;	/* k_memset(tab, v, 256) */
 
 	if (c == 0)
 		return (fmt - 1);/* format ended before closing ] */

@@ -2960,7 +2960,7 @@ bpf_stats_sysctl(SYSCTL_HANDLER_ARGS)
 	if (req->newptr != NULL) {
 		if (req->newlen != sizeof(tempstats))
 			return (EINVAL);
-		memset(&tempstats, 0, sizeof(tempstats));
+		k_memset(&tempstats, 0, sizeof(tempstats));
 		error = SYSCTL_IN(req, &tempstats, sizeof(tempstats));
 		if (error)
 			return (error);

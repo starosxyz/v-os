@@ -2017,7 +2017,7 @@ copyin_tls_enable(struct sockopt *sopt, struct tls_enable *tls)
 		    sizeof(tls_v0));
 		if (error)
 			return (error);
-		memset(tls, 0, sizeof(*tls));
+		k_memset(tls, 0, sizeof(*tls));
 		tls->cipher_key = tls_v0.cipher_key;
 		tls->iv = tls_v0.iv;
 		tls->auth_key = tls_v0.auth_key;

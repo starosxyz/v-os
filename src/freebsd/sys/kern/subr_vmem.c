@@ -1268,7 +1268,7 @@ vmem_init(vmem_t* vm, const char* name, vmem_addr_t base, vmem_size_t size,
 	for (i = 0; i < VMEM_MAXORDER; i++)
 		LIST_INIT(&vm->vm_freelist[i]);
 
-	memset(&vm->vm_hash0, 0, sizeof(vm->vm_hash0));
+	k_memset(&vm->vm_hash0, 0, sizeof(vm->vm_hash0));
 	vm->vm_hashsize = VMEM_HASHSIZE_MIN;
 	vm->vm_hashlist = vm->vm_hash0;
 
@@ -1704,10 +1704,10 @@ DB_SHOW_COMMAND(vmem, vmem_summ)
 	db_printf("\tbusy tags:\t%d\n", vm->vm_nbusytag);
 	db_printf("\tfree tags:\t%d\n", vm->vm_nfreetags);
 
-	memset(&ft, 0, sizeof(ft));
-	memset(&ut, 0, sizeof(ut));
-	memset(&fs, 0, sizeof(fs));
-	memset(&us, 0, sizeof(us));
+	k_memset(&ft, 0, sizeof(ft));
+	k_memset(&ut, 0, sizeof(ut));
+	k_memset(&fs, 0, sizeof(fs));
+	k_memset(&us, 0, sizeof(us));
 	TAILQ_FOREACH(bt, &vm->vm_seglist, bt_seglist) {
 		ord = SIZE2ORDER(bt->bt_size >> vm->vm_quantum_shift);
 		if (bt->bt_type == BT_TYPE_BUSY) {

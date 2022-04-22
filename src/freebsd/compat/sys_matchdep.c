@@ -423,7 +423,7 @@ amd64_set_ioperm(td, uap)
 		pmap_pti_add_kva((vm_offset_t)tssp, (vm_offset_t)tssp +
 		    ctob(IOPAGES + 1), false);
 		iomap = (char *)&tssp[1];
-		memset(iomap, 0xff, IOPERM_BITMAP_SIZE);
+		k_memset(iomap, 0xff, IOPERM_BITMAP_SIZE);
 		critical_enter();
 		/* Takes care of tss_rsp0. */
 		memcpy(tssp, PCPU_PTR(common_tss), sizeof(struct amd64tss));

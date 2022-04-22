@@ -220,7 +220,7 @@ char* context_malloc(size_t size)
     char * pmem = global_hooks.allocate(size);
     if (pmem)
     {
-        memset(pmem, 0, size);
+        k_memset(pmem, 0, size);
     }
     return pmem;
 }

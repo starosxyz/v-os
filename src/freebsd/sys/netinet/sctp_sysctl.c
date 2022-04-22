@@ -122,7 +122,7 @@ sctp_init_sysctls()
 	SCTP_BASE_SYSCTL(sctp_sendall_limit) = SCTPCTL_SENDALL_LIMIT_DEFAULT;
 	SCTP_BASE_SYSCTL(sctp_diag_info_code) = SCTPCTL_DIAG_INFO_CODE_DEFAULT;
 #if defined(SCTP_LOCAL_TRACE_BUF)
-	memset(&SCTP_BASE_SYSCTL(sctp_log), 0, sizeof(struct sctp_log));
+	k_memset(&SCTP_BASE_SYSCTL(sctp_log), 0, sizeof(struct sctp_log));
 #endif
 	SCTP_BASE_SYSCTL(sctp_udp_tunneling_port) = SCTPCTL_UDP_TUNNELING_PORT_DEFAULT;
 	SCTP_BASE_SYSCTL(sctp_enable_sack_immediately) = SCTPCTL_SACK_IMMEDIATELY_ENABLE_DEFAULT;
@@ -289,7 +289,7 @@ sctp_sysctl_copy_out_local_addresses(struct sctp_inpcb *inp, struct sctp_tcb *st
 				default:
 					continue;
 				}
-				memset((void *)&xladdr, 0, sizeof(struct xsctp_laddr));
+				k_memset((void *)&xladdr, 0, sizeof(struct xsctp_laddr));
 				memcpy((void *)&xladdr.address, (const void *)&sctp_ifa->address, sizeof(union sctp_sockstore));
 				SCTP_INP_RUNLOCK(inp);
 				SCTP_INP_INFO_RUNLOCK();
@@ -307,7 +307,7 @@ sctp_sysctl_copy_out_local_addresses(struct sctp_inpcb *inp, struct sctp_tcb *st
 			/* ignore if blacklisted at association level */
 			if (stcb && sctp_is_addr_restricted(stcb, laddr->ifa))
 				continue;
-			memset((void *)&xladdr, 0, sizeof(struct xsctp_laddr));
+			k_memset((void *)&xladdr, 0, sizeof(struct xsctp_laddr));
 			memcpy((void *)&xladdr.address, (const void *)&laddr->ifa->address, sizeof(union sctp_sockstore));
 			xladdr.start_time.tv_sec = (uint32_t)laddr->start_time.tv_sec;
 			xladdr.start_time.tv_usec = (uint32_t)laddr->start_time.tv_usec;
@@ -322,7 +322,7 @@ sctp_sysctl_copy_out_local_addresses(struct sctp_inpcb *inp, struct sctp_tcb *st
 			}
 		}
 	}
-	memset((void *)&xladdr, 0, sizeof(struct xsctp_laddr));
+	k_memset((void *)&xladdr, 0, sizeof(struct xsctp_laddr));
 	xladdr.last = 1;
 	SCTP_INP_RUNLOCK(inp);
 	SCTP_INP_INFO_RUNLOCK();
@@ -392,9 +392,9 @@ sctp_sysctl_handle_assoclist(SYSCTL_HANDLER_ARGS)
 		SCTP_LTRACE_ERR_RET(NULL, NULL, NULL, SCTP_FROM_SCTP_SYSCTL, EPERM);
 		return (EPERM);
 	}
-	memset(&xinpcb, 0, sizeof(xinpcb));
-	memset(&xstcb, 0, sizeof(xstcb));
-	memset(&xraddr, 0, sizeof(xraddr));
+	k_memset(&xinpcb, 0, sizeof(xinpcb));
+	k_memset(&xstcb, 0, sizeof(xstcb));
+	k_memset(&xraddr, 0, sizeof(xraddr));
 	LIST_FOREACH(inp, &SCTP_BASE_INFO(listhead), sctp_list) {
 		SCTP_INP_RLOCK(inp);
 		if (inp->sctp_flags & SCTP_PCB_FLAGS_SOCKET_ALLGONE) {
@@ -529,7 +529,7 @@ sctp_sysctl_handle_assoclist(SYSCTL_HANDLER_ARGS)
 				SCTP_INP_RLOCK(inp);
 			}
 			atomic_subtract_int(&stcb->asoc.refcnt, 1);
-			memset((void *)&xraddr, 0, sizeof(struct xsctp_raddr));
+			k_memset((void *)&xraddr, 0, sizeof(struct xsctp_raddr));
 			xraddr.last = 1;
 			SCTP_INP_RUNLOCK(inp);
 			SCTP_INP_INFO_RUNLOCK();
@@ -544,7 +544,7 @@ sctp_sysctl_handle_assoclist(SYSCTL_HANDLER_ARGS)
 		SCTP_INP_DECR_REF(inp);
 		SCTP_INP_RUNLOCK(inp);
 		SCTP_INP_INFO_RUNLOCK();
-		memset((void *)&xstcb, 0, sizeof(struct xsctp_tcb));
+		k_memset((void *)&xstcb, 0, sizeof(struct xsctp_tcb));
 		xstcb.last = 1;
 		error = SYSCTL_OUT(req, &xstcb, sizeof(struct xsctp_tcb));
 		if (error) {
@@ -555,7 +555,7 @@ skip:
 	}
 	SCTP_INP_INFO_RUNLOCK();
 
-	memset((void *)&xinpcb, 0, sizeof(struct xsctp_inpcb));
+	k_memset((void *)&xinpcb, 0, sizeof(struct xsctp_inpcb));
 	xinpcb.last = 1;
 	error = SYSCTL_OUT(req, &xinpcb, sizeof(struct xsctp_inpcb));
 	return (error);
@@ -663,7 +663,7 @@ sctp_sysctl_handle_stats(SYSCTL_HANDLER_ARGS)
 	    (req->newlen != sizeof(struct sctpstat))) {
 		return (EINVAL);
 	}
-	memset(&sb_temp, 0, sizeof(struct sctpstat));
+	k_memset(&sb_temp, 0, sizeof(struct sctpstat));
 
 	if (req->newptr != NULL) {
 		error = SYSCTL_IN(req, &sb_temp, sizeof(struct sctpstat));
@@ -672,7 +672,7 @@ sctp_sysctl_handle_stats(SYSCTL_HANDLER_ARGS)
 		}
 	}
 #if defined(SMP) && defined(SCTP_USE_PERCPU_STAT)
-	memset(&sb, 0, sizeof(sb));
+	k_memset(&sb, 0, sizeof(sb));
 	for (cpu = 0; cpu < mp_maxid; cpu++) {
 		sarry = &SCTP_BASE_STATS[cpu];
 		if (sarry->sctps_discontinuitytime.tv_sec > sb.sctps_discontinuitytime.tv_sec) {
@@ -830,7 +830,7 @@ sctp_sysctl_handle_trace_log_clear(SYSCTL_HANDLER_ARGS)
 {
 	int error = 0;
 
-	memset(&SCTP_BASE_SYSCTL(sctp_log), 0, sizeof(struct sctp_log));
+	k_memset(&SCTP_BASE_SYSCTL(sctp_log), 0, sizeof(struct sctp_log));
 	return (error);
 }
 #endif

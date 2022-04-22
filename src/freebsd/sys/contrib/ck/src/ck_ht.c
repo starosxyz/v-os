@@ -179,12 +179,12 @@ ck_ht_map_create(struct ck_ht *table, CK_HT_TYPE entries)
 
 	if (table->mode & CK_HT_WORKLOAD_DELETE) {
 		map->probe_bound = (CK_HT_WORD *)&map[1];
-		memset(map->probe_bound, 0, prefix);
+		k_memset(map->probe_bound, 0, prefix);
 	} else {
 		map->probe_bound = NULL;
 	}
 
-	memset(map->entries, 0, sizeof(struct ck_ht_entry) * n_entries);
+	k_memset(map->entries, 0, sizeof(struct ck_ht_entry) * n_entries);
 	ck_pr_fence_store();
 	return map;
 }
@@ -393,7 +393,7 @@ ck_ht_gc(struct ck_ht *ht, unsigned long long cycles, unsigned long long seed)
 	if (map->n_entries == 0) {
 		CK_HT_TYPE_STORE(&map->probe_maximum, 0);
 		if (map->probe_bound != NULL)
-			memset(map->probe_bound, 0, sizeof(CK_HT_WORD) * map->capacity);
+			k_memset(map->probe_bound, 0, sizeof(CK_HT_WORD) * map->capacity);
 
 		return true;
 	}
@@ -407,7 +407,7 @@ ck_ht_gc(struct ck_ht *ht, unsigned long long cycles, unsigned long long seed)
 			if (bounds == NULL)
 				return false;
 
-			memset(bounds, 0, size);
+			k_memset(bounds, 0, size);
 		}
 	} else {
 		maximum = map->probe_maximum;

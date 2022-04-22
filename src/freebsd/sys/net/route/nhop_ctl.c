@@ -816,7 +816,7 @@ dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh, struct sysctl_req *
 
 	//DPRINTF("Dumping: head %p nh %p flags %X req %p\n", rh, nh, nh->nh_flags, w);
 
-	memset(&arpc, 0, sizeof(arpc));
+	k_memset(&arpc, 0, sizeof(arpc));
 
 	arpc.rtm.rtm_msglen = sizeof(arpc);
 	arpc.rtm.rtm_version = RTM_VERSION;
@@ -850,7 +850,7 @@ dump_nhop_entry(struct rib_head *rh, struct nhop_object *nh, struct sysctl_req *
 	src_sa = nh->nh_ifa->ifa_addr;
 	if (src_sa->sa_family == AF_LINK) {
 		/* Shorten structure */
-		memset(&ss, 0, sizeof(struct sockaddr_storage));
+		k_memset(&ss, 0, sizeof(struct sockaddr_storage));
 		fill_sdl_from_ifp((struct sockaddr_dl_short *)&ss,
 		    nh->nh_ifa->ifa_ifp);
 		src_sa = (struct sockaddr *)&ss;

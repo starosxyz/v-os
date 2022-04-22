@@ -225,7 +225,7 @@ in6m_is_ifp_detached(const struct in6_multi *inm)
 static __inline void
 im6f_init(struct in6_mfilter *imf, const int st0, const int st1)
 {
-	memset(imf, 0, sizeof(struct in6_mfilter));
+	k_memset(imf, 0, sizeof(struct in6_mfilter));
 	RB_INIT(&imf->im6f_sources);
 	imf->im6f_st[0] = st0;
 	imf->im6f_st[1] = st1;
@@ -391,7 +391,7 @@ in6_getmulti(struct ifnet *ifp, const struct in6_addr *group,
 		goto out_locked;
 	}
 
-	memset(&gsin6, 0, sizeof(gsin6));
+	k_memset(&gsin6, 0, sizeof(gsin6));
 	gsin6.sin6_family = AF_INET6;
 	gsin6.sin6_len = sizeof(struct sockaddr_in6);
 	gsin6.sin6_addr = *group;
@@ -1411,7 +1411,7 @@ in6p_block_unblock_source(struct inpcb *inp, struct sockopt *sopt)
 	error = 0;
 	doblock = 0;
 
-	memset(&gsr, 0, sizeof(struct group_source_req));
+	k_memset(&gsr, 0, sizeof(struct group_source_req));
 	gsa = (sockunion_t *)&gsr.gsr_group;
 	ssa = (sockunion_t *)&gsr.gsr_source;
 
@@ -1870,7 +1870,7 @@ in6p_join_group(struct inpcb *inp, struct sockopt *sopt)
 	lims = NULL;
 	error = 0;
 
-	memset(&gsr, 0, sizeof(struct group_source_req));
+	k_memset(&gsr, 0, sizeof(struct group_source_req));
 	gsa = (sockunion_t *)&gsr.gsr_group;
 	gsa->ss.ss_family = AF_UNSPEC;
 	ssa = (sockunion_t *)&gsr.gsr_source;
@@ -2179,7 +2179,7 @@ in6p_leave_group(struct inpcb *inp, struct sockopt *sopt)
 	error = 0;
 	is_final = true;
 
-	memset(&gsr, 0, sizeof(struct group_source_req));
+	k_memset(&gsr, 0, sizeof(struct group_source_req));
 	gsa = (sockunion_t *)&gsr.gsr_group;
 	gsa->ss.ss_family = AF_UNSPEC;
 	ssa = (sockunion_t *)&gsr.gsr_source;

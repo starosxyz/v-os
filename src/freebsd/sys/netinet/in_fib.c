@@ -225,7 +225,7 @@ lookup_nhop(uint32_t fibnum, struct in_addr dst, uint32_t scopeid)
 
 	/* Prepare lookup key */
 	struct sockaddr_in sin4;
-	memset(&sin4, 0, sizeof(sin4));
+	k_memset(&sin4, 0, sizeof(sin4));
 	sin4.sin_len = sizeof(struct sockaddr_in);
 	sin4.sin_addr = dst;
 

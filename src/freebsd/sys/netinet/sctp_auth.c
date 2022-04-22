@@ -54,7 +54,7 @@ __FBSDID("$FreeBSD$");
 void
 sctp_clear_chunklist(sctp_auth_chklist_t *chklist)
 {
-	memset(chklist, 0, sizeof(*chklist));
+	k_memset(chklist, 0, sizeof(*chklist));
 	/* chklist->num_chunks = 0; */
 }
 
@@ -787,7 +787,7 @@ sctp_alloc_authinfo(void)
 		/* out of memory */
 		return (NULL);
 	}
-	memset(new_authinfo, 0, sizeof(*new_authinfo));
+	k_memset(new_authinfo, 0, sizeof(*new_authinfo));
 	return (new_authinfo);
 }
 
@@ -944,8 +944,8 @@ sctp_hmac(uint16_t hmac_algo, uint8_t *key, uint32_t keylen,
 		key = temp;
 	}
 	/* initialize the inner/outer pads with the key and "append" zeroes */
-	memset(ipad, 0, blocklen);
-	memset(opad, 0, blocklen);
+	k_memset(ipad, 0, blocklen);
+	k_memset(opad, 0, blocklen);
 	memcpy(ipad, key, keylen);
 	memcpy(opad, key, keylen);
 
@@ -1004,8 +1004,8 @@ sctp_hmac_m(uint16_t hmac_algo, uint8_t *key, uint32_t keylen,
 		key = temp;
 	}
 	/* initialize the inner/outer pads with the key and "append" zeroes */
-	memset(ipad, 0, blocklen);
-	memset(opad, 0, blocklen);
+	k_memset(ipad, 0, blocklen);
+	k_memset(opad, 0, blocklen);
 	memcpy(ipad, key, keylen);
 	memcpy(opad, key, keylen);
 
@@ -1511,7 +1511,7 @@ sctp_fill_hmac_digest_m(struct mbuf *m, uint32_t auth_offset,
 
 	/* zero the digest + chunk padding */
 	digestlen = sctp_get_hmac_digest_len(stcb->asoc.peer_hmac_id);
-	memset(auth->hmac, 0, SCTP_SIZE32(digestlen));
+	k_memset(auth->hmac, 0, SCTP_SIZE32(digestlen));
 
 	/* is the desired key cached? */
 	if ((keyid != stcb->asoc.authinfo.assoc_keyid) ||
@@ -1568,10 +1568,10 @@ sctp_zero_m(struct mbuf *m, uint32_t m_offset, uint32_t size)
 	while ((m_tmp != NULL) && (size > 0)) {
 		data = mtod(m_tmp, uint8_t *)+m_offset;
 		if (size > (uint32_t)(SCTP_BUF_LEN(m_tmp) - m_offset)) {
-			memset(data, 0, SCTP_BUF_LEN(m_tmp) - m_offset);
+			k_memset(data, 0, SCTP_BUF_LEN(m_tmp) - m_offset);
 			size -= SCTP_BUF_LEN(m_tmp) - m_offset;
 		} else {
-			memset(data, 0, size);
+			k_memset(data, 0, size);
 			size = 0;
 		}
 		/* clear the offset since it's only for the first mbuf */
@@ -1735,7 +1735,7 @@ sctp_notify_authentication(struct sctp_tcb *stcb, uint32_t indication,
 
 	SCTP_BUF_LEN(m_notify) = 0;
 	auth = mtod(m_notify, struct sctp_authkey_event *);
-	memset(auth, 0, sizeof(struct sctp_authkey_event));
+	k_memset(auth, 0, sizeof(struct sctp_authkey_event));
 	auth->auth_type = SCTP_AUTHENTICATION_EVENT;
 	auth->auth_flags = 0;
 	auth->auth_length = sizeof(*auth);

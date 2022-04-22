@@ -136,7 +136,7 @@ dirent_terminate(struct dirent *dp)
 
 	dp->d_pad0 = 0;
 	dp->d_pad1 = 0;
-	memset(dp->d_name + dp->d_namlen, 0,
+	k_memset(dp->d_name + dp->d_namlen, 0,
 	    dp->d_reclen - (__offsetof(struct dirent, d_name) + dp->d_namlen));
 }
 #endif

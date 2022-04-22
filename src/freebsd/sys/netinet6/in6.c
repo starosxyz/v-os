@@ -680,7 +680,7 @@ aifaddr_out:
 		if (ND_IFINFO(ifp)->flags & ND6_IFF_IFDISABLED) {
 			struct in6_ndireq nd;
 
-			memset(&nd, 0, sizeof(nd));
+			k_memset(&nd, 0, sizeof(nd));
 			nd.ndi.flags = ND_IFINFO(ifp)->flags;
 			nd.ndi.flags &= ~ND6_IFF_IFDISABLED;
 			if (nd6_ioctl(SIOCSIFINFO_FLAGS, (caddr_t)&nd, ifp) < 0)
@@ -903,7 +903,7 @@ in6_prepare_ifra(struct in6_aliasreq *ifra, const struct in6_addr *addr,
     const struct in6_addr *mask)
 {
 
-	memset(ifra, 0, sizeof(struct in6_aliasreq));
+	k_memset(ifra, 0, sizeof(struct in6_aliasreq));
 
 	ifra->ifra_addr.sin6_family = AF_INET6;
 	ifra->ifra_addr.sin6_len = sizeof(struct sockaddr_in6);

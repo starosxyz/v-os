@@ -50,10 +50,6 @@ __FBSDID("$FreeBSD$");
 #include <string.h>
 #endif
 
-#undef memcpy
-#undef memmove
-#undef bcopy
-
 /*
  * sizeof(word) MUST BE A POWER OF TWO
  * SO THAT wmask BELOW IS ALL ONES
@@ -69,7 +65,7 @@ typedef	long	word;		/* "word" used for optimal copy speed */
  * (the portable versions of) bcopy, memcpy, and memmove.
  */
 void *
-memcpy(void *dst0, const void *src0, size_t length)
+vos_memcpy(void *dst0, const void *src0, size_t length)
 {
 	char		*dst;
 	const char	*src;
@@ -149,7 +145,7 @@ done:
 /*__strong_reference(memcpy, memmove);*/
 
 void*
-memmove(void* dst0, const void* src0, size_t length)
+vos_memmove(void* dst0, const void* src0, size_t length)
 {
 	return memcpy(dst0, src0, length);
 }

@@ -522,7 +522,7 @@
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\windows</AdditionalIncludeDirectories>
-      <AdditionalOptions>/utf-8</AdditionalOptions>
+      <AdditionalOptions>/Gs10000000</AdditionalOptions>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <LanguageStandard_C>Default</LanguageStandard_C>
@@ -546,7 +546,11 @@
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <AdditionalIncludeDirectories>.;..\include;.\api;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\windows</AdditionalIncludeDirectories>
-      <AdditionalOptions>/utf-8</AdditionalOptions>
+      <AdditionalOptions>/Gs10000000</AdditionalOptions>
+      <FunctionLevelLinking>
+      </FunctionLevelLinking>
+      <LanguageStandard_C>Default</LanguageStandard_C>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>

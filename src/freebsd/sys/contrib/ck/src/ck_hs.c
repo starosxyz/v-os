@@ -231,12 +231,12 @@ ck_hs_map_create(struct ck_hs *hs, unsigned long long entries)
 	map->entries = (void *)(((uintptr_t)&map[1] + prefix +
 	    CK_MD_CACHELINE - 1) & ~(CK_MD_CACHELINE - 1));
 
-	memset(map->entries, 0, sizeof(void *) * n_entries);
-	memset(map->generation, 0, sizeof map->generation);
+	k_memset(map->entries, 0, sizeof(void *) * n_entries);
+	k_memset(map->generation, 0, sizeof map->generation);
 
 	if (hs->mode & CK_HS_MODE_DELETE) {
 		map->probe_bound = (CK_HS_WORD *)&map[1];
-		memset(map->probe_bound, 0, prefix);
+		k_memset(map->probe_bound, 0, prefix);
 	} else {
 		map->probe_bound = NULL;
 	}
@@ -559,7 +559,7 @@ ck_hs_gc(struct ck_hs *hs, unsigned long long cycles, unsigned long long seed)
 	if (map->n_entries == 0) {
 		ck_pr_store_uint(&map->probe_maximum, 0);
 		if (map->probe_bound != NULL)
-			memset(map->probe_bound, 0, sizeof(CK_HS_WORD) * map->capacity);
+			k_memset(map->probe_bound, 0, sizeof(CK_HS_WORD) * map->capacity);
 
 		return true;
 	}
@@ -573,7 +573,7 @@ ck_hs_gc(struct ck_hs *hs, unsigned long long cycles, unsigned long long seed)
 			if (bounds == NULL)
 				return false;
 
-			memset(bounds, 0, size);
+			k_memset(bounds, 0, size);
 		}
 	} else {
 		maximum = map->probe_maximum;

@@ -33,7 +33,7 @@ __FBSDID("$FreeBSD$");
 #include <sys/libkern.h>
 
 void *
-(memset)(void *b, int c, size_t len)
+(vos_memset)(void *b, int c, size_t len)
 {
 	char *bb;
 
@@ -41,3 +41,4 @@ void *
 		*bb++ = c;
 	return (b);
 }
+

@@ -117,11 +117,11 @@ redzone_setup(caddr_t raddr, u_long nsize)
 	haddr += sizeof(st);
 	bcopy(&nsize, haddr, sizeof(nsize));
 	haddr += sizeof(nsize);
-	memset(haddr, 0x42, REDZONE_CHSIZE);
+	k_memset(haddr, 0x42, REDZONE_CHSIZE);
 	haddr += REDZONE_CHSIZE;
 
 	/* Redzone footer. */
-	memset(faddr, 0x42, REDZONE_CFSIZE);
+	k_memset(faddr, 0x42, REDZONE_CFSIZE);
 
 	return (haddr);
 }

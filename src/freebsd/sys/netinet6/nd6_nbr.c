@@ -898,7 +898,7 @@ nd6_na_input(struct mbuf *m, int off, int icmp6len)
 	 */
 	ln->la_asked = 0;
 	if (ln->la_hold != NULL) {
-		memset(&sin6, 0, sizeof(sin6));
+		k_memset(&sin6, 0, sizeof(sin6));
 		nd6_grab_holdchain(ln, &chain, &sin6);
 	}
  freeit:

@@ -2178,7 +2178,7 @@ link_init_sdl(struct ifnet *ifp, struct sockaddr *paddr, u_char iftype)
 	struct sockaddr_dl *sdl;
 
 	sdl = (struct sockaddr_dl *)paddr;
-	memset(sdl, 0, sizeof(struct sockaddr_dl));
+	k_memset(sdl, 0, sizeof(struct sockaddr_dl));
 	sdl->sdl_len = sizeof(struct sockaddr_dl);
 	sdl->sdl_family = AF_LINK;
 	sdl->sdl_index = ifp->if_index;
@@ -2493,7 +2493,7 @@ ifhwioctl(u_long cmd, struct ifnet *ifp, caddr_t data, struct thread *td)
 		struct if_data ifd;
 
 		/* Ensure uninitialised padding is not leaked. */
-		memset(&ifd, 0, sizeof(ifd));
+		k_memset(&ifd, 0, sizeof(ifd));
 
 		if_data_copy(ifp, &ifd);
 		error = copyout(&ifd, ifr_data_get_ptr(ifr), sizeof(ifd));
@@ -3231,7 +3231,7 @@ again:
 		 * Zero the ifr to make sure we don't disclose the contents
 		 * of the stack.
 		 */
-		memset(&ifr, 0, sizeof(ifr));
+		k_memset(&ifr, 0, sizeof(ifr));
 
 		if (strlcpy(ifr.ifr_name, ifp->if_xname, sizeof(ifr.ifr_name))
 		    >= sizeof(ifr.ifr_name)) {
@@ -3250,7 +3250,7 @@ again:
 			addrs++;
 			if (sa->sa_len <= sizeof(*sa)) {
 				if (sa->sa_len < sizeof(*sa)) {
-					memset(&ifr.ifr_ifru.ifru_addr, 0,
+					k_memset(&ifr.ifr_ifru.ifru_addr, 0,
 					    sizeof(ifr.ifr_ifru.ifru_addr));
 					memcpy(&ifr.ifr_ifru.ifru_addr, sa,
 					    sa->sa_len);

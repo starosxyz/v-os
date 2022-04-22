@@ -124,7 +124,7 @@ rto_logging(struct sctp_nets *net, int from)
 #if defined(SCTP_LOCAL_TRACE_BUF)
 	struct sctp_cwnd_log sctp_clog;
 
-	memset(&sctp_clog, 0, sizeof(sctp_clog));
+	k_memset(&sctp_clog, 0, sizeof(sctp_clog));
 	sctp_clog.x.rto.net = (void *)net;
 	sctp_clog.x.rto.rtt = net->rtt / 1000;
 	SCTP_CTR6(KTR_SCTP, "SCTP:%d[%d]:%x-%x-%x-%x",
@@ -207,7 +207,7 @@ sctp_log_map(uint32_t map, uint32_t cum, uint32_t high, int from)
 #if defined(SCTP_LOCAL_TRACE_BUF)
 	struct sctp_cwnd_log sctp_clog;
 
-	memset(&sctp_clog, 0, sizeof(sctp_clog));
+	k_memset(&sctp_clog, 0, sizeof(sctp_clog));
 	sctp_clog.x.map.base = map;
 	sctp_clog.x.map.cum = cum;
 	sctp_clog.x.map.high = high;
@@ -227,7 +227,7 @@ sctp_log_fr(uint32_t biggest_tsn, uint32_t biggest_new_tsn, uint32_t tsn, int fr
 #if defined(SCTP_LOCAL_TRACE_BUF)
 	struct sctp_cwnd_log sctp_clog;
 
-	memset(&sctp_clog, 0, sizeof(sctp_clog));
+	k_memset(&sctp_clog, 0, sizeof(sctp_clog));
 	sctp_clog.x.fr.largest_tsn = biggest_tsn;
 	sctp_clog.x.fr.largest_new_tsn = biggest_new_tsn;
 	sctp_clog.x.fr.tsn = tsn;
@@ -354,7 +354,7 @@ sctp_log_lock(struct sctp_inpcb *inp, struct sctp_tcb *stcb, uint8_t from)
 #if defined(SCTP_LOCAL_TRACE_BUF)
 	struct sctp_cwnd_log sctp_clog;
 
-	memset(&sctp_clog, 0, sizeof(sctp_clog));
+	k_memset(&sctp_clog, 0, sizeof(sctp_clog));
 	if (inp) {
 		sctp_clog.x.lock.sock = (void *)inp->sctp_socket;
 
@@ -400,7 +400,7 @@ sctp_log_maxburst(struct sctp_tcb *stcb, struct sctp_nets *net, int error, int b
 #if defined(SCTP_LOCAL_TRACE_BUF)
 	struct sctp_cwnd_log sctp_clog;
 
-	memset(&sctp_clog, 0, sizeof(sctp_clog));
+	mek_memsetmset(&sctp_clog, 0, sizeof(sctp_clog));
 	sctp_clog.x.cwnd.net = net;
 	sctp_clog.x.cwnd.cwnd_new_value = error;
 	sctp_clog.x.cwnd.inflight = net->flight_size;
@@ -1320,7 +1320,7 @@ sctp_init_asoc(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
 		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTPUTIL, ENOMEM);
 		return (ENOMEM);
 	}
-	memset(asoc->mapping_array, 0, asoc->mapping_array_size);
+	k_memset(asoc->mapping_array, 0, asoc->mapping_array_size);
 	SCTP_MALLOC(asoc->nr_mapping_array, uint8_t *, asoc->mapping_array_size,
 	    SCTP_M_MAP);
 	if (asoc->nr_mapping_array == NULL) {
@@ -1329,7 +1329,7 @@ sctp_init_asoc(struct sctp_inpcb *inp, struct sctp_tcb *stcb,
 		SCTP_LTRACE_ERR_RET(NULL, stcb, NULL, SCTP_FROM_SCTPUTIL, ENOMEM);
 		return (ENOMEM);
 	}
-	memset(asoc->nr_mapping_array, 0, asoc->mapping_array_size);
+	k_memset(asoc->nr_mapping_array, 0, asoc->mapping_array_size);
 
 	/* Now the init of the other outqueues */
 	TAILQ_INIT(&asoc->free_chunks);
@@ -1426,8 +1426,8 @@ sctp_expand_mapping_array(struct sctp_association *asoc, uint32_t needed)
 		}
 		return (-1);
 	}
-	memset(new_array1, 0, new_size);
-	memset(new_array2, 0, new_size);
+	k_memset(new_array1, 0, new_size);
+	k_memset(new_array2, 0, new_size);
 	memcpy(new_array1, asoc->mapping_array, asoc->mapping_array_size);
 	memcpy(new_array2, asoc->nr_mapping_array, asoc->mapping_array_size);
 	SCTP_FREE(asoc->mapping_array, SCTP_M_MAP);
@@ -3122,7 +3122,7 @@ sctp_add_pad_tombuf(struct mbuf *m, int padlen)
 	}
 	dp = mtod(m_last, caddr_t)+SCTP_BUF_LEN(m_last);
 	SCTP_BUF_LEN(m_last) += padlen;
-	memset(dp, 0, padlen);
+	k_memset(dp, 0, padlen);
 	return (m_last);
 }
 
@@ -3188,7 +3188,7 @@ sctp_notify_assoc_change(uint16_t state, struct sctp_tcb *stcb,
 		}
 		SCTP_BUF_NEXT(m_notify) = NULL;
 		sac = mtod(m_notify, struct sctp_assoc_change *);
-		memset(sac, 0, notif_len);
+		k_memset(sac, 0, notif_len);
 		sac->sac_type = SCTP_ASSOC_CHANGE;
 		sac->sac_flags = 0;
 		sac->sac_length = sizeof(struct sctp_assoc_change);
@@ -3297,7 +3297,7 @@ sctp_notify_peer_addr_change(struct sctp_tcb *stcb, uint32_t state,
 		return;
 	SCTP_BUF_LEN(m_notify) = 0;
 	spc = mtod(m_notify, struct sctp_paddr_change *);
-	memset(spc, 0, sizeof(struct sctp_paddr_change));
+	k_memset(spc, 0, sizeof(struct sctp_paddr_change));
 	spc->spc_type = SCTP_PEER_ADDR_CHANGE;
 	spc->spc_flags = 0;
 	spc->spc_length = sizeof(struct sctp_paddr_change);
@@ -3421,7 +3421,7 @@ sctp_notify_send_failed(struct sctp_tcb *stcb, uint8_t sent, uint32_t error,
 	}
 	if (sctp_stcb_is_feature_on(stcb->sctp_ep, stcb, SCTP_PCB_FLAGS_RECVNSENDFAILEVNT)) {
 		ssfe = mtod(m_notify, struct sctp_send_failed_event *);
-		memset(ssfe, 0, notifhdr_len);
+		k_memset(ssfe, 0, notifhdr_len);
 		ssfe->ssfe_type = SCTP_SEND_FAILED_EVENT;
 		if (sent) {
 			ssfe->ssfe_flags = SCTP_DATA_SENT;
@@ -3439,7 +3439,7 @@ sctp_notify_send_failed(struct sctp_tcb *stcb, uint8_t sent, uint32_t error,
 		ssfe->ssfe_assoc_id = sctp_get_associd(stcb);
 	} else {
 		ssf = mtod(m_notify, struct sctp_send_failed *);
-		memset(ssf, 0, notifhdr_len);
+		k_memset(ssf, 0, notifhdr_len);
 		ssf->ssf_type = SCTP_SEND_FAILED;
 		if (sent) {
 			ssf->ssf_flags = SCTP_DATA_SENT;
@@ -3527,7 +3527,7 @@ sctp_notify_send_failed2(struct sctp_tcb *stcb, uint32_t error,
 	SCTP_BUF_LEN(m_notify) = notifhdr_len;
 	if (sctp_stcb_is_feature_on(stcb->sctp_ep, stcb, SCTP_PCB_FLAGS_RECVNSENDFAILEVNT)) {
 		ssfe = mtod(m_notify, struct sctp_send_failed_event *);
-		memset(ssfe, 0, notifhdr_len);
+		k_memset(ssfe, 0, notifhdr_len);
 		ssfe->ssfe_type = SCTP_SEND_FAILED_EVENT;
 		ssfe->ssfe_flags = SCTP_DATA_UNSENT;
 		ssfe->ssfe_length = (uint32_t)(notifhdr_len + sp->length);
@@ -3545,7 +3545,7 @@ sctp_notify_send_failed2(struct sctp_tcb *stcb, uint32_t error,
 		ssfe->ssfe_assoc_id = sctp_get_associd(stcb);
 	} else {
 		ssf = mtod(m_notify, struct sctp_send_failed *);
-		memset(ssf, 0, notifhdr_len);
+		k_memset(ssf, 0, notifhdr_len);
 		ssf->ssf_type = SCTP_SEND_FAILED;
 		ssf->ssf_flags = SCTP_DATA_UNSENT;
 		ssf->ssf_length = (uint32_t)(notifhdr_len + sp->length);
@@ -3613,7 +3613,7 @@ sctp_notify_adaptation_layer(struct sctp_tcb *stcb)
 		return;
 	SCTP_BUF_LEN(m_notify) = 0;
 	sai = mtod(m_notify, struct sctp_adaptation_event *);
-	memset(sai, 0, sizeof(struct sctp_adaptation_event));
+	k_memset(sai, 0, sizeof(struct sctp_adaptation_event));
 	sai->sai_type = SCTP_ADAPTATION_INDICATION;
 	sai->sai_flags = 0;
 	sai->sai_length = sizeof(struct sctp_adaptation_event);
@@ -3666,7 +3666,7 @@ sctp_notify_partial_delivery_indication(struct sctp_tcb *stcb, uint32_t error,
 		return;
 	SCTP_BUF_LEN(m_notify) = 0;
 	pdapi = mtod(m_notify, struct sctp_pdapi_event *);
-	memset(pdapi, 0, sizeof(struct sctp_pdapi_event));
+	k_memset(pdapi, 0, sizeof(struct sctp_pdapi_event));
 	pdapi->pdapi_type = SCTP_PARTIAL_DELIVERY_EVENT;
 	pdapi->pdapi_flags = 0;
 	pdapi->pdapi_length = sizeof(struct sctp_pdapi_event);
@@ -3736,7 +3736,7 @@ sctp_notify_shutdown_event(struct sctp_tcb *stcb)
 		/* no space left */
 		return;
 	sse = mtod(m_notify, struct sctp_shutdown_event *);
-	memset(sse, 0, sizeof(struct sctp_shutdown_event));
+	k_memset(sse, 0, sizeof(struct sctp_shutdown_event));
 	sse->sse_type = SCTP_SHUTDOWN_EVENT;
 	sse->sse_flags = 0;
 	sse->sse_length = sizeof(struct sctp_shutdown_event);
@@ -3784,7 +3784,7 @@ sctp_notify_sender_dry_event(struct sctp_tcb *stcb,
 	}
 	SCTP_BUF_LEN(m_notify) = 0;
 	event = mtod(m_notify, struct sctp_sender_dry_event *);
-	memset(event, 0, sizeof(struct sctp_sender_dry_event));
+	k_memset(event, 0, sizeof(struct sctp_sender_dry_event));
 	event->sender_dry_type = SCTP_SENDER_DRY_EVENT;
 	event->sender_dry_flags = 0;
 	event->sender_dry_length = sizeof(struct sctp_sender_dry_event);
@@ -3834,7 +3834,7 @@ sctp_notify_stream_reset_add(struct sctp_tcb *stcb, uint16_t numberin, uint16_t 
 		return;
 	SCTP_BUF_LEN(m_notify) = 0;
 	stradd = mtod(m_notify, struct sctp_stream_change_event *);
-	memset(stradd, 0, sizeof(struct sctp_stream_change_event));
+	k_memset(stradd, 0, sizeof(struct sctp_stream_change_event));
 	stradd->strchange_type = SCTP_STREAM_CHANGE_EVENT;
 	stradd->strchange_flags = flag;
 	stradd->strchange_length = sizeof(struct sctp_stream_change_event);
@@ -3884,7 +3884,7 @@ sctp_notify_stream_reset_tsn(struct sctp_tcb *stcb, uint32_t sending_tsn, uint32
 		return;
 	SCTP_BUF_LEN(m_notify) = 0;
 	strasoc = mtod(m_notify, struct sctp_assoc_reset_event *);
-	memset(strasoc, 0, sizeof(struct sctp_assoc_reset_event));
+	k_memset(strasoc, 0, sizeof(struct sctp_assoc_reset_event));
 	strasoc->assocreset_type = SCTP_ASSOC_RESET_EVENT;
 	strasoc->assocreset_flags = flag;
 	strasoc->assocreset_length = sizeof(struct sctp_assoc_reset_event);
@@ -3943,7 +3943,7 @@ sctp_notify_stream_reset(struct sctp_tcb *stcb,
 		return;
 	}
 	strreset = mtod(m_notify, struct sctp_stream_reset_event *);
-	memset(strreset, 0, len);
+	k_memset(strreset, 0, len);
 	strreset->strreset_type = SCTP_STREAM_RESET_EVENT;
 	strreset->strreset_flags = flag;
 	strreset->strreset_length = len;
@@ -4017,7 +4017,7 @@ sctp_notify_remote_error(struct sctp_tcb *stcb, uint16_t error, struct sctp_erro
 	}
 	SCTP_BUF_NEXT(m_notify) = NULL;
 	sre = mtod(m_notify, struct sctp_remote_error *);
-	memset(sre, 0, notif_len);
+	k_memset(sre, 0, notif_len);
 	sre->sre_type = SCTP_REMOTE_ERROR;
 	sre->sre_flags = 0;
 	sre->sre_length = sizeof(struct sctp_remote_error);
@@ -5149,7 +5149,7 @@ sctp_release_pr_sctp_chunk(struct sctp_tcb *stcb, struct sctp_tmit_chunk *tp1,
 					 */
 					goto oh_well;
 				}
-				memset(chk, 0, sizeof(*chk));
+				k_memset(chk, 0, sizeof(*chk));
 				chk->rec.data.rcv_flags = 0;
 				chk->sent = SCTP_FORWARD_TSN_SKIP;
 				chk->asoc = &stcb->asoc;
@@ -6461,7 +6461,7 @@ sctp_dynamic_set_primary(struct sockaddr *sa, uint32_t vrf_id)
 	}
 	/* Now incr the count and int wi structure */
 	SCTP_INCR_LADDR_COUNT();
-	memset(wi, 0, sizeof(*wi));
+	k_memset(wi, 0, sizeof(*wi));
 	(void)SCTP_GETTIME_TIMEVAL(&wi->start_time);
 	wi->ifa = ifa;
 	wi->action = SCTP_SET_PRIM_ADDR;
@@ -6521,7 +6521,7 @@ sctp_soreceive(struct socket *so,
 	}
 
 	if (filling_sinfo) {
-		memset(&sinfo, 0, sizeof(struct sctp_extrcvinfo));
+		k_memset(&sinfo, 0, sizeof(struct sctp_extrcvinfo));
 	}
 	if (flagsp != NULL) {
 		flags = *flagsp;
@@ -7181,12 +7181,12 @@ sctp_recv_icmp_tunneled_packet(int cmd, struct sockaddr *sa, void *vip, void *ct
 	}
 	udp = (struct udphdr *)((caddr_t)inner_ip + (inner_ip->ip_hl << 2));
 	sh = (struct sctphdr *)(udp + 1);
-	memset(&src, 0, sizeof(struct sockaddr_in));
+	k_memset(&src, 0, sizeof(struct sockaddr_in));
 	src.sin_family = AF_INET;
 	src.sin_len = sizeof(struct sockaddr_in);
 	src.sin_port = sh->src_port;
 	src.sin_addr = inner_ip->ip_src;
-	memset(&dst, 0, sizeof(struct sockaddr_in));
+	k_memset(&dst, 0, sizeof(struct sockaddr_in));
 	dst.sin_family = AF_INET;
 	dst.sin_len = sizeof(struct sockaddr_in);
 	dst.sin_port = sh->dest_port;
@@ -7295,18 +7295,18 @@ sctp_recv_icmp6_tunneled_packet(int cmd, struct sockaddr *sa, void *d, void *ctx
 		return;
 	}
 	/* Copy out the UDP header. */
-	memset(&udp, 0, sizeof(struct udphdr));
+	k_memset(&udp, 0, sizeof(struct udphdr));
 	m_copydata(ip6cp->ip6c_m,
 	    ip6cp->ip6c_off,
 	    sizeof(struct udphdr),
 	    (caddr_t)&udp);
 	/* Copy out the port numbers and the verification tag. */
-	memset(&sh, 0, sizeof(struct sctphdr));
+	k_memset(&sh, 0, sizeof(struct sctphdr));
 	m_copydata(ip6cp->ip6c_m,
 	    ip6cp->ip6c_off + sizeof(struct udphdr),
 	    sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t),
 	    (caddr_t)&sh);
-	memset(&src, 0, sizeof(struct sockaddr_in6));
+	k_memset(&src, 0, sizeof(struct sockaddr_in6));
 	src.sin6_family = AF_INET6;
 	src.sin6_len = sizeof(struct sockaddr_in6);
 	src.sin6_port = sh.src_port;
@@ -7314,7 +7314,7 @@ sctp_recv_icmp6_tunneled_packet(int cmd, struct sockaddr *sa, void *d, void *ctx
 	if (in6_setscope(&src.sin6_addr, ip6cp->ip6c_m->m_pkthdr.rcvif, NULL) != 0) {
 		return;
 	}
-	memset(&dst, 0, sizeof(struct sockaddr_in6));
+	k_memset(&dst, 0, sizeof(struct sockaddr_in6));
 	dst.sin6_family = AF_INET6;
 	dst.sin6_len = sizeof(struct sockaddr_in6);
 	dst.sin6_port = sh.dest_port;
@@ -7476,7 +7476,7 @@ sctp_over_udp_start(void)
 		return (ret);
 	}
 	/* Ok, we have a socket, bind it to the port. */
-	memset(&sin, 0, sizeof(struct sockaddr_in));
+	k_memset(&sin, 0, sizeof(struct sockaddr_in));
 	sin.sin_len = sizeof(struct sockaddr_in);
 	sin.sin_family = AF_INET;
 	sin.sin_port = htons(port);
@@ -7502,7 +7502,7 @@ sctp_over_udp_start(void)
 		return (ret);
 	}
 	/* Ok, we have a socket, bind it to the port. */
-	memset(&sin6, 0, sizeof(struct sockaddr_in6));
+	k_memset(&sin6, 0, sizeof(struct sockaddr_in6));
 	sin6.sin6_len = sizeof(struct sockaddr_in6);
 	sin6.sin6_family = AF_INET6;
 	sin6.sin6_port = htons(port);
@@ -7554,7 +7554,7 @@ sctp_hc_set_mtu(union sctp_sockstore *addr, uint16_t fibnum, uint32_t mtu)
 {
 	struct in_conninfo inc;
 
-	memset(&inc, 0, sizeof(struct in_conninfo));
+	k_memset(&inc, 0, sizeof(struct in_conninfo));
 	inc.inc_fibnum = fibnum;
 	switch (addr->sa.sa_family) {
 #ifdef INET
@@ -7579,7 +7579,7 @@ sctp_hc_get_mtu(union sctp_sockstore *addr, uint16_t fibnum)
 {
 	struct in_conninfo inc;
 
-	memset(&inc, 0, sizeof(struct in_conninfo));
+	k_memset(&inc, 0, sizeof(struct in_conninfo));
 	inc.inc_fibnum = fibnum;
 	switch (addr->sa.sa_family) {
 #ifdef INET

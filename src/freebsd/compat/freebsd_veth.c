@@ -179,7 +179,7 @@ create_vos_veth(const in_addr_t* ipaddr,
         printf("ff_veth_softc allocation failed\n");
         goto fail;
     }
-    memset(sc, 0, sizeof(struct vos_veth));
+    k_memset(sc, 0, sizeof(struct vos_veth));
     sc->host_ctx = cookie;
     sc->eth_output = outputfun;
     memcpy(sc->mac, macaddr, sizeof(sc->mac));
@@ -475,7 +475,7 @@ vos_veth_setaddr6(struct vos_veth* sc, struct in6_addr *ip6)
     ifr6.ifra_addr.sin6_addr = sc->ip6;
 
     ifr6.ifra_prefixmask.sin6_len = sizeof ifr6.ifra_prefixmask;
-    memset(&ifr6.ifra_prefixmask.sin6_addr, 0xff, sc->prefix_length / 8);
+    k_memset(&ifr6.ifra_prefixmask.sin6_addr, 0xff, sc->prefix_length / 8);
     uint8_t mask_size_mod = sc->prefix_length % 8;
     if (mask_size_mod)
     {
@@ -560,7 +560,7 @@ vos_veth_setvaddr6(struct vos_veth* sc, const char* if_dname,
     ifr6.ifra_addr.sin6_family = AF_INET6;
 
     ifr6.ifra_prefixmask.sin6_len = sizeof ifr6.ifra_prefixmask;
-    memset(&ifr6.ifra_prefixmask.sin6_addr, 0xff, sc->prefix_length / 8);
+    k_memset(&ifr6.ifra_prefixmask.sin6_addr, 0xff, sc->prefix_length / 8);
     uint8_t mask_size_mod = sc->prefix_length % 8;
     if (mask_size_mod)
     {

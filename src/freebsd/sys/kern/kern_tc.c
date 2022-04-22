@@ -530,7 +530,7 @@ ffclock_init(void)
 	struct fftimehands* cur;
 	struct fftimehands* last;
 
-	memset(ffth, 0, sizeof(ffth));
+	k_memset(ffth, 0, sizeof(ffth));
 
 	last = ffth + NUM_ELEMENTS(ffth) - 1;
 	for (cur = ffth; cur < last; cur++)
@@ -556,7 +556,7 @@ ffclock_reset_clock(struct timespec* ts)
 	struct ffclock_estimate cest;
 
 	tc = timehands->th_counter;
-	memset(&cest, 0, sizeof(struct ffclock_estimate));
+	k_memset(&cest, 0, sizeof(struct ffclock_estimate));
 
 	timespec2bintime(ts, &ffclock_boottime);
 	timespec2bintime(ts, &(cest.update_time));

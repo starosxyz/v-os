@@ -114,7 +114,7 @@ sctp6_input_with_port(struct mbuf **i_pak, int *offp, uint16_t port)
 	sh = (struct sctphdr *)(mtod(m, caddr_t)+iphlen);
 	ch = (struct sctp_chunkhdr *)((caddr_t)sh + sizeof(struct sctphdr));
 	offset -= sizeof(struct sctp_chunkhdr);
-	memset(&src, 0, sizeof(struct sockaddr_in6));
+	k_memset(&src, 0, sizeof(struct sockaddr_in6));
 	src.sin6_family = AF_INET6;
 	src.sin6_len = sizeof(struct sockaddr_in6);
 	src.sin6_port = sh->src_port;
@@ -122,7 +122,7 @@ sctp6_input_with_port(struct mbuf **i_pak, int *offp, uint16_t port)
 	if (in6_setscope(&src.sin6_addr, m->m_pkthdr.rcvif, NULL) != 0) {
 		goto out;
 	}
-	memset(&dst, 0, sizeof(struct sockaddr_in6));
+	k_memset(&dst, 0, sizeof(struct sockaddr_in6));
 	dst.sin6_family = AF_INET6;
 	dst.sin6_len = sizeof(struct sockaddr_in6);
 	dst.sin6_port = sh->dest_port;
@@ -296,12 +296,12 @@ sctp6_ctlinput(int cmd, struct sockaddr *pktdst, void *d)
 		}
 
 		/* Copy out the port numbers and the verification tag. */
-		memset(&sh, 0, sizeof(sh));
+		k_memset(&sh, 0, sizeof(sh));
 		m_copydata(ip6cp->ip6c_m,
 		    ip6cp->ip6c_off,
 		    sizeof(uint16_t) + sizeof(uint16_t) + sizeof(uint32_t),
 		    (caddr_t)&sh);
-		memset(&src, 0, sizeof(struct sockaddr_in6));
+		k_memset(&src, 0, sizeof(struct sockaddr_in6));
 		src.sin6_family = AF_INET6;
 		src.sin6_len = sizeof(struct sockaddr_in6);
 		src.sin6_port = sh.src_port;
@@ -309,7 +309,7 @@ sctp6_ctlinput(int cmd, struct sockaddr *pktdst, void *d)
 		if (in6_setscope(&src.sin6_addr, ip6cp->ip6c_m->m_pkthdr.rcvif, NULL) != 0) {
 			return;
 		}
-		memset(&dst, 0, sizeof(struct sockaddr_in6));
+		k_memset(&dst, 0, sizeof(struct sockaddr_in6));
 		dst.sin6_family = AF_INET6;
 		dst.sin6_len = sizeof(struct sockaddr_in6);
 		dst.sin6_port = sh.dest_port;
@@ -989,7 +989,7 @@ sctp6_getaddr(struct socket *so, struct sockaddr **addr)
 			}
 		} else {
 			/* For the bound all case you get back 0 */
-			memset(&sin6->sin6_addr, 0, sizeof(sin6->sin6_addr));
+			k_memset(&sin6->sin6_addr, 0, sizeof(sin6->sin6_addr));
 		}
 	} else {
 		/* Take the first IPv6 address in the list */

@@ -2779,7 +2779,7 @@ mld_v2_enqueue_filter_change(struct mbufq *mq, struct in6_multi *inm)
 			 * group record, in case m_append() allocated
 			 * a new mbuf or cluster.
 			 */
-			memset(&mr, 0, sizeof(mr));
+			k_memset(&mr, 0, sizeof(mr));
 			mr.mr_addr = inm->in6m_addr;
 			in6_clearscope(&mr.mr_addr);
 			if (!m_append(m, sizeof(mr), (void *)&mr)) {

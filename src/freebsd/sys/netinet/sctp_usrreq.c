@@ -86,7 +86,7 @@ sctp_init(void)
 #if defined(SCTP_PACKET_LOGGING)
 	SCTP_BASE_VAR(packet_log_writers) = 0;
 	SCTP_BASE_VAR(packet_log_end) = 0;
-	memset(&SCTP_BASE_VAR(packet_log_buffer), 0, SCTP_PACKET_LOG_SIZE);
+	k_memset(&SCTP_BASE_VAR(packet_log_buffer), 0, SCTP_PACKET_LOG_SIZE);
 #endif
 	SCTP_BASE_VAR(eh_tag) = EVENTHANDLER_REGISTER(rt_addrmsg,
 	    sctp_addr_change_event_handler, NULL, EVENTHANDLER_PRI_FIRST);
@@ -269,12 +269,12 @@ sctp_ctlinput(int cmd, struct sockaddr *sa, void *vip)
 		    (sizeof(struct icmp) - sizeof(struct ip)));
 		outer_ip = (struct ip *)((caddr_t)icmp - sizeof(struct ip));
 		sh = (struct sctphdr *)((caddr_t)inner_ip + (inner_ip->ip_hl << 2));
-		memset(&src, 0, sizeof(struct sockaddr_in));
+		k_memset(&src, 0, sizeof(struct sockaddr_in));
 		src.sin_family = AF_INET;
 		src.sin_len = sizeof(struct sockaddr_in);
 		src.sin_port = sh->src_port;
 		src.sin_addr = inner_ip->ip_src;
-		memset(&dst, 0, sizeof(struct sockaddr_in));
+		k_memset(&dst, 0, sizeof(struct sockaddr_in));
 		dst.sin_family = AF_INET;
 		dst.sin_len = sizeof(struct sockaddr_in);
 		dst.sin_port = sh->dest_port;
@@ -2089,7 +2089,7 @@ flags_out:
 			struct sctp_event_subscribe *events;
 
 			SCTP_CHECK_AND_CAST(events, optval, struct sctp_event_subscribe, *optsize);
-			memset(events, 0, sizeof(struct sctp_event_subscribe));
+			k_memset(events, 0, sizeof(struct sctp_event_subscribe));
 			SCTP_INP_RLOCK(inp);
 			if (sctp_is_feature_on(inp, SCTP_PCB_FLAGS_RECVDATAIOEVNT))
 				events->sctp_data_io_event = 1;
@@ -2663,7 +2663,7 @@ flags_out:
 					break;
 				}
 			} else {
-				memset(&sstat->sstat_primary, 0, sizeof(struct sctp_paddrinfo));
+				k_memset(&sstat->sstat_primary, 0, sizeof(struct sctp_paddrinfo));
 			}
 			sstat->sstat_primary.spinfo_assoc_id = sctp_get_associd(stcb);
 			SCTP_TCB_UNLOCK(stcb);
@@ -7161,7 +7161,7 @@ sctp_listen(struct socket *so, int backlog, struct thread *p)
 			}
 		} else {
 			/* Setup a local addr bound all */
-			memset(&store, 0, sizeof(store));
+			k_memset(&store, 0, sizeof(store));
 #ifdef INET6
 			if (inp->sctp_flags & SCTP_PCB_FLAGS_BOUND_V6) {
 				store.sa.sa_family = AF_INET6;

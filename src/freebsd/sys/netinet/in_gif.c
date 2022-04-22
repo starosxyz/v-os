@@ -254,14 +254,14 @@ in_gif_ioctl(struct gif_softc *sc, u_long cmd, caddr_t data)
 			break;
 		}
 		src = (struct sockaddr_in *)&ifr->ifr_addr;
-		memset(src, 0, sizeof(*src));
+		k_memset(src, 0, sizeof(*src));
 		src->sin_family = AF_INET;
 		src->sin_len = sizeof(*src);
 		src->sin_addr = (cmd == SIOCGIFPSRCADDR) ?
 		    sc->gif_iphdr->ip_src: sc->gif_iphdr->ip_dst;
 		error = prison_if(curthread->td_ucred, (struct sockaddr *)src);
 		if (error != 0)
-			memset(src, 0, sizeof(*src));
+			k_memset(src, 0, sizeof(*src));
 		break;
 	}
 	return (error);

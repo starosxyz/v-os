@@ -214,7 +214,7 @@ SHA256_Pad(SHA256_CTX * ctx)
 		SHA256_Transform(ctx->state, ctx->buf);
 
 		/* The start of the final block is all zeroes. */
-		memset(&ctx->buf[0], 0, 56);
+		k_memset(&ctx->buf[0], 0, 56);
 	}
 
 	/* Add the terminating bit-count. */

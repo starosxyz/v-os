@@ -226,7 +226,7 @@ MD5Final(unsigned char digest[MD5_DIGEST_LENGTH], MD5_CTX *context)
 	Encode (digest, context->state, MD5_DIGEST_LENGTH);
 
 	/* Zeroize sensitive information. */
-	memset (context, 0, sizeof (*context));
+	k_memset(context, 0, sizeof (*context));
 }
 
 /* MD5 basic transformation. Transforms state based on block. */
@@ -334,5 +334,5 @@ MD5Transform (state, block)
 	state[3] += d;
 
 	/* Zeroize sensitive information. */
-	memset ((void *)x, 0, sizeof (x));
+	k_memset((void *)x, 0, sizeof (x));
 }

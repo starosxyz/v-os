@@ -602,7 +602,7 @@ debugnet_mbuf_finish(void)
 	zone_jumbo9 = dn_saved_zones.dsz_jumbo9;
 	zone_jumbo16 = dn_saved_zones.dsz_jumbo16;
 
-	memset(&dn_saved_zones, 0, sizeof(dn_saved_zones));
+	k_memset(&dn_saved_zones, 0, sizeof(dn_saved_zones));
 }
 
 /*

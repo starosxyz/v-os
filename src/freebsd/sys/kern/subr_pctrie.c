@@ -328,7 +328,7 @@ pctrie_zone_init(void *mem, int size __unused, int flags __unused)
 
 	node = mem;
 	node->pn_last = 0;
-	memset(node->pn_child, 0, sizeof(node->pn_child));
+	k_memset(node->pn_child, 0, sizeof(node->pn_child));
 	return (0);
 }
 

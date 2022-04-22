@@ -284,7 +284,7 @@ ck_epoch_register(struct ck_epoch *global, struct ck_epoch_record *record,
 	record->n_peak = 0;
 	record->n_pending = 0;
 	record->ct = ct;
-	memset(&record->local, 0, sizeof record->local);
+	k_memset(&record->local, 0, sizeof record->local);
 
 	for (i = 0; i < CK_EPOCH_LENGTH; i++)
 		ck_stack_init(&record->pending[i]);
@@ -305,7 +305,7 @@ ck_epoch_unregister(struct ck_epoch_record *record)
 	record->n_dispatch = 0;
 	record->n_peak = 0;
 	record->n_pending = 0;
-	memset(&record->local, 0, sizeof record->local);
+	k_memset(&record->local, 0, sizeof record->local);
 
 	for (i = 0; i < CK_EPOCH_LENGTH; i++)
 		ck_stack_init(&record->pending[i]);

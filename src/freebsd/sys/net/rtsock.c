@@ -1533,7 +1533,7 @@ rtsock_fix_netmask(const struct sockaddr *dst, const struct sockaddr *smask,
 	if (dst == NULL || smask == NULL)
 		return (NULL);
 
-	memset(dmask, 0, dst->sa_len);
+	k_memset(dmask, 0, dst->sa_len);
 	memcpy(dmask, smask, smask->sa_len);
 	dmask->ss_len = dst->sa_len;
 	dmask->ss_family = dst->sa_family;
