@@ -200,7 +200,9 @@ int ctx_putchar(int c);
 int ctx_puts(const char *str);
 int	kvprintf(char const*, void (*)(int, void*), void*, int,
 	__va_list) __printflike(1, 0);
-void	log(int, const char*, ...) __printflike(2, 3);
+#define log(x,y,...) vos_log(x,y,__VA_ARGS__)
+/*void	log(int, const char*, ...) __printflike(2, 3);*/
+void	vos_log(int, const char*, ...) __printflike(2, 3);
 void	log_console(struct uio*);
 void	vlog(int, const char*, __va_list) __printflike(2, 0);
 int	asprintf(char** ret, struct malloc_type* mtp, const char* format,

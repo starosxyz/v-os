@@ -13,6 +13,7 @@ void port_freebsd_init()
 	so_mmap_hooks mmapfun = { port_mmap,port_munmap };
 
 	so_atomic_hooks hooks;
+	hooks.atomic_barrier = atomic_barrier;
 	hooks.atomic_set_int= atomic_set_int;
 	hooks.atomic_clear_int = atomic_clear_int;
 	hooks.atomic_add_int = atomic_add_int;

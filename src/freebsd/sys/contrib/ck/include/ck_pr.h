@@ -53,7 +53,7 @@
 #include "gcc/aarch64/ck_pr.h"
 #elif !defined(__GNUC__)
 #ifdef _WIN32
-#include "gcc/ck_pr.h"
+#include "win32/ck_pr.h"
 #else
 #error Your platform is unsupported
 #endif

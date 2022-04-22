@@ -112,8 +112,8 @@ static __inline __uintmax_t ummin(__uintmax_t a, __uintmax_t b)
 }
 static __inline off_t omax(off_t a, off_t b) { return (a > b ? a : b); }
 static __inline off_t omin(off_t a, off_t b) { return (a < b ? a : b); }
-static __inline int abs(int a) { return (a < 0 ? -a : a); }
-static __inline long long labs(long long a) { return (a < 0 ? -a : a); }
+static __inline int vos_abs(int a) { return (a < 0 ? -a : a); }
+static __inline long long vos_labs(long long a) { return (a < 0 ? -a : a); }
 static __inline quad_t qabs(quad_t a) { return (a < 0 ? -a : a); }
 
 #ifndef RANDOM_FENESTRASX
@@ -177,7 +177,8 @@ char* strncat(char*, const char*, size_t);
 char* strndup(const char* __restrict, size_t, struct malloc_type*);
 size_t	 strlcat(char*, const char*, size_t);
 size_t	 strlcpy(char*, const char*, size_t);
-size_t	 strlen(const char*);
+#define strlen(x) vos_strlen(x)
+size_t	 vos_strlen(const char*);
 int	 strncasecmp(const char*, const char*, size_t);
 int	 strncmp(const char*, const char*, size_t);
 char* strncpy(char* __restrict, const char* __restrict, size_t);

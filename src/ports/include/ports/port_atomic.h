@@ -6,7 +6,7 @@ extern "C" {
 #endif
 SO_EXPORT void atomic_add_barr_int(u_int* P, u_int V);
 SO_EXPORT void atomic_add_barr_long(unsigned long long* P, unsigned long long V);
-
+SO_EXPORT void atomic_barrier();
 SO_EXPORT void atomic_set_int(u_int* P, u_int V);
 SO_EXPORT void atomic_clear_int(u_int* P, u_int V);
 SO_EXPORT void atomic_add_int(u_int* P, u_int V);

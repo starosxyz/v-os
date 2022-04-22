@@ -37,7 +37,7 @@
 CK_CC_INLINE static void
 ck_pr_barrier(void)
 {
-	__faststorefence();
+	ck_atomi_barrier();
 	return;
 }
 

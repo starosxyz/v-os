@@ -296,12 +296,21 @@ _vprintf(int level, int flags, const char *fmt, va_list ap)
 	TSEXIT();
 	return (retval);
 }
+void
+vos_log(int level, const char* fmt, ...)
+{
+	va_list ap;
 
+	va_start(ap, fmt);
+	vlog(level, fmt, ap);
+	va_end(ap);
+}
 /*
  * Log writes to the log buffer, and guarantees not to sleep (so can be
  * called by interrupt routines).  If there is no process reading the
  * log yet, it writes to the console also.
  */
+#if 0
 void
 log(int level, const char *fmt, ...)
 {
@@ -311,7 +320,7 @@ log(int level, const char *fmt, ...)
 	vlog(level, fmt, ap);
 	va_end(ap);
 }
-
+#endif
 void
 vlog(int level, const char *fmt, va_list ap)
 {

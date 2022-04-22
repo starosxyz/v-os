@@ -177,19 +177,10 @@
     <ClCompile Include="sys\libkern\strcspn.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sys\libkern\strcpy.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sys\libkern\strcmp.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sys\libkern\strchrnul.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sys\libkern\strchr.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sys\libkern\strcat.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sys\libkern\strcasestr.c">
@@ -274,12 +265,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sys\libkern\memcchr.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sys\libkern\memchr.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sys\libkern\memcmp.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sys\libkern\memmem.c">
@@ -769,9 +754,6 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="compat\context.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="sys\libkern\memset.c">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="sys\kern\subr_scanf.c">

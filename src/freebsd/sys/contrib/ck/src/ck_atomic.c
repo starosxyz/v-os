@@ -3,6 +3,10 @@
 
 extern so_atomic_hooks global_atomic_hooks;
 
+void ck_atomi_barrier()
+{
+	global_atomic_hooks.atomic_barrier();
+}
 
 char ck_atomi_sync_fetch_and_add_char(char* ptr, char value)
 {

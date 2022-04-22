@@ -11,7 +11,10 @@
 #include <windows.h>
 #include <intrin.h>
 #endif
-
+void atomic_barrier()
+{
+	MemoryBarrier();
+}
 void atomic_set_int(u_int* P, u_int V)
 {
 	InterlockedAnd((LONG*)P, (LONG)V);

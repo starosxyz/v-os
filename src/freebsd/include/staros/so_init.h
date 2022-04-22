@@ -117,6 +117,7 @@ typedef struct so_mmap_hooks
 
 typedef struct so_atomic_hooks
 {
+	void (*atomic_barrier)();
 	void (*atomic_set_int)(u_int* P, u_int V);
 	void (*atomic_clear_int)(u_int* P, u_int V);
 	void (*atomic_add_int)(u_int* P, u_int V);

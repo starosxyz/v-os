@@ -3,6 +3,7 @@
 #include <ck_stdbool.h>
 #include <ck_stddef.h>
 
+void ck_atomi_barrier();
 char ck_atomi_sync_fetch_and_add_char(char *ptr, char value);
 char ck_atomi_sync_fetch_and_sub_char(char *ptr, char value);
 char ck_atomi_sync_fetch_and_or_char(char *ptr, char value);
