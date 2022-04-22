@@ -176,8 +176,8 @@ typedef struct so_atomic_hooks
 	int (*sync_bool_compare_and_swap_char)(char* ptr, char compare, char set);
 	char (*sync_val_compare_and_swap_char)(char* ptr, char compare, char set);
 	int (*sync_bool_compare_and_swap_int)(int* ptr, int compare, int set);
-	char (*sync_val_compare_and_swap_int)(int* ptr, int compare, int set);
-	int (*sync_bool_compare_and_swap_uint)(unsigned int* ptr, unsigned int compare, unsigned int set);
+	int (*sync_val_compare_and_swap_int)(int* ptr, int compare, int set);
+	unsigned int (*sync_bool_compare_and_swap_uint)(unsigned int* ptr, unsigned int compare, unsigned int set);
 	unsigned int (*sync_val_compare_and_swap_uint)(unsigned int* ptr, unsigned int compare, unsigned int set);
 	int (*sync_bool_compare_and_swap_8)(uint8_t* ptr, uint8_t compare, uint8_t set);
 	uint8_t (*sync_val_compare_and_swap_8)(uint8_t* ptr, uint8_t compare, uint8_t set);
@@ -219,6 +219,11 @@ typedef struct so_atomic_hooks
 	void (*atomic_clear_char)(u_char* P, u_char V);
 	void (*atomic_subtract_barr_long)(volatile unsigned long long* p, unsigned long long val);
 	void (*atomic_add_barr_long)(unsigned long long* P, unsigned long long V);
+
+	int (*atomic_testandset_int)(volatile u_int* p, u_int v);
+	int (*atomic_testandset_long)(volatile u_long* p, u_int v);
+	int (*atomic_testandclear_int)(volatile u_int* p, u_int v);
+	int (*atomic_testandclear_long)(volatile u_long* p, u_int v);
 } so_atomic_hooks;
 
 typedef struct so_sx_lock_hooks

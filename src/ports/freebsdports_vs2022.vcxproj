@@ -11,7 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="src/port_atomic.cpp" />
+    <ClCompile Include="src/port_atomic_win32.cpp" />
     <ClCompile Include="src/port_mmap.cpp" />
     <ClCompile Include="src/port_init.cpp" />
     <ClCompile Include="src/port_sx_lock.cpp" />

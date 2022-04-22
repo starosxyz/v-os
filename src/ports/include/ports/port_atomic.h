@@ -97,8 +97,8 @@ SO_EXPORT void* sync_atomic_fetchxor_ptr(volatile void* p, void* v);
 SO_EXPORT int sync_bool_compare_and_swap_char(char* ptr, char compare, char set);
 SO_EXPORT char sync_val_compare_and_swap_char(char* ptr, char compare, char set);
 SO_EXPORT int sync_bool_compare_and_swap_int(int* ptr, int compare, int set);
-SO_EXPORT char sync_val_compare_and_swap_int(int* ptr, int compare, int set);
-SO_EXPORT int sync_bool_compare_and_swap_uint(unsigned int* ptr, unsigned int compare, unsigned int set);
+SO_EXPORT int sync_val_compare_and_swap_int(int* ptr, int compare, int set);
+SO_EXPORT unsigned int sync_bool_compare_and_swap_uint(unsigned int* ptr, unsigned int compare, unsigned int set);
 SO_EXPORT unsigned int sync_val_compare_and_swap_uint(unsigned int* ptr, unsigned int compare, unsigned int set);
 SO_EXPORT int sync_bool_compare_and_swap_8(uint8_t* ptr, uint8_t compare, uint8_t set);
 SO_EXPORT uint8_t sync_val_compare_and_swap_8(uint8_t* ptr, uint8_t compare, uint8_t set);
@@ -110,6 +110,11 @@ SO_EXPORT int sync_bool_compare_and_swap_64(uint64_t* ptr, uint64_t compare, uin
 SO_EXPORT uint64_t sync_val_compare_and_swap_64(uint64_t* ptr, uint64_t compare, uint64_t set);
 SO_EXPORT int  sync_bool_compare_and_swap_ptr(void* ptr, void* compare, void* set);
 SO_EXPORT void* sync_val_compare_and_swap_ptr(void* ptr, void* compare, void* set);
+
+SO_EXPORT int atomic_testandset_int(volatile u_int* p, u_int v);
+SO_EXPORT int atomic_testandset_long(volatile u_long* p, u_int v);
+SO_EXPORT int atomic_testandclear_int(volatile u_int* p, u_int v);
+SO_EXPORT int atomic_testandclear_long(volatile u_long* p, u_int v);
 #ifdef __cplusplus
 }
 #endif

@@ -4,37 +4,26 @@
 #include "context.h"
 
 extern so_atomic_hooks global_atomic_hooks;
+
+int	atomic_testandset_int(volatile u_int* p, u_int v)
+{
+	return global_atomic_hooks.atomic_testandset_int(p, v);
+}
+int	atomic_testandclear_int(volatile u_int* p, u_int v)
+{
+	return global_atomic_hooks.atomic_testandclear_int(p, v);
+}
 int
 atomic_testandset_long(volatile u_long *p, u_int v)
 {
-	u_long bit, old;
-	bool ret;
-
-	bit = (1ull << (v % (sizeof(*p) * 8)));
-
-	old = atomic_load_long(p);
-	ret = false;
-	while (!ret && (old & bit) == 0)
-		ret = atomic_fcmpset_long(p, &old, old | bit);
-
-	return (!ret);
+	return global_atomic_hooks.atomic_testandset_long(p, v);
 }
 
 
 int
 atomic_testandclear_long(volatile u_long *p, u_int v)
 {
-	u_long bit, old;
-	bool ret;
-
-	bit = (1ull << (v % (sizeof(*p) * 8)));
-
-	old = atomic_load_long(p);
-	ret = false;
-	while (!ret && (old & bit) != 0)
-		ret = atomic_fcmpset_long(p, &old, old & ~bit);
-
-	return (ret);
+	return global_atomic_hooks.atomic_testandclear_long(p, v);
 }
 void atomic_add_barr_int(volatile u_int* P, u_int V)
 {

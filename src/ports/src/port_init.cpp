@@ -118,6 +118,12 @@ void port_freebsd_init()
 	hooks.sync_bool_compare_and_swap_ptr = sync_bool_compare_and_swap_ptr;
 	hooks.sync_val_compare_and_swap_ptr = sync_val_compare_and_swap_ptr;
 
+
+	hooks.atomic_testandset_int = atomic_testandset_int;
+	hooks.atomic_testandset_long = atomic_testandset_long;
+	hooks.atomic_testandclear_int = atomic_testandclear_int;
+	hooks.atomic_testandclear_long = atomic_testandclear_long;
+
 	InitStdoutHooks(port_putchar);
 
 	InitAtomicHooks(&hooks);

@@ -4,7 +4,7 @@ include $(USER_DEPTH)/make/makeinclude/mk_pre.mak
 USER_LIB = freebsdport
 
 USER_SRCS_CPP = \
-src/port_atomic.cpp\
+src/port_atomic_gcc.cpp\
 src/port_init.cpp\
 src/port_sx_lock.cpp\
 src/port_stdout.cpp\
