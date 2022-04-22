@@ -80,7 +80,7 @@ static const unsigned long long mask80 = 0x8080808080808080;
 	} while (0)
 
 size_t
-(strlen)(const char *str)
+(vos_strlen)(const char *str)
 {
 	const char *p;
 	const unsigned long long *lp;

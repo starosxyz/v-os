@@ -366,9 +366,6 @@
     <ClCompile Include="sys\kern\uipc_syscalls.c">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="sys\amd64\amd64\in_cksum.c">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="sys\net\bpf.c">
       <Filter>Source Files</Filter>
     </ClCompile>
@@ -1372,6 +1369,12 @@
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="epoll\vos_epoll.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="sys\netinet\in_cksum.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="compat\user_in_cksum_machdep.c">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

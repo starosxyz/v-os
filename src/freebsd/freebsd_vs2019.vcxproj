@@ -515,16 +515,18 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;_DEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;__LP64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;_DEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <Optimization>Disabled</Optimization>
-      <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\include;.\api\;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\windows</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8</AdditionalOptions>
       <FunctionLevelLinking>
       </FunctionLevelLinking>
       <LanguageStandard_C>Default</LanguageStandard_C>
+      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -533,16 +535,18 @@
       <AdditionalLibraryDirectories>$(SolutionDir)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <ForceFileOutput>
       </ForceFileOutput>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
-      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;NDEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;__LP64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <PreprocessorDefinitions>SO_SHARED_LIBRARY;SO_COMPILE_LIBRARY;WIN32;NDEBUG;_USEDLL;_KERNEL;FSTACK;INET;INET6;CK_USE_CC_BUILTINS;__FreeBSD__;HAVE_KERNEL_OPTION_HEADERS;SCTP_SUPPORT;SCTP;__amd64__;VOS_KERNEL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <WarningLevel>Level3</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <AdditionalIncludeDirectories>.;..\include;.\api;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>.;..\include;.\api;.\epoll\;.\machine\;.\sys\contrib\ck\include;.\opt;.\include;.\sys\;.\machine\platform\windows</AdditionalIncludeDirectories>
       <AdditionalOptions>/utf-8</AdditionalOptions>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
     </ClCompile>
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -551,6 +555,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalLibraryDirectories>$(SolutionDir)libs\;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreAllDefaultLibraries>true</IgnoreAllDefaultLibraries>
     </Link>
   </ItemDefinitionGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
