@@ -1,9 +1,0 @@
-#ifndef OPT_GLOBAL_H
-#define OPT_GLOBAL_H
-#define MUTEX_NOINLINE 1
-#define RWLOCK_NOINLINE 1
-#define SX_NOINLINE 1
-#define DEV_RANDOM 1
-#define NO_EVENTTIMERS 1
-
-#endif/*OPT_GLOBAL_H*/
