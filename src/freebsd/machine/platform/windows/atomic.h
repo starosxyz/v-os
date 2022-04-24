@@ -114,6 +114,8 @@
 void atomic_##NAME##_##TYPE(volatile u_##TYPE *p, u_##TYPE v);	\
 void atomic_##NAME##_barr_##TYPE(volatile u_##TYPE *p, u_##TYPE v)
 
+void SetLoadLibrary();
+
 int	atomic_cmpset_char(volatile u_char* dst, u_char expect, u_char src);
 int	atomic_cmpset_short(volatile u_short* dst, u_short expect, u_short src);
 int	atomic_cmpset_int(volatile u_int* dst, u_int expect, u_int src);

@@ -1,595 +1,487 @@
-
 #include <sys/cdefs.h>
 #include <sys/types.h>
-#include <ck_atomic.h>
 #include <machine/atomic.h>
 #include "context.h"
-#define WIN32_LEAN_AND_MEAN
-#include <stddef.h>
-#include <stdint.h>
 #include <windows.h>
-#include <intrin.h>
 
-int
-atomic_testandset_long(volatile u_long* p, u_long v)
+HMODULE  g_hDll;
+typedef void (WINAPI* MY_FUNVOID)(void);
+typedef int (WINAPI* MY_FUNINT)(volatile u_int*);
+typedef int (WINAPI* MY_FUNLONG)(volatile u_long*);
+typedef int (WINAPI* MY_FUNINTINT)(volatile u_int*, u_int);
+typedef void (WINAPI* MY_FUNVOIDCHAR)(volatile u_char*, u_char);
+typedef u_int(WINAPI* MY_FUNUINTINT)(volatile u_int*, u_int);
+typedef int (WINAPI* MY_FUNINTLONG)(volatile u_long*, u_int);
+typedef void (WINAPI* MY_FUNVOIDINT)(volatile u_int*, u_int);
+typedef void (WINAPI* MY_FUNVOIDLONG)(volatile u_long*, u_int);
+typedef void (WINAPI* MY_FUNVOIDLONGLONG)(volatile u_long*, u_long);
+typedef u_long(WINAPI* MY_FUNLONGINT)(volatile u_int*, u_int);
+typedef u_long(WINAPI* MY_FUNLONGLONG)(volatile u_long*, u_int);
+typedef u_long(WINAPI* MY_FUNLONGLONGLONG)(volatile u_long*, u_long);
+typedef int	(WINAPI* MY_FUNINTTHRECHAR)(volatile u_char* , u_char , u_char );
+typedef int	(WINAPI* MY_FUNINTTHRECHARCHAR)(volatile u_char*, u_char*, u_char);
+typedef int	(WINAPI* MY_FUNINTTHRESHORT)(volatile u_short* , u_short , u_short );
+typedef int	(WINAPI* MY_FUNINTTHRESHORTSHORT)(volatile u_short*, u_short*, u_short);
+typedef int	(WINAPI* MY_FUNINTTHREINT)(volatile u_int*, u_int, u_int);
+typedef int	(WINAPI* MY_FUNINTTHREINTINT)(volatile u_int*, u_int*, u_int);
+typedef int	(WINAPI* MY_FUNINTTHRELONG)(volatile u_long*, u_long, u_long);
+typedef int	(WINAPI* MY_FUNINTTHRELONGLONG)(volatile u_long*, u_long*, u_long);
+
+
+void SetLoadLibrary()
 {
-	return _interlockedbittestandset64(p, (LONG64)v);
+	g_hDll = LoadLibrary("freebsdports.dll");
+}
+
+int	atomic_testandset_int(volatile u_int* p, u_int v)
+{
+	MY_FUNINTINT func;
+	if (g_hDll)
+		func = (MY_FUNINTINT)GetProcAddress(g_hDll, "atomic_testandset_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p,v);
+}
+int	atomic_testandclear_int(volatile u_int* p, u_int v)
+{
+	MY_FUNINTINT func;
+	if (g_hDll)
+		func = (MY_FUNINTINT)GetProcAddress(g_hDll, "atomic_testandclear_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
+}
+int atomic_testandset_long(volatile u_long *p, u_int v)
+{
+	MY_FUNINTLONG func;
+	if (g_hDll)
+		func = (MY_FUNINTLONG)GetProcAddress(g_hDll, "atomic_testandset_long");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
 
 
-int
-atomic_testandclear_long(volatile u_long* p, u_long v)
+int atomic_testandclear_long(volatile u_long *p, u_int v)
 {
-	return _interlockedbittestandreset64(p, (LONG64)v);
+	MY_FUNINTLONG func;
+	if (g_hDll)
+		func = (MY_FUNINTLONG)GetProcAddress(g_hDll, "atomic_testandclear_long");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
 void atomic_add_barr_int(volatile u_int* P, u_int V)
 {
-	InterlockedExchangeAddAcquire(P, V);
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_add_barr_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P,V);
 }
 void atomic_add_barr_long(volatile u_long* P, u_long V)
 {
-	InterlockedExchangeAddAcquire64(P, V);
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_add_barr_long");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 void atomic_set_int(volatile u_int* P, u_int V)
 {
-	InterlockedAnd(P, V);
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_set_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 void atomic_clear_int(volatile u_int* P, u_int V)
 {
-	InterlockedOr(P, ~V);
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_clear_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 
 void atomic_add_int(volatile u_int* P, u_int V) {
-	InterlockedExchangeAdd(P, V);
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_add_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 void atomic_subtract_int(volatile u_int* P, u_int V)
 {
-	InterlockedExchangeAdd(P, -((LONG)V));
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_subtract_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 void atomic_add_long(volatile u_long* P, u_long V) {
-	InterlockedExchangeAdd64(P, V);
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_add_long");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 void atomic_subtract_long(volatile u_long* P, u_long V)
 {
-	InterlockedExchangeAdd64(P, -((LONG64)V));
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_subtract_long");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P, V);
 }
 
 u_int atomic_fetchadd_int(volatile u_int* p, u_int v)
 {
-	return InterlockedExchangeAdd(p, v);
+	MY_FUNUINTINT func;
+	if (g_hDll)
+		func = (MY_FUNUINTINT)GetProcAddress(g_hDll, "atomic_fetchadd_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p,v);
 }
 u_long	atomic_fetchadd_long(volatile u_long* p, u_long v)
 {
-	return InterlockedExchangeAdd64(p, v);
+	MY_FUNLONGLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNLONGLONGLONG)GetProcAddress(g_hDll, "atomic_fetchadd_long");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
 
-u_int	atomic_fetchsub_int(volatile u_int* p, u_int v)
+u_int atomic_fetchsub_int(volatile u_int* p, u_int v)
 {
-	return InterlockedExchangeAdd(p, -((LONG)v));
+	MY_FUNUINTINT func;
+	if (g_hDll)
+		func = (MY_FUNUINTINT)GetProcAddress(g_hDll, "atomic_fetchsub_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
 u_long	atomic_fetchsub_long(volatile u_long* p, u_long v)
 {
-	return InterlockedExchangeAdd64(p, -((LONG64)v));
+	MY_FUNLONGLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNLONGLONGLONG)GetProcAddress(g_hDll, "atomic_fetchsub_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
 
 int	atomic_cmpset_char(volatile u_char* object, u_char expect, u_char desired)
 {
-	u_char oldvalue = _InterlockedCompareExchange8(object, desired, expect);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHRECHAR func;
+	if (g_hDll)
+		func = (MY_FUNINTTHRECHAR)GetProcAddress(g_hDll, "atomic_cmpset_char");
+	if (func == NULL)
 	{
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(object, expect, desired);
 }
 int	atomic_cmpset_short(volatile u_short* dst, u_short expect, u_short desired)
 {
-	u_short oldvalue = InterlockedCompareExchange16(dst, desired, expect);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHRESHORT func;
+	if (g_hDll)
+		func = (MY_FUNINTTHRESHORT)GetProcAddress(g_hDll, "atomic_cmpset_short");
+	if (func == NULL)
 	{
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(dst, expect, desired);
 }
 int	atomic_cmpset_int(volatile u_int* dst, u_int expect, u_int desired)
 {
-	u_int oldvalue = InterlockedCompareExchange(dst, desired, expect);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHREINT func;
+	if (g_hDll)
+		func = (MY_FUNINTTHREINT)GetProcAddress(g_hDll, "atomic_cmpset_int");
+	if (func == NULL)
 	{
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(dst, expect, desired);
 }
 int	atomic_cmpset_long(volatile u_long* dst, u_long expect, u_long desired)
 {
-	u_long oldvalue = InterlockedCompareExchange64(dst, desired, expect);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHRELONG func;
+	if (g_hDll)
+		func = (MY_FUNINTTHRELONG)GetProcAddress(g_hDll, "atomic_cmpset_long");
+	if (func == NULL)
 	{
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(dst, expect, desired);
 }
 int	atomic_fcmpset_char(volatile u_char* object, u_char* expected, u_char desired)
 {
-	u_char old = *expected;
-	u_char oldvalue = _InterlockedCompareExchange8(object, desired, old);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHRECHARCHAR func;
+	if (g_hDll)
+		func = (MY_FUNINTTHRECHARCHAR)GetProcAddress(g_hDll, "atomic_fcmpset_char");
+	if (func == NULL)
 	{
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(object, expected, desired);
 }
 int	atomic_fcmpset_short(volatile u_short* object, u_short* expected, u_short desired)
 {
-	u_short old = *expected;
-
-	u_short oldvalue = InterlockedCompareExchange16(object, desired, old);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHRESHORTSHORT func;
+	if (g_hDll)
+		func = (MY_FUNINTTHRESHORTSHORT)GetProcAddress(g_hDll, "atomic_fcmpset_short");
+	if (func == NULL)
 	{
-		*expected = *object;
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(object, expected, desired);
 }
 int	atomic_fcmpset_int(volatile u_int* object, u_int* expected, u_int desired)
 {
-	u_int old = *expected;
-
-	u_int oldvalue = InterlockedCompareExchange(object, desired, old);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHREINTINT func;
+	if (g_hDll)
+		func = (MY_FUNINTTHREINTINT)GetProcAddress(g_hDll, "atomic_fcmpset_int");
+	if (func == NULL)
 	{
-		*expected = *object;
-		return 0;
+		return -1;
 	}
-	else
-	{
-		return 1;
-	}
+	return func(object, expected, desired);
 }
 int	atomic_fcmpset_long(volatile u_long* object, u_long* expected, u_long desired)
 {
-	u_long old = *expected;
-
-	u_long oldvalue=InterlockedCompareExchange64(object, desired, old);
-
-	if (desired == oldvalue)
+	MY_FUNINTTHRELONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNINTTHRELONGLONG)GetProcAddress(g_hDll, "atomic_fcmpset_long");
+	if (func == NULL)
 	{
-		*expected = *object;
-		return 0;
+		return -1;
 	}
-	else
+	return func(object, expected, desired);
+}
+
+void atomic_thread_fence_acq(void)
+{
+	MY_FUNVOID func;
+	if (g_hDll)
+		func = (MY_FUNVOID)GetProcAddress(g_hDll, "atomic_thread_fence_acq");
+	if (func == NULL)
 	{
-		return 1;
+		return;
 	}
-
+	return func();
 }
 
-void
-atomic_thread_fence_acq(void)
+void atomic_thread_fence_rel(void)
 {
-
-	MemoryBarrier();
+	MY_FUNVOID func;
+	if (g_hDll)
+		func = (MY_FUNVOID)GetProcAddress(g_hDll, "atomic_thread_fence_acq");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func();
 }
 
-void
-atomic_thread_fence_rel(void)
+void atomic_thread_fence_acq_rel(void)
 {
-
-	MemoryBarrier();
+	MY_FUNVOID func;
+	if (g_hDll)
+		func = (MY_FUNVOID)GetProcAddress(g_hDll, "atomic_thread_fence_acq_rel");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func();
 }
 
-void
-atomic_thread_fence_acq_rel(void)
+void atomic_thread_fence_seq_cst(void)
 {
-	MemoryBarrier();
-
+	MY_FUNVOID func;
+	if (g_hDll)
+		func = (MY_FUNVOID)GetProcAddress(g_hDll, "atomic_thread_fence_seq_cst");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func();
 }
 
-void
-atomic_thread_fence_seq_cst(void)
+void atomic_store_rel_int(volatile u_int* p, u_int v)
 {
-
-	MemoryBarrier();
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_store_rel_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(p,v);
 }
-
-void
-atomic_store_rel_int(volatile u_int* p, u_int v)
+void atomic_store_rel_long(volatile u_long* p, u_long v)
 {
-	*(u_int*)(p) = v;
-	MemoryBarrier();
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_store_rel_long");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(p, v);
 }
-void
-atomic_store_rel_long(volatile u_long* p, u_long v)
+u_long atomic_load_acq_long(volatile u_long* p)
 {
-	*(u_long*)(p) = v;
-	MemoryBarrier();
+	MY_FUNLONG func;
+	if (g_hDll)
+		func = (MY_FUNLONG)GetProcAddress(g_hDll, "atomic_load_acq_long");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p);
 }
-u_long
-atomic_load_acq_long(volatile u_long* p)
+u_int atomic_load_acq_int(volatile u_int* p)
 {
-	MemoryBarrier();
-	return *(p);
-}
-u_int
-atomic_load_acq_int(volatile u_int* p)
-{
-	MemoryBarrier();
-	return *(p);
+	MY_FUNINT func;
+	if (g_hDll)
+		func = (MY_FUNINT)GetProcAddress(g_hDll, "atomic_load_acq_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p);
 }
 void atomic_subtract_barr_int(volatile u_int* p, u_int val)
 {
-	InterlockedExchangeAddAcquire((LONG*)p, -((LONG)val));
+	MY_FUNVOIDINT func;
+	if (g_hDll)
+		func = (MY_FUNVOIDINT)GetProcAddress(g_hDll, "atomic_subtract_barr_int");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(p,val);
 }
 
-u_int	atomic_swap_int(volatile u_int* p, u_int v)
+u_int atomic_swap_int(volatile u_int* p, u_int v)
 {
-	return InterlockedExchange(p, v);
+	MY_FUNINTINT func;
+	if (g_hDll)
+		func = (MY_FUNINTINT)GetProcAddress(g_hDll, "atomic_swap_int");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
 u_long	atomic_swap_long(volatile u_long* p, u_long v)
 {
-	return InterlockedExchange64(p, v);
+	MY_FUNLONGLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNLONGLONGLONG)GetProcAddress(g_hDll, "atomic_swap_long");
+	if (func == NULL)
+	{
+		return -1;
+	}
+	return func(p, v);
 }
-void
-atomic_set_long(volatile u_long* p, u_long v)
+void atomic_set_long(volatile u_long* p, u_long v)
 {
-	InterlockedOr64(p,v);
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_set_long");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(p, v);
 }
 void atomic_clear_long(volatile u_long* p, u_long v)
 {
-	InterlockedAnd64(p, ~(v));
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_clear_long");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(p, v);
 }
+
 void atomic_set_char(volatile u_char* P, u_char V)
 {
-	(*(u_char*)(P) |= (V));
-	MemoryBarrier();
+	MY_FUNVOIDCHAR func;
+	if (g_hDll)
+		func = (MY_FUNVOIDCHAR)GetProcAddress(g_hDll, "atomic_set_char");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P,V);
 }
+
 void atomic_clear_char(volatile u_char* P, u_char V)
 {
-	(*(u_char*)(P) &= ~(V));
-	MemoryBarrier();
+	MY_FUNVOIDCHAR func;
+	if (g_hDll)
+		func = (MY_FUNVOIDCHAR)GetProcAddress(g_hDll, "atomic_clear_char");
+	if (func == NULL)
+	{
+		return;
+	}
+	return func(P,V);
 }
 void atomic_subtract_barr_long(volatile u_long* p, u_long val)
 {
-	InterlockedExchangeAddAcquire64((LONG64*)p, -((LONG64)val));
-}
-#include <ck_atomic.h>
-#include "compat/context.h"
-#include "compat/win32_include.h"
-extern so_atomic_hooks global_atomic_hooks;
-
-
-char ck_atomi_sync_fetch_and_add_char(char* ptr, char value)
-{
-	return _InterlockedExchangeAdd8(ptr, value);
-}
-char ck_atomi_sync_fetch_and_sub_char(char* ptr, char value)
-{
-	return _InterlockedExchangeAdd8(ptr, -value);
-}
-char ck_atomi_sync_fetch_and_or_char(char* ptr, char value)
-{
-	return _InterlockedOr8(ptr, value);
-}
-char ck_atomi_sync_fetch_and_and_char(char* ptr, char value)
-{
-	return _InterlockedAnd8(ptr, value);
-}
-char ck_atomi_sync_fetch_and_xor_char(char* ptr, char value)
-{
-	return _InterlockedXor8(ptr, value);
-}
-
-bool ck_atomi_sync_bool_compare_and_swap_char(char* ptr, char compare, char set)
-{
-	u_char oldvalue = _InterlockedCompareExchange8(ptr, set, compare);
-
-	if (set == oldvalue)
+	MY_FUNVOIDLONGLONG func;
+	if (g_hDll)
+		func = (MY_FUNVOIDLONGLONG)GetProcAddress(g_hDll, "atomic_subtract_barr_long");
+	if (func == NULL)
 	{
-		return 0;
+		return;
 	}
-	else
-	{
-		return 1;
-	}
-}
-char ck_atomi_sync_val_compare_and_swap_char(char* ptr, char compare, char set)
-{
-	return _InterlockedCompareExchange8(ptr, set, compare);
-}
-
-unsigned int ck_atomi_sync_fetch_and_add_uint(unsigned int* ptr, unsigned int value)
-{
-	return _InterlockedExchangeAdd(ptr, value);
-}
-unsigned int ck_atomi_sync_fetch_and_sub_uint(unsigned int* ptr, unsigned int value)
-{
-	return _InterlockedExchangeAdd(ptr, -((LONG)value));
-}
-unsigned int ck_atomi_sync_fetch_and_or_uint(unsigned int* ptr, unsigned int value)
-{
-	return _InterlockedOr(ptr, value);
-}
-unsigned int ck_atomi_sync_fetch_and_and_uint(unsigned int* ptr, unsigned int value)
-{
-	return _InterlockedAnd(ptr, value);
-}
-unsigned int ck_atomi_sync_fetch_and_xor_uint(unsigned int* ptr, unsigned int value)
-{
-	return _InterlockedXor(ptr, value);
-}
-
-bool ck_atomi_sync_bool_compare_and_swap_uint(unsigned int* ptr, unsigned int compare, unsigned int set)
-{
-	unsigned int oldvalue = (unsigned int)_InterlockedCompareExchange(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-unsigned int ck_atomi_sync_val_compare_and_swap_uint(unsigned int* ptr, unsigned int compare, unsigned int set)
-{
-	return (unsigned int)_InterlockedCompareExchange(ptr, set, compare);
-}
-
-
-int ck_atomi_sync_fetch_and_add_int(int* ptr, int value)
-{
-	return _InterlockedExchangeAdd(ptr, value);
-}
-int ck_atomi_sync_fetch_and_sub_int(int* ptr, int value)
-{
-	return _InterlockedExchangeAdd(ptr, -((LONG)value));
-}
-int ck_atomi_sync_fetch_and_or_int(int* ptr, int value)
-{
-	return _InterlockedOr(ptr, value);
-}
-int ck_atomi_sync_fetch_and_and_int(int* ptr, int value)
-{
-	return _InterlockedAnd(ptr, value);
-}
-int ck_atomi_sync_fetch_and_xor_int(int* ptr, int value)
-{
-	return _InterlockedXor(ptr, value);
-}
-bool ck_atomi_sync_bool_compare_and_swap_int(int* ptr, int compare, int set)
-{
-	int oldvalue = (int)_InterlockedCompareExchange(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-
-int ck_atomi_sync_val_compare_and_swap_int(int* ptr, int compare, int set)
-{
-	return (int)_InterlockedCompareExchange(ptr, set, compare);
-}
-
-uint64_t ck_atomi_sync_fetch_and_add_64(uint64_t* ptr, uint64_t value)
-{
-	return (uint64_t)_InterlockedExchangeAdd64(ptr, value);
-}
-uint64_t ck_atomi_sync_fetch_and_sub_64(uint64_t* ptr, uint64_t value)
-{
-	return (uint64_t)_InterlockedExchangeAdd64(ptr, -((LONG64)value));
-}
-uint64_t ck_atomi_sync_fetch_and_or_64(uint64_t* ptr, uint64_t value)
-{
-	return _InterlockedOr64(ptr, value);
-}
-uint64_t ck_atomi_sync_fetch_and_and_64(uint64_t* ptr, uint64_t value)
-{
-	return _InterlockedAnd64(ptr, value);
-}
-uint64_t ck_atomi_sync_fetch_and_xor_64(uint64_t* ptr, uint64_t value)
-{
-	return _InterlockedXor64(ptr, value);
-}
-
-bool ck_atomi_sync_bool_compare_and_swap_64(uint64_t* ptr, uint64_t compare, uint64_t set)
-{
-	uint64_t oldvalue = (uint64_t)_InterlockedCompareExchange64(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-uint64_t ck_atomi_sync_val_compare_and_swap_64(uint64_t* ptr, uint64_t compare, uint64_t set)
-{
-	return (uint64_t)_InterlockedCompareExchange64(ptr, set, compare);
-}
-
-uint32_t ck_atomi_sync_fetch_and_add_32(uint32_t* ptr, uint32_t value)
-{
-	return (uint32_t)_InterlockedExchangeAdd(ptr, value);
-}
-uint32_t ck_atomi_sync_fetch_and_sub_32(uint32_t* ptr, uint32_t value)
-{
-	return (uint32_t)_InterlockedExchangeAdd(ptr, value);
-}
-uint32_t ck_atomi_sync_fetch_and_or_32(uint32_t* ptr, uint32_t value)
-{
-	return (uint32_t)_InterlockedOr(ptr, value);
-}
-uint32_t ck_atomi_sync_fetch_and_and_32(uint32_t* ptr, uint32_t value)
-{
-	return (uint32_t)_InterlockedAnd(ptr, value);
-}
-uint32_t ck_atomi_sync_fetch_and_xor_32(uint32_t* ptr, uint32_t value)
-{
-	return (uint32_t)_InterlockedXor(ptr, value);
-}
-
-bool ck_atomi_sync_bool_compare_and_swap_32(uint32_t* ptr, uint32_t compare, uint32_t set)
-{
-	uint32_t oldvalue = (uint32_t)_InterlockedCompareExchange(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-uint32_t ck_atomi_sync_val_compare_and_swap_32(uint32_t* ptr, uint32_t compare, uint32_t set)
-{
-	return (uint32_t)_InterlockedCompareExchange(ptr, set, compare);
-}
-uint16_t ck_atomi_sync_fetch_and_add_16(uint16_t* ptr, uint16_t value)
-{
-	return (uint16_t)_InterlockedExchangeAdd16(ptr, value);
-}
-uint16_t ck_atomi_sync_fetch_and_sub_16(uint16_t* ptr, uint16_t value)
-{
-	return (uint16_t)_InterlockedExchangeAdd16(ptr, -((short)value));
-}
-uint16_t ck_atomi_sync_fetch_and_or_16(uint16_t* ptr, uint16_t value)
-{
-	return (uint16_t)_InterlockedOr16(ptr, value);
-}
-uint16_t ck_atomi_sync_fetch_and_and_16(uint16_t* ptr, uint16_t value)
-{
-	return (uint16_t)_InterlockedAnd16(ptr, value);
-}
-uint16_t ck_atomi_sync_fetch_and_xor_16(uint16_t* ptr, uint16_t value)
-{
-	return (uint16_t)_InterlockedXor16(ptr, value);
-}
-
-bool ck_atomi_sync_bool_compare_and_swap_16(uint16_t* ptr, uint16_t compare, uint16_t set)
-{
-	uint16_t oldvalue = (uint16_t)_InterlockedCompareExchange16(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-uint16_t ck_atomi_sync_val_compare_and_swap_16(uint16_t* ptr, uint16_t compare, uint16_t set)
-{
-	return (uint16_t)_InterlockedCompareExchange16(ptr, set, compare);
-}
-
-
-uint8_t ck_atomi_sync_fetch_and_add_8(uint8_t* ptr, uint8_t value)
-{
-	return (uint8_t)_InterlockedExchangeAdd8(ptr, value);
-}
-uint8_t ck_atomi_sync_fetch_and_sub_8(uint8_t* ptr, uint8_t value)
-{
-	return (uint8_t)_InterlockedExchangeAdd8(ptr, -((char)value));
-}
-uint8_t ck_atomi_sync_fetch_and_or_8(uint8_t* ptr, uint8_t value)
-{
-	return (uint8_t)_InterlockedOr8(ptr, value);
-}
-uint8_t ck_atomi_sync_fetch_and_and_8(uint8_t* ptr, uint8_t value)
-{
-	return (uint8_t)_InterlockedAnd8(ptr, value);
-}
-uint8_t ck_atomi_sync_fetch_and_xor_8(uint8_t* ptr, uint8_t value)
-{
-	return (uint8_t)_InterlockedXor8(ptr, value);
-}
-
-bool ck_atomi_sync_bool_compare_and_swap_8(uint8_t* ptr, uint8_t compare, uint8_t set)
-{
-	uint8_t oldvalue = (uint8_t)_InterlockedCompareExchange8(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-uint8_t ck_atomi_sync_val_compare_and_swap_8(uint8_t* ptr, uint8_t compare, uint8_t set)
-{
-	return (uint8_t)_InterlockedCompareExchange8(ptr, set, compare);
-}
-void* ck_atomi_sync_fetch_and_add_ptr(void* ptr, void* value)
-{
-	return (void*)_InterlockedExchangeAdd64(ptr, (LONG64)value);
-}
-void* ck_atomi_sync_fetch_and_sub_ptr(void* ptr, void* value)
-{
-	return (void*)_InterlockedExchangeAdd64(ptr, -((LONG64)value));
-}
-void* ck_atomi_sync_fetch_and_or_ptr(void* ptr, void* value)
-{
-	return NULL;
-}
-void* ck_atomi_sync_fetch_and_and_ptr(void* ptr, void* value)
-{
-	return NULL;
-}
-void* ck_atomi_sync_fetch_and_xor_ptr(void* ptr, void* value)
-{
-	return NULL;
-}
-bool ck_atomi_sync_bool_compare_and_swap_ptr(void* ptr, void* compare, void* set)
-{
-	void* oldvalue = (void*)InterlockedCompareExchangePointer(ptr, set, compare);
-
-	if (set == oldvalue)
-	{
-		return 0;
-	}
-	else
-	{
-		return 1;
-	}
-}
-
-void* ck_atomi_sync_val_compare_and_swap_ptr(void* ptr, void* compare, void* set)
-{
-	return NULL;
+	return func(p,val);
 }
